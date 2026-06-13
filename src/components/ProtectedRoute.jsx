@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 const ROLE_HOME = {
   customer:    '/customer/submit',
   admin:       '/admin/dashboard',
-  maintenance: '/maintenance/tasks',
+  maintenance_personnel: '/maintenance/tasks',
 }
 
 export default function ProtectedRoute({ children, allowedRoles }) {

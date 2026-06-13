@@ -42,7 +42,7 @@ export default function App() {
           </ProtectedRoute>
         }/>
         <Route path="/maintenance/tasks" element={
-          <ProtectedRoute allowedRoles={['maintenance']}>
+          <ProtectedRoute allowedRoles={['maintenance_personnel']}>
             <AppLayout><MaintenanceTasksPage /></AppLayout>
           </ProtectedRoute>
         }/>

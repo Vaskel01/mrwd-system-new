@@ -12,7 +12,7 @@ export function StatusBadge({ status }) {
     pending:     'badge-pending',
     in_progress: 'badge-in_progress',
     completed:   'badge-completed',
-    rejected:    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700',
+    rejected:    'inline-flex items-center px-2.5 py-0.5  text-xs font-semibold bg-red-100 text-red-700',
   }
   const labels = {
     pending:     'Pending',

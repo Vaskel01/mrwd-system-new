@@ -2,20 +2,39 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
 
+// Landing
+import LandingPage from './pages/LandingPage'
+
+// Auth
 import LoginPage from './pages/auth/LoginPage'
+
+// Customer
 import SubmitComplaintPage from './pages/customer/SubmitComplaintPage'
 import MyComplaintsPage from './pages/customer/MyComplaintsPage'
+import BillingPage from './pages/customer/BillingPage'
+
+// Admin
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AllComplaintsPage from './pages/admin/AllComplaintsPage'
 import AssignTaskPage from './pages/admin/AssignTaskPage'
+import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage'
+
+// Maintenance
 import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
+
+// Shared
+import AnnouncementsPage from './pages/shared/AnnouncementsPage'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        {/* ── Public ── */}
+        <Route path="/"      element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
+        {/* ── Customer ── */}
         <Route path="/customer/submit" element={
           <ProtectedRoute allowedRoles={['customer']}>
             <AppLayout><SubmitComplaintPage /></AppLayout>
@@ -26,6 +45,18 @@ export default function App() {
             <AppLayout><MyComplaintsPage /></AppLayout>
           </ProtectedRoute>
         }/>
+        <Route path="/customer/billing" element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <AppLayout><BillingPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/customer/announcements" element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <AppLayout><AnnouncementsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+
+        {/* ── Admin ── */}
         <Route path="/admin/dashboard" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AppLayout><AdminDashboard /></AppLayout>
@@ -41,13 +72,25 @@ export default function App() {
             <AppLayout><AssignTaskPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/maintenance/tasks" element={
-          <ProtectedRoute allowedRoles={['maintenance_personnel']}>
-            <AppLayout><MaintenanceTasksPage /></AppLayout>
+        <Route path="/admin/announcements" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AppLayout><AdminAnnouncementsPage /></AppLayout>
           </ProtectedRoute>
         }/>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* ── Maintenance ── */}
+        <Route path="/maintenance/tasks" element={
+          <ProtectedRoute allowedRoles={['maintenance']}>
+            <AppLayout><MaintenanceTasksPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/maintenance/announcements" element={
+          <ProtectedRoute allowedRoles={['maintenance']}>
+            <AppLayout><AnnouncementsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

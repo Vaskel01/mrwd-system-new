@@ -31,7 +31,7 @@ export default function AllComplaintsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">All Complaints</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">All Complaints</h1>
         <p className="text-gray-500 text-sm mt-0.5">Sorted by priority score (highest first)</p>
       </div>
 

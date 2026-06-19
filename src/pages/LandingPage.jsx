@@ -1,0 +1,361 @@
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
+
+// ── SVG Wave Divider ──────────────────────────────────────────
+function Wave({ fill = '#ffffff', flip = false }) {
+  return (
+    <div className={`w-full overflow-hidden leading-none ${flip ? 'rotate-180' : ''}`} style={{ marginBottom: '-2px' }}>
+      <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-16 md:h-20">
+        <path
+          d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z"
+          fill={fill}
+        />
+      </svg>
+    </div>
+  )
+}
+
+// ── Step Card ─────────────────────────────────────────────────
+function StepCard({ number, icon, title, description }) {
+  return (
+    <div className="flex flex-col items-center text-center px-6">
+      <div className="relative mb-5">
+        <div className="w-16 h-16  bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/30 text-3xl">
+          {icon}
+        </div>
+        <span className="absolute -top-2 -right-2 w-6 h-6  bg-amber-400 text-navy text-xs font-black flex items-center justify-center">
+          {number}
+        </span>
+      </div>
+      <h3 className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
+      <p className="text-gray-500 text-sm leading-relaxed max-w-[200px]">{description}</p>
+    </div>
+  )
+}
+
+// ── Role Card ─────────────────────────────────────────────────
+function RoleCard({ icon, role, color, bgColor, description, features }) {
+  return (
+    <div className={` p-6 border-2 ${bgColor} flex flex-col gap-4`}>
+      <div className="flex items-center gap-3">
+        <div className={`w-12 h-12  flex items-center justify-center text-2xl ${color}`}>
+          {icon}
+        </div>
+        <h3 className="font-display font-bold text-gray-900 text-lg">{role}</h3>
+      </div>
+      <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
+      <ul className="space-y-2">
+        {features.map((f, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+            <svg className="w-4 h-4 text-brand-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+            </svg>
+            {f}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// ── Feature Pill ──────────────────────────────────────────────
+function FeaturePill({ icon, label }) {
+  return (
+    <div className="flex items-center gap-2.5 bg-white  px-4 py-3 shadow-sm border border-gray-100">
+      <span className="text-xl">{icon}</span>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </div>
+  )
+}
+
+// ── Main Landing Page ─────────────────────────────────────────
+export default function LandingPage() {
+  const navigate = useNavigate()
+  const user     = useAuthStore(s => s.user)
+
+  const ROLE_HOME = {
+    customer:    '/customer/submit',
+    admin:       '/admin/dashboard',
+    maintenance: '/maintenance/tasks',
+  }
+
+  const handleCTA = () => {
+    if (user) navigate(ROLE_HOME[user.role] || '/login')
+    else navigate('/login')
+  }
+
+  return (
+    <div className="min-h-screen font-sans bg-white">
+
+      {/* ── Navbar ── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-navy/95 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8  bg-slate-500 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
+              </svg>
+            </div>
+            <div>
+              <span className="font-display font-bold text-white text-sm leading-none block">Water District</span>
+              <span className="text-blue-200 text-xs">Complaint Management</span>
+            </div>
+          </div>
+          <button
+            onClick={handleCTA}
+            className="bg-brand-600 hover:bg-slate-500 text-white text-sm font-semibold px-5 py-2  transition-colors"
+          >
+            {user ? 'Go to Dashboard' : 'Sign In'}
+          </button>
+        </div>
+      </nav>
+
+      {/* ── Hero ── */}
+      <section className="bg-navy pt-24 sm:pt-32 pb-4 px-5 relative overflow-hidden">
+
+        {/* Background glow blobs */}
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-brand-600/20  blur-3xl pointer-events-none" />
+        <div className="absolute top-10 right-1/4 w-64 h-64 bg-blue-400/10  blur-2xl pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto text-center relative">
+
+          {/* Eyebrow */}
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20  px-4 py-1.5 mb-8">
+            <span className="w-2 h-2  bg-green-400 animate-pulse" />
+            <span className="text-blue-200 text-xs font-medium tracking-wide">Calinog Water District — Online Services</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="font-display font-extrabold text-white text-5xl md:text-6xl leading-tight mb-6">
+            Report Water
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
+              Problems Easily.
+            </span>
+          </h1>
+
+          <p className="text-blue-200 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
+            Submit your water complaints online in just a few steps.
+            No need to go to the office — track your concern from home.
+          </p>
+
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-14">
+            <button
+              onClick={handleCTA}
+              className="bg-brand-600 hover:bg-slate-500 active:bg-brand-700 text-white font-display font-bold text-lg px-8 py-4  transition-all shadow-lg shadow-brand-600/40 hover:shadow-brand-500/50 hover:scale-105 w-full sm:w-auto"
+            >
+              Submit a Complaint
+            </button>
+            <button
+              onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })}
+              className="bg-white/10 hover:bg-white/20 text-white font-semibold text-base px-8 py-4  transition-colors border border-white/20 w-full sm:w-auto"
+            >
+              How It Works ↓
+            </button>
+          </div>
+
+          {/* Floating stat cards */}
+          <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto mb-8">
+            {[
+              { number: '3',       label: 'Easy Steps' },
+              { number: '24/7',    label: 'Available' },
+              { number: '100%',    label: 'Free to Use' },
+            ].map(s => (
+              <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20  py-3 px-2">
+                <div className="font-display font-extrabold text-white text-2xl">{s.number}</div>
+                <div className="text-blue-200 text-xs font-medium">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+
+        {/* Animated water droplets decoration */}
+        <div className="absolute bottom-24 left-8 text-white/10 text-7xl select-none animate-float" style={{ animationDelay: '0s' }}>💧</div>
+        <div className="absolute bottom-32 right-12 text-white/10 text-5xl select-none animate-float" style={{ animationDelay: '2s' }}>💧</div>
+
+      </section>
+
+      {/* Wave divider */}
+      <Wave fill="#ffffff" />
+
+      {/* ── How It Works ── */}
+      <section id="how-it-works" className="bg-white py-20 px-5">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">Simple Process</span>
+            <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
+              How It Works
+            </h2>
+            <p className="text-gray-500 mt-3 text-lg max-w-lg mx-auto">
+              Three easy steps and your complaint is on its way to being resolved.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative">
+            {/* Connector line */}
+            <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-gradient-to-r from-brand-200 via-brand-400 to-brand-200" />
+
+            <StepCard number="1" icon="🔐" title="Sign In"
+              description="Log in with your account. Don't have one? Contact your Water District office." />
+            <StepCard number="2" icon="📝" title="Report the Problem"
+              description="Fill in a short form. Describe the issue, add your location, and attach a photo if you have one." />
+            <StepCard number="3" icon="✅" title="We Handle It"
+              description="Your complaint is automatically scored by urgency and assigned to our maintenance team." />
+          </div>
+        </div>
+      </section>
+
+      {/* Wave divider */}
+      <div className="bg-white"><Wave fill="#EFF6FF" /></div>
+
+      {/* ── Who Is This For ── */}
+      <section className="bg-blue-50 py-20 px-5">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">Built For Everyone</span>
+            <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
+              One System, Three Roles
+            </h2>
+            <p className="text-gray-500 mt-3 text-lg max-w-lg mx-auto">
+              Whether you're a resident, a staff member, or a manager — this system has a place for you.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <RoleCard
+              icon="👤"
+              role="Customer"
+              color="bg-blue-100"
+              bgColor="border-blue-200 bg-white"
+              description="Residents and consumers of the Water District who want to report a problem or check their billing."
+              features={[
+                'Submit water complaints',
+                'Track complaint status',
+                'View billing statements',
+                'Read announcements',
+              ]}
+            />
+            <RoleCard
+              icon="👨‍💼"
+              role="Admin"
+              color="bg-purple-100"
+              bgColor="border-purple-200 bg-white"
+              description="Water District staff who manage incoming complaints, assign tasks, and post official announcements."
+              features={[
+                'View all complaints',
+                'See priority scores',
+                'Assign to maintenance',
+                'Post announcements',
+              ]}
+            />
+            <RoleCard
+              icon="🔧"
+              role="Maintenance"
+              color="bg-green-100"
+              bgColor="border-green-200 bg-white"
+              description="Field personnel who receive assigned tasks and update the status of each complaint as they work."
+              features={[
+                'View assigned tasks',
+                'See location details',
+                'Update task status',
+                'Read announcements',
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Wave divider */}
+      <div className="bg-blue-50"><Wave fill="#ffffff" /></div>
+
+      {/* ── Features ── */}
+      <section className="bg-white py-20 px-5">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">What You Get</span>
+            <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
+              Everything You Need
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <FeaturePill icon="⚡" label="Auto Priority Scoring" />
+            <FeaturePill icon="📸" label="Photo Attachments" />
+            <FeaturePill icon="📍" label="Location Tracking" />
+            <FeaturePill icon="🔔" label="Status Updates" />
+            <FeaturePill icon="📊" label="Admin Dashboard" />
+            <FeaturePill icon="💧" label="Billing Statements" />
+            <FeaturePill icon="📢" label="Announcements" />
+            <FeaturePill icon="🔒" label="Secure Login" />
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ── */}
+      <section className="px-5 pb-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-navy  px-8 py-10 sm:py-14 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-navy-dark/60 to-navy-dark pointer-events-none" />
+            <div className="absolute -top-10 -right-10 w-60 h-60 bg-slate-500/20  blur-3xl pointer-events-none" />
+            <div className="relative">
+              <h2 className="font-display font-extrabold text-white text-4xl mb-4">
+                Have a water problem?
+              </h2>
+              <p className="text-blue-200 text-lg mb-8 max-w-lg mx-auto">
+                Don't wait in line. Report it online and we'll take care of it as fast as possible.
+              </p>
+              <button
+                onClick={handleCTA}
+                className="inline-flex items-center gap-2 bg-white text-navy font-display font-extrabold text-lg px-10 py-4  hover:bg-blue-50 transition-colors shadow-xl hover:scale-105 active:scale-100 transition-transform"
+              >
+                Report Now
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="bg-navy border-t border-white/10 py-10 px-5">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9  bg-brand-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-display font-bold text-white text-sm">Calinog Water District</p>
+                <p className="text-blue-200 text-xs">Complaint Management System</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-blue-200 text-sm">📞 Hotline: <span className="text-white font-medium">(033) 123-4567</span></p>
+              <p className="text-blue-400 text-xs">Mon – Fri · 8:00 AM – 5:00 PM</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button onClick={handleCTA}
+                className="bg-brand-600 hover:bg-slate-500 text-white text-sm font-semibold px-5 py-2.5  transition-colors">
+                {user ? 'Go to Dashboard' : 'Sign In'}
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 mt-8 pt-6 text-center">
+            <p className="text-blue-400 text-xs">
+              © 2025 Calinog Water District · All rights reserved
+            </p>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  )
+}

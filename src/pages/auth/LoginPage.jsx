@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,19 +8,36 @@ import { useAuthStore } from '../../store/authStore'
 const ROLE_HOME = {
   customer:    '/customer/submit',
   admin:       '/admin/dashboard',
-  maintenance_personnel: '/maintenance/tasks',
+  maintenance: '/maintenance/tasks',
 }
 
 const schema = z.object({
-  email:    z.string().email('Enter a valid email'),
+  email:    z.string().email('Enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
+function LeafPattern() {
+  return (
+    <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+      {[
+        [60,  80,  40], [180, 140, 55], [80,  260, 35],
+        [300, 80,  45], [240, 220, 50], [140, 380, 40],
+        [320, 340, 38], [60,  460, 52], [260, 480, 43],
+        [180, 540, 36], [340, 540, 47],
+      ].map(([cx, cy, r], i) => (
+        <ellipse key={i} cx={cx} cy={cy} rx={r * 0.6} ry={r} fill="white"
+          transform={`rotate(${i * 30} ${cx} ${cy})`} />
+      ))}
+    </svg>
+  )
+}
+
 export default function LoginPage() {
-  const navigate    = useNavigate()
-  const signIn      = useAuthStore(s => s.signIn)
-  const loading     = useAuthStore(s => s.loading)
+  const navigate = useNavigate()
+  const signIn   = useAuthStore(s => s.signIn)
+  const loading  = useAuthStore(s => s.loading)
   const [error, setError] = useState('')
+  const [showPass, setShowPass] = useState(false)
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -30,96 +47,196 @@ export default function LoginPage() {
     setError('')
     try {
       const user = await signIn(email, password)
-      navigate(ROLE_HOME[user.role] || '/login', { replace: true })
+      navigate(ROLE_HOME[user.role] || '/', { replace: true })
     } catch (err) {
       setError(err.message)
     }
   }
 
   const fillDemo = (role) => {
-    const creds = {
-      customer:    { email: 'customer@demo.com',    password: 'demo1234' },
-      admin:       { email: 'admin@demo.com',        password: 'demo1234' },
-      maintenance: { email: 'maintenance@demo.com',  password: 'demo1234' },
+    const map = {
+      customer:    { email: 'customer@demo.com',   password: 'demo1234' },
+      admin:       { email: 'admin@demo.com',       password: 'demo1234' },
+      maintenance: { email: 'maintenance@demo.com', password: 'demo1234' },
     }
-    setValue('email', creds[role].email)
-    setValue('password', creds[role].password)
+    setValue('email', map[role].email)
+    setValue('password', map[role].password)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex font-sans">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 rounded-2xl mb-4 backdrop-blur-sm">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      {/* ── Left panel ── */}
+      <div className="hidden lg:flex lg:w-[52%] bg-gradient-to-br from-navy-dark to-navy relative overflow-hidden flex-col justify-between p-12">
+        <LeafPattern />
+
+        {/* Logo */}
+        <Link to="/" className="relative flex items-center gap-3 group">
+          <div className="w-10 h-10 bg-white/20  flex items-center justify-center backdrop-blur-sm">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">Complaint Management</h1>
-          <p className="text-blue-200 text-sm mt-1">Water District Services</p>
-        </div>
+          <div>
+            <p className="text-white font-display font-bold text-sm leading-none">Water District CMS</p>
+            <p className="text-blue-300 text-xs mt-0.5">Calinog, Iloilo</p>
+          </div>
+        </Link>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-6">Enter your credentials to continue</p>
-
-          {error && (
-            <div className="mb-5 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-              </svg>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
-              <input type="email" placeholder="you@example.com" autoComplete="email"
-                {...register('email')}
-                className={`input-field ${errors.email ? 'input-error' : ''}`}
-              />
-              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <input type="password" placeholder="••••••••" autoComplete="current-password"
-                {...register('password')}
-                className={`input-field ${errors.password ? 'input-error' : ''}`}
-              />
-              {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
-            </div>
-
-            <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Signing in...</>
-              ) : 'Sign in'}
-            </button>
-          </form>
-
-          <p className="text-xs text-gray-400 text-center mt-5">
-            Access is role-based. Contact your admin for an account.
+        {/* Center content */}
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm  px-4 py-1.5 mb-6">
+            <span className="w-2 h-2  bg-blue-300 animate-pulse" />
+            <span className="text-blue-300 text-xs font-medium">System is online</span>
+          </div>
+          <h1 className="font-display font-extrabold text-white text-5xl leading-tight mb-5">
+            Your water<br/>
+            concerns<br/>
+            <span className="text-blue-300">matter.</span>
+          </h1>
+          <p className="text-blue-300 text-lg leading-relaxed max-w-sm">
+            Report problems, track your complaint status, and stay informed — all in one place.
           </p>
-        </div>
 
-        {/* Demo quick-fill */}
-        <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
-          <p className="text-xs text-blue-200 font-semibold text-center mb-3">Quick fill demo accounts</p>
-          <div className="grid grid-cols-3 gap-2">
-            {['customer', 'admin', 'maintenance'].map(role => (
-              <button key={role} onClick={() => fillDemo(role)}
-                className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium py-2 px-3 rounded-lg transition-colors capitalize">
-                {role}
-              </button>
+          {/* Feature list */}
+          <div className="mt-8 space-y-3">
+            {[
+              { icon: '📝', text: 'Submit complaints in minutes' },
+              { icon: '⚡', text: 'Auto priority scoring system' },
+              { icon: '📢', text: 'Real-time announcements' },
+              { icon: '💧', text: 'View your billing statement' },
+            ].map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-8 h-8  bg-white/15 flex items-center justify-center text-sm shrink-0">
+                  {f.icon}
+                </div>
+                <span className="text-blue-300 text-sm font-medium">{f.text}</span>
+              </div>
             ))}
           </div>
         </div>
 
+        {/* Bottom quote */}
+        <div className="relative bg-white/10 backdrop-blur-sm  p-5 border border-white/20">
+          <p className="text-white/90 text-sm italic leading-relaxed">
+            "We built this system so every resident can easily reach us — no more long lines, no more lost reports."
+          </p>
+          <p className="text-blue-300 text-xs font-semibold mt-2">— Water District Administration</p>
+        </div>
+      </div>
+
+      {/* ── Right panel (form) ── */}
+      <div className="flex-1 flex items-center justify-center px-5 py-10 bg-slate-50">
+        <div className="w-full w-full max-w-md">
+
+          {/* Mobile logo */}
+          <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
+            <div className="w-8 h-8 bg-brand-600  flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
+              </svg>
+            </div>
+            <span className="font-display font-bold text-gray-900 text-sm">Water District CMS</span>
+          </Link>
+
+          {/* Heading */}
+          <div className="mb-8">
+            <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Welcome back! 👋</h2>
+            <p className="text-gray-500 text-base">Sign in to your account to continue.</p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200  px-4 py-3.5">
+              <div className="w-8 h-8 bg-red-100  flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                </svg>
+              </div>
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
+                  </svg>
+                </span>
+                <input type="email" placeholder="you@example.com" autoComplete="email"
+                  {...register('email')}
+                  className={`input-field pl-10 ${errors.email ? 'input-error' : ''}`}
+                />
+              </div>
+              {errors.email && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.email.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                </span>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  {...register('password')}
+                  className={`input-field pl-10 pr-11 ${errors.password ? 'input-error' : ''}`}
+                />
+                <button type="button" onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  {showPass
+                    ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  }
+                </button>
+              </div>
+              {errors.password && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.password.message}</p>}
+            </div>
+
+            <button type="submit" disabled={loading}
+              className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-base  mt-2">
+              {loading
+                ? <><div className="w-5 h-5 border-2 border-white border-t-transparent  animate-spin"/>Signing in...</>
+                : 'Sign In'
+              }
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-gray-400 text-xs font-medium">Quick demo access</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Demo role buttons */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { role: 'customer',    label: 'Customer',    icon: '👤', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+              { role: 'admin',       label: 'Admin',       icon: '👨‍💼', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+              { role: 'maintenance', label: 'Maintenance', icon: '🔧', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
+            ].map(({ role, label, icon, color }) => (
+              <button key={role} onClick={() => fillDemo(role)}
+                className={`flex flex-col items-center gap-1 py-3 px-2  border text-xs font-semibold transition-colors ${color}`}>
+                <span className="text-xl">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-center text-xs text-gray-400 mt-6">
+            Need an account? Contact the Water District office.
+          </p>
+
+        </div>
       </div>
     </div>
   )

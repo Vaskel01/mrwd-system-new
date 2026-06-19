@@ -75,6 +75,98 @@ export const MOCK_COMPLAINTS = [
 
 export const MAINTENANCE_STAFF = MOCK_USERS.filter(u => u.role === 'maintenance')
 
+// ─────────────────────────────────────────────
+// MOCK ANNOUNCEMENTS
+// ─────────────────────────────────────────────
+export const MOCK_ANNOUNCEMENTS = [
+  {
+    id: 'a1',
+    title: 'Scheduled Water Interruption – June 15',
+    content: 'Please be informed that there will be a scheduled water interruption on June 15, 2025 from 8:00 AM to 5:00 PM in Barangays San Jose, Poblacion, and Agboy Norte due to pipe replacement works. Please store enough water before the said date. We apologize for the inconvenience.',
+    category: 'interruption',
+    created_by: 'Maria Santos',
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'a2',
+    title: 'Office Hours Reminder',
+    content: 'The Water District office is open Monday to Friday, 8:00 AM – 5:00 PM. For urgent concerns outside office hours, please call our 24/7 hotline at (033) 123-4567.',
+    category: 'general',
+    created_by: 'Maria Santos',
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'a3',
+    title: 'Water Rate Adjustment Effective July 2025',
+    content: 'In compliance with the approved resolution, water rates will be adjusted starting July 1, 2025. The new minimum charge for residential consumers is ₱180.00 for the first 10 cubic meters. Please visit our office or website for the full rate schedule.',
+    category: 'billing',
+    created_by: 'Maria Santos',
+    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+]
+
+export const ANNOUNCEMENT_CATEGORIES = [
+  { value: 'general',      label: 'General',       color: 'bg-blue-100 text-blue-700' },
+  { value: 'interruption', label: 'Interruption',  color: 'bg-red-100 text-red-700' },
+  { value: 'billing',      label: 'Billing',       color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'maintenance',  label: 'Maintenance',   color: 'bg-purple-100 text-purple-700' },
+  { value: 'advisory',     label: 'Advisory',      color: 'bg-green-100 text-green-700' },
+]
+
+// ─────────────────────────────────────────────
+// MOCK BILLING STATEMENTS
+// ─────────────────────────────────────────────
+export const MOCK_BILLING = [
+  {
+    id: 'b1',
+    customer_id: 'u1',
+    billing_period: 'May 2025',
+    previous_reading: 120,
+    current_reading:  138,
+    consumption:      18,
+    amount_due:       320.50,
+    due_date:         '2025-06-15',
+    status:           'unpaid',
+    issued_at:        new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'b2',
+    customer_id: 'u1',
+    billing_period: 'April 2025',
+    previous_reading: 103,
+    current_reading:  120,
+    consumption:      17,
+    amount_due:       298.00,
+    due_date:         '2025-05-15',
+    status:           'paid',
+    issued_at:        new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'b3',
+    customer_id: 'u1',
+    billing_period: 'March 2025',
+    previous_reading: 88,
+    current_reading:  103,
+    consumption:      15,
+    amount_due:       265.00,
+    due_date:         '2025-04-15',
+    status:           'paid',
+    issued_at:        new Date(Date.now() - 70 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'b4',
+    customer_id: 'u1',
+    billing_period: 'February 2025',
+    previous_reading: 71,
+    current_reading:  88,
+    consumption:      17,
+    amount_due:       298.00,
+    due_date:         '2025-03-15',
+    status:           'paid',
+    issued_at:        new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+]
+
 export const COMPLAINT_TYPES = [
   'Water Interruption',
   'Water Leak',

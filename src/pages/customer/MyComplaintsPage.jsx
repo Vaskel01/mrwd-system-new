@@ -18,7 +18,7 @@ export default function MyComplaintsPage() {
   if (complaints.length === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Complaints</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">My Complaints</h1>
         <div className="card p-12 text-center">
           <div className="text-4xl mb-3">📋</div>
           <p className="text-gray-500 font-medium">No complaints submitted yet.</p>
@@ -32,7 +32,7 @@ export default function MyComplaintsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Complaints</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Complaints</h1>
           <p className="text-gray-500 text-sm mt-0.5">{complaints.length} complaint{complaints.length !== 1 ? 's' : ''} submitted</p>
         </div>
       </div>

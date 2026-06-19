@@ -35,7 +35,7 @@ export default function MaintenanceTasksPage() {
   if (myTasks.length === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Tasks</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">My Tasks</h1>
         <div className="card p-12 text-center">
           <div className="text-4xl mb-3">🔧</div>
           <p className="text-gray-500 font-medium">No tasks assigned yet.</p>
@@ -51,12 +51,12 @@ export default function MaintenanceTasksPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Tasks</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Tasks</h1>
         <p className="text-gray-500 text-sm mt-0.5">{active.length} active · {completed.length} completed</p>
       </div>
 
       {toast && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-lg">
+        <div className="mb-4 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 ">
           ✅ {toast}
         </div>
       )}
@@ -99,7 +99,7 @@ export default function MaintenanceTasksPage() {
                     <button
                       key={s}
                       onClick={() => handleStatus(t.id, s)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      className={`px-3 py-1  text-xs font-medium border transition-colors ${
                         t.status === s
                           ? 'bg-brand-600 text-white border-brand-600'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-brand-400 hover:text-brand-600'

@@ -3,152 +3,298 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { MAINTENANCE_STAFF } from '../../mock/data'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+const PRIORITY_STRIPE = {
+  high:   'border-l-red-500',
+  medium: 'border-l-amber-400',
+  low:    'border-l-green-400',
+}
+
 export default function AssignTaskPage() {
-  const complaints     = useComplaintStore(s => s.complaints)
+  const complaints      = useComplaintStore(s => s.complaints)
   const assignComplaint = useComplaintStore(s => s.assignComplaint)
-  const updateStatus   = useComplaintStore(s => s.updateStatus)
+  const updateStatus    = useComplaintStore(s => s.updateStatus)
 
-  const [selected, setSelected]         = useState(null)
+  const [selectedId, setSelectedId]       = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
-  const [assigning, setAssigning]       = useState(false)
-  const [toast, setToast]               = useState('')
+  const [assigning, setAssigning]         = useState(false)
+  const [toast, setToast]                 = useState({ msg: '', type: 'success' })
+  const [assignedTab, setAssignedTab]     = useState('active')
 
-  const unassigned = complaints.filter(c => !c.assigned_to && c.status === 'pending')
-  const assigned   = complaints.filter(c => c.assigned_to)
+  // Unassigned = no staff, not yet finished
+  const unassigned = complaints
+    .filter(c => !c.assigned_to && c.status !== 'completed' && c.status !== 'rejected')
+    .sort((a, b) => b.priority_score - a.priority_score)
 
-  const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
+  // Assigned = has a staff member attached
+  const assignedAll    = complaints.filter(c => c.assigned_to).sort((a, b) => b.priority_score - a.priority_score)
+  const assignedActive = assignedAll.filter(c => c.status !== 'completed' && c.status !== 'rejected')
+  const assignedDone   = assignedAll.filter(c => c.status === 'completed' || c.status === 'rejected')
+
+  const selectedComplaint = unassigned.find(c => c.id === selectedId) || null
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast({ msg: '', type: 'success' }), 3000)
   }
 
   const handleAssign = async () => {
-    if (!selected || !selectedStaff) return
+    if (!selectedComplaint || !selectedStaff) return
     setAssigning(true)
-    await new Promise(r => setTimeout(r, 600))
+    await new Promise(r => setTimeout(r, 400))
     const staff = MAINTENANCE_STAFF.find(s => s.id === selectedStaff)
-    assignComplaint(selected.id, staff.id, staff.full_name)
-    setSelected(null)
+    assignComplaint(selectedComplaint.id, staff.id, staff.full_name)
+    setSelectedId(null)
     setSelectedStaff('')
     setAssigning(false)
-    showToast(`Assigned to ${staff.full_name} successfully.`)
+    showToast(`Assigned "${selectedComplaint.complaint_type}" to ${staff.full_name}`)
   }
 
-  const handleStatusChange = (id, status) => {
-    updateStatus(id, status)
-    showToast('Status updated.')
+  const handleStatusChange = (id, newStatus) => {
+    updateStatus(id, newStatus)
+    showToast(`Status updated to ${newStatus.replace('_', ' ')}`)
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Assign Tasks</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Assign pending complaints to maintenance personnel</p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="page-band rounded-2xl overflow-hidden px-6 py-6 relative">
+        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin</p>
+        <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Assign Tasks</h1>
       </div>
 
       {/* Toast */}
-      {toast && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3  flex items-center gap-2">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-          {toast}
+      {toast.msg && (
+        <div className={`mb-4 px-4 py-3 text-sm font-bold flex items-center gap-2 border-l-4 ${
+          toast.type === 'success'
+            ? 'bg-green-50 border-green-500 text-green-800'
+            : 'bg-red-50 border-red-500 text-red-800'
+        }`}>
+          {toast.type === 'success' ? '✓' : '!'} {toast.msg}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Stats strip */}
+      <div className="grid grid-cols-3 border border-gray-200 bg-white mb-5 divide-x divide-gray-200 text-center">
+        <div className="py-3">
+          <p className="font-black text-2xl text-amber-600">{unassigned.length}</p>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">Unassigned</p>
+        </div>
+        <div className="py-3">
+          <p className="font-black text-2xl text-brand-600">{assignedActive.length}</p>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">In Progress</p>
+        </div>
+        <div className="py-3">
+          <p className="font-black text-2xl text-green-600">{assignedDone.length}</p>
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">Resolved</p>
+        </div>
+      </div>
 
-        {/* Unassigned */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* ── LEFT: Unassigned queue ── */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Unassigned ({unassigned.length})
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Unassigned Queue</h2>
+            {unassigned.length > 0 && (
+              <span className="text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5">
+                {unassigned.length} waiting
+              </span>
+            )}
+          </div>
+
           {unassigned.length === 0 ? (
-            <div className="card p-8 text-center text-gray-400 text-sm">All complaints are assigned ✅</div>
+            <div className="bg-white border border-dashed border-gray-200 p-10 text-center">
+              <p className="text-3xl mb-2">✅</p>
+              <p className="font-bold text-gray-600 text-sm">All complaints assigned</p>
+              <p className="text-xs text-gray-400 mt-1">New submissions will appear here.</p>
+            </div>
           ) : (
             <div className="space-y-2">
-              {unassigned
-                .sort((a, b) => b.priority_score - a.priority_score)
-                .map(c => (
-                <div
-                  key={c.id}
-                  onClick={() => setSelected(selected?.id === c.id ? null : c)}
-                  className={`card p-4 cursor-pointer transition-all ${
-                    selected?.id === c.id
-                      ? 'border-brand-500 ring-2 ring-brand-200'
-                      : 'hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="font-medium text-sm text-gray-900">{c.complaint_type}</span>
-                    <PriorityBadge priority={c.priority}/>
-                  </div>
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">{c.description}</p>
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>📍 {c.address.slice(0, 40)}...</span>
-                    <span className="font-semibold text-gray-600">Score: {c.priority_score}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+              {unassigned.map(c => {
+                const isSelected = selectedId === c.id
+                return (
+                  <div key={c.id} className={`bg-white border-2 border-l-4 ${PRIORITY_STRIPE[c.priority]} overflow-hidden transition-all ${
+                    isSelected ? 'border-brand-600' : 'border-gray-200 hover:border-gray-300'
+                  }`}>
+                    {/* Click header to select */}
+                    <div className="p-4 cursor-pointer" onClick={() => {
+                      setSelectedId(isSelected ? null : c.id)
+                      setSelectedStaff('')
+                    }}>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-gray-900 text-sm">{c.complaint_type}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{c.customer_name} · {timeAgo(c.created_at)}</p>
+                          <p className="text-xs text-gray-400 truncate">📍 {c.address.split(',')[0]}</p>
+                        </div>
+                        <div className={`text-center px-2.5 py-1.5 shrink-0 transition-colors ${
+                          isSelected ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          <p className="font-black text-xl leading-none">{c.priority_score}</p>
+                          <p className="text-xs opacity-70">/ 100</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <PriorityBadge priority={c.priority}/>
+                        <span className={`text-xs font-bold ${isSelected ? 'text-brand-600' : 'text-gray-300'}`}>
+                          {isSelected ? 'Selected ✓' : 'Tap to assign →'}
+                        </span>
+                      </div>
+                    </div>
 
-          {/* Assign panel */}
-          {selected && (
-            <div className="mt-4 card p-4 bg-slate-50 border-brand-200">
-              <p className="text-sm font-semibold text-brand-800 mb-3">Assign: {selected.complaint_type}</p>
-              <select
-                value={selectedStaff}
-                onChange={e => setSelectedStaff(e.target.value)}
-                className="input-field mb-3"
-              >
-                <option value="">Select maintenance staff</option>
-                {MAINTENANCE_STAFF.map(s => (
-                  <option key={s.id} value={s.id}>{s.full_name}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleAssign}
-                disabled={!selectedStaff || assigning}
-                className="btn-primary w-full flex items-center justify-center gap-2"
-              >
-                {assigning
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent  animate-spin"/>Assigning...</>
-                  : 'Confirm Assignment'
-                }
-              </button>
+                    {/* Inline assignment panel */}
+                    {isSelected && (
+                      <div className="border-t-2 border-brand-600 bg-brand-50 px-4 py-3">
+                        <p className="text-xs font-black text-brand-700 uppercase tracking-wider mb-2">Assign to:</p>
+                        <select
+                          value={selectedStaff}
+                          onChange={e => setSelectedStaff(e.target.value)}
+                          className="input-field mb-2 text-sm"
+                        >
+                          <option value="">— Select maintenance staff —</option>
+                          {MAINTENANCE_STAFF.map(s => (
+                            <option key={s.id} value={s.id}>{s.full_name}</option>
+                          ))}
+                        </select>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleAssign}
+                            disabled={!selectedStaff || assigning}
+                            className="flex-1 btn-primary flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                          >
+                            {assigning
+                              ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin"/>Assigning…</>
+                              : '✓ Confirm Assignment'
+                            }
+                          </button>
+                          <button
+                            onClick={() => { setSelectedId(null); setSelectedStaff('') }}
+                            className="btn-secondary text-sm px-3"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
 
-        {/* Assigned */}
+        {/* ── RIGHT: Assigned tasks ── */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Assigned ({assigned.length})
-          </h2>
-          {assigned.length === 0 ? (
-            <div className="card p-8 text-center text-gray-400 text-sm">No assigned complaints yet</div>
-          ) : (
-            <div className="space-y-2">
-              {assigned.map(c => (
-                <div key={c.id} className="card p-4">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="font-medium text-sm text-gray-900">{c.complaint_type}</span>
-                    <StatusBadge status={c.status}/>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Assigned Tasks</h2>
+            <span className="text-xs font-black text-brand-700 bg-brand-50 border border-brand-200 px-2 py-0.5">
+              {assignedAll.length} total
+            </span>
+          </div>
+
+          {/* Tab: Active / Done */}
+          <div className="grid grid-cols-2 border border-gray-200 mb-3 overflow-hidden text-xs font-black">
+            <button onClick={() => setAssignedTab('active')}
+              className={`py-2 border-r border-gray-200 transition-colors ${
+                assignedTab === 'active' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}>
+              ACTIVE ({assignedActive.length})
+            </button>
+            <button onClick={() => setAssignedTab('done')}
+              className={`py-2 transition-colors ${
+                assignedTab === 'done' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}>
+              RESOLVED ({assignedDone.length})
+            </button>
+          </div>
+
+          {/* Active assigned tasks */}
+          {assignedTab === 'active' && (
+            assignedActive.length === 0 ? (
+              <div className="bg-white border border-dashed border-gray-200 p-10 text-center">
+                <p className="text-3xl mb-2">👷</p>
+                <p className="font-bold text-gray-600 text-sm">No active tasks</p>
+                <p className="text-xs text-gray-400 mt-1">Assign from the queue on the left.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {assignedActive.map(c => (
+                  <div key={c.id} className={`bg-white border border-gray-200 border-l-4 ${PRIORITY_STRIPE[c.priority]} overflow-hidden`}>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-black text-gray-900 text-sm">{c.complaint_type}</p>
+                          <p className="text-xs text-brand-600 font-bold mt-0.5">👷 {c.assigned_name}</p>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">📍 {c.address.split(',')[0]}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <StatusBadge status={c.status}/>
+                          <span className="font-black text-lg text-gray-700 leading-none">{c.priority_score}</span>
+                        </div>
+                      </div>
+
+                      {/* Status actions — only forward-moving transitions */}
+                      <div className="flex gap-1.5 flex-wrap border-t border-gray-100 pt-3 mt-2">
+                        {c.status === 'pending' && (
+                          <button onClick={() => handleStatusChange(c.id, 'in_progress')}
+                            className="text-xs px-3 py-1.5 font-bold border bg-brand-50 border-brand-300 text-brand-700 hover:bg-brand-100 transition-colors">
+                            ▶ Mark Active
+                          </button>
+                        )}
+                        {c.status === 'in_progress' && (
+                          <button onClick={() => handleStatusChange(c.id, 'completed')}
+                            className="text-xs px-3 py-1.5 font-bold border bg-green-50 border-green-300 text-green-700 hover:bg-green-100 transition-colors">
+                            ✓ Mark Done
+                          </button>
+                        )}
+                        {(c.status === 'pending' || c.status === 'in_progress') && (
+                          <button onClick={() => handleStatusChange(c.id, 'rejected')}
+                            className="text-xs px-3 py-1.5 font-bold border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition-colors">
+                            ✕ Reject
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">👷 {c.assigned_name}</p>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={c.status}
-                      onChange={e => handleStatusChange(c.id, e.target.value)}
-                      className="input-field text-xs py-1.5 w-auto"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Resolved/done tasks — read-only */}
+          {assignedTab === 'done' && (
+            assignedDone.length === 0 ? (
+              <div className="bg-white border border-dashed border-gray-200 p-10 text-center">
+                <p className="text-3xl mb-2">📋</p>
+                <p className="font-bold text-gray-600 text-sm">No resolved tasks yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {assignedDone.map(c => (
+                  <div key={c.id} className={`bg-white border border-gray-200 border-l-4 ${PRIORITY_STRIPE[c.priority]} overflow-hidden opacity-70`}>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-700 text-sm">{c.complaint_type}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">👷 {c.assigned_name}</p>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">📍 {c.address.split(',')[0]}</p>
+                        </div>
+                        <StatusBadge status={c.status}/>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 

@@ -27,6 +27,7 @@ export const useComplaintStore = create((set, get) => ({
       complaint_type: formData.complaint_type,
       description:    formData.description,
       address:        formData.address,
+      gps:            formData.gps || null,   // { lat, lng, accuracy } or null
       photo_url:      formData.photo ? URL.createObjectURL(formData.photo) : null,
       status:         'pending',
       priority,
@@ -46,7 +47,7 @@ export const useComplaintStore = create((set, get) => ({
     set(s => ({
       complaints: s.complaints.map(c =>
         c.id === complaintId
-          ? { ...c, assigned_to: staffId, assigned_name: staffName, status: 'in_progress' }
+          ? { ...c, assigned_to: staffId, assigned_name: staffName, status: 'pending' }
           : c
       )
     }))

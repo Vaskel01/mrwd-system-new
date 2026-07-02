@@ -20,10 +20,10 @@ function StepCard({ number, icon, title, description }) {
   return (
     <div className="flex flex-col items-center text-center px-6">
       <div className="relative mb-5">
-        <div className="w-16 h-16  bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/30 text-3xl">
+        <div className="w-16 h-16 rounded-2xl bg-navy-800 flex items-center justify-center shadow-lg shadow-gold-500/30 text-3xl">
           {icon}
         </div>
-        <span className="absolute -top-2 -right-2 w-6 h-6  bg-amber-400 text-navy text-xs font-black flex items-center justify-center">
+        <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-amber-400 text-navy-900 text-xs font-black flex items-center justify-center">
           {number}
         </span>
       </div>
@@ -36,9 +36,9 @@ function StepCard({ number, icon, title, description }) {
 // ── Role Card ─────────────────────────────────────────────────
 function RoleCard({ icon, role, color, bgColor, description, features }) {
   return (
-    <div className={` p-6 border-2 ${bgColor} flex flex-col gap-4`}>
+    <div className={`rounded-2xl p-6 border-2 ${bgColor} flex flex-col gap-4`}>
       <div className="flex items-center gap-3">
-        <div className={`w-12 h-12  flex items-center justify-center text-2xl ${color}`}>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${color}`}>
           {icon}
         </div>
         <h3 className="font-display font-bold text-gray-900 text-lg">{role}</h3>
@@ -47,7 +47,7 @@ function RoleCard({ icon, role, color, bgColor, description, features }) {
       <ul className="space-y-2">
         {features.map((f, i) => (
           <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-            <svg className="w-4 h-4 text-brand-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-gold-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
             </svg>
             {f}
@@ -61,7 +61,7 @@ function RoleCard({ icon, role, color, bgColor, description, features }) {
 // ── Feature Pill ──────────────────────────────────────────────
 function FeaturePill({ icon, label }) {
   return (
-    <div className="flex items-center gap-2.5 bg-white  px-4 py-3 shadow-sm border border-gray-100">
+    <div className="flex items-center gap-2.5 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
       <span className="text-xl">{icon}</span>
       <span className="text-sm font-medium text-gray-700">{label}</span>
     </div>
@@ -88,22 +88,22 @@ export default function LandingPage() {
     <div className="min-h-screen font-sans bg-white">
 
       {/* ── Navbar ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-navy/95 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b border-white/10" style={{ background: 'linear-gradient(135deg, rgba(15,34,64,.97), rgba(27,51,102,.97))' }}>
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8  bg-slate-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-navy-800 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
               </svg>
             </div>
             <div>
-              <span className="font-display font-bold text-white text-sm leading-none block">Water District</span>
-              <span className="text-blue-200 text-xs">Complaint Management</span>
+              <span className="font-display font-bold text-white text-sm leading-none block">Metro Roxas Water District</span>
+              <span className="text-navy-300 text-xs">Complaint Management</span>
             </div>
           </div>
           <button
             onClick={handleCTA}
-            className="bg-brand-600 hover:bg-slate-500 text-white text-sm font-semibold px-5 py-2  transition-colors"
+            className="bg-navy-800 hover:bg-navy-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
           >
             {user ? 'Go to Dashboard' : 'Sign In'}
           </button>
@@ -111,29 +111,29 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="bg-navy pt-24 sm:pt-32 pb-4 px-5 relative overflow-hidden">
+      <section className="page-band pt-24 sm:pt-32 pb-4 px-5 relative overflow-hidden">
 
         {/* Background glow blobs */}
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-brand-600/20  blur-3xl pointer-events-none" />
-        <div className="absolute top-10 right-1/4 w-64 h-64 bg-blue-400/10  blur-2xl pointer-events-none" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-gold-400/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-10 right-1/4 w-64 h-64 bg-gold-300/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="max-w-4xl mx-auto text-center relative">
 
           {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20  px-4 py-1.5 mb-8">
-            <span className="w-2 h-2  bg-green-400 animate-pulse" />
-            <span className="text-blue-200 text-xs font-medium tracking-wide">Calinog Water District — Online Services</span>
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20  px-4 py-1.5 mb-8 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-navy-300 text-xs font-medium tracking-wide">Metro Roxas Water District — Online Services</span>
           </div>
 
           {/* Headline */}
           <h1 className="font-display font-extrabold text-white text-5xl md:text-6xl leading-tight mb-6">
             Report Water
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gold-300 to-gold-100">
               Problems Easily.
             </span>
           </h1>
 
-          <p className="text-blue-200 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
+          <p className="text-navy-300 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
             Submit your water complaints online in just a few steps.
             No need to go to the office — track your concern from home.
           </p>
@@ -142,13 +142,13 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-14">
             <button
               onClick={handleCTA}
-              className="bg-brand-600 hover:bg-slate-500 active:bg-brand-700 text-white font-display font-bold text-lg px-8 py-4  transition-all shadow-lg shadow-brand-600/40 hover:shadow-brand-500/50 hover:scale-105 w-full sm:w-auto"
+              className="bg-navy-800 hover:bg-navy-700 active:bg-navy-900 text-white font-display font-bold text-lg px-8 py-4 rounded-xl transition-all shadow-lg shadow-gold-500/30 hover:shadow-gold-400/40 hover:scale-105 w-full sm:w-auto"
             >
               Submit a Complaint
             </button>
             <button
               onClick={() => document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white/10 hover:bg-white/20 text-white font-semibold text-base px-8 py-4  transition-colors border border-white/20 w-full sm:w-auto"
+              className="bg-white/10 hover:bg-white/20 text-white font-semibold text-base px-8 py-4 rounded-xl transition-colors border border-white/20 w-full sm:w-auto"
             >
               How It Works ↓
             </button>
@@ -161,9 +161,9 @@ export default function LandingPage() {
               { number: '24/7',    label: 'Available' },
               { number: '100%',    label: 'Free to Use' },
             ].map(s => (
-              <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20  py-3 px-2">
+              <div key={s.label} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl py-3 px-2">
                 <div className="font-display font-extrabold text-white text-2xl">{s.number}</div>
-                <div className="text-blue-200 text-xs font-medium">{s.label}</div>
+                <div className="text-navy-300 text-xs font-medium">{s.label}</div>
               </div>
             ))}
           </div>
@@ -183,7 +183,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="bg-white py-20 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">Simple Process</span>
+            <span className="text-gold-600 text-sm font-bold uppercase tracking-widest">Simple Process</span>
             <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
               How It Works
             </h2>
@@ -194,10 +194,10 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative">
             {/* Connector line */}
-            <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-gradient-to-r from-brand-200 via-brand-400 to-brand-200" />
+            <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200" />
 
             <StepCard number="1" icon="🔐" title="Sign In"
-              description="Log in with your account. Don't have one? Contact your Water District office." />
+              description="Log in with your account. Don't have one? Contact Metro Roxas Water District office." />
             <StepCard number="2" icon="📝" title="Report the Problem"
               description="Fill in a short form. Describe the issue, add your location, and attach a photo if you have one." />
             <StepCard number="3" icon="✅" title="We Handle It"
@@ -210,10 +210,10 @@ export default function LandingPage() {
       <div className="bg-white"><Wave fill="#EFF6FF" /></div>
 
       {/* ── Who Is This For ── */}
-      <section className="bg-blue-50 py-20 px-5">
+      <section className="bg-navy-50 py-20 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">Built For Everyone</span>
+            <span className="text-gold-600 text-sm font-bold uppercase tracking-widest">Built For Everyone</span>
             <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
               One System, Three Roles
             </h2>
@@ -226,9 +226,9 @@ export default function LandingPage() {
             <RoleCard
               icon="👤"
               role="Customer"
-              color="bg-blue-100"
-              bgColor="border-blue-200 bg-white"
-              description="Residents and consumers of the Water District who want to report a problem or check their billing."
+              color="bg-navy-100"
+              bgColor="border-navy-200 bg-white"
+              description="Residents and consumers of Metro Roxas Water District who want to report a problem or check their billing."
               features={[
                 'Submit water complaints',
                 'Track complaint status',
@@ -241,7 +241,7 @@ export default function LandingPage() {
               role="Admin"
               color="bg-purple-100"
               bgColor="border-purple-200 bg-white"
-              description="Water District staff who manage incoming complaints, assign tasks, and post official announcements."
+              description="Metro Roxas Water District staff who manage incoming complaints, assign tasks, and post official announcements."
               features={[
                 'View all complaints',
                 'See priority scores',
@@ -267,13 +267,13 @@ export default function LandingPage() {
       </section>
 
       {/* Wave divider */}
-      <div className="bg-blue-50"><Wave fill="#ffffff" /></div>
+      <div className="bg-navy-50"><Wave fill="#ffffff" /></div>
 
       {/* ── Features ── */}
       <section className="bg-white py-20 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <span className="text-brand-600 text-sm font-bold uppercase tracking-widest">What You Get</span>
+            <span className="text-gold-600 text-sm font-bold uppercase tracking-widest">What You Get</span>
             <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
               Everything You Need
             </h2>
@@ -295,19 +295,19 @@ export default function LandingPage() {
       {/* ── CTA Banner ── */}
       <section className="px-5 pb-20">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-navy  px-8 py-10 sm:py-14 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-navy-dark/60 to-navy-dark pointer-events-none" />
-            <div className="absolute -top-10 -right-10 w-60 h-60 bg-slate-500/20  blur-3xl pointer-events-none" />
+          <div className="page-band rounded-3xl px-8 py-10 sm:py-14 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-navy-950/60 to-navy-950 pointer-events-none" />
+            <div className="absolute -top-10 -right-10 w-60 h-60 bg-gold-400/15 rounded-full blur-3xl pointer-events-none" />
             <div className="relative">
               <h2 className="font-display font-extrabold text-white text-4xl mb-4">
                 Have a water problem?
               </h2>
-              <p className="text-blue-200 text-lg mb-8 max-w-lg mx-auto">
+              <p className="text-navy-300 text-lg mb-8 max-w-lg mx-auto">
                 Don't wait in line. Report it online and we'll take care of it as fast as possible.
               </p>
               <button
                 onClick={handleCTA}
-                className="inline-flex items-center gap-2 bg-white text-navy font-display font-extrabold text-lg px-10 py-4  hover:bg-blue-50 transition-colors shadow-xl hover:scale-105 active:scale-100 transition-transform"
+                className="inline-flex items-center gap-2 bg-white text-navy-900 font-display font-extrabold text-lg px-10 py-4 rounded-xl hover:bg-navy-50 transition-colors shadow-xl hover:scale-105 active:scale-100 transition-transform"
               >
                 Report Now
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -320,37 +320,37 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-navy border-t border-white/10 py-10 px-5">
+      <footer className="page-band border-t border-white/10 py-10 px-5">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9  bg-brand-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-navy-800 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
                 </svg>
               </div>
               <div>
-                <p className="font-display font-bold text-white text-sm">Calinog Water District</p>
-                <p className="text-blue-200 text-xs">Complaint Management System</p>
+                <p className="font-display font-bold text-white text-sm">Metro Roxas Water District</p>
+                <p className="text-navy-300 text-xs">Complaint Management System</p>
               </div>
             </div>
 
             <div className="flex flex-col items-center gap-1">
-              <p className="text-blue-200 text-sm">📞 Hotline: <span className="text-white font-medium">(033) 123-4567</span></p>
-              <p className="text-blue-400 text-xs">Mon – Fri · 8:00 AM – 5:00 PM</p>
+              <p className="text-navy-300 text-sm">📞 Hotline: <span className="text-white font-medium">(033) 123-4567</span></p>
+              <p className="text-navy-400 text-xs">Mon – Fri · 8:00 AM – 5:00 PM</p>
             </div>
 
             <div className="flex items-center gap-3">
               <button onClick={handleCTA}
-                className="bg-brand-600 hover:bg-slate-500 text-white text-sm font-semibold px-5 py-2.5  transition-colors">
+                className="bg-navy-800 hover:bg-navy-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
                 {user ? 'Go to Dashboard' : 'Sign In'}
               </button>
             </div>
           </div>
 
           <div className="border-t border-white/10 mt-8 pt-6 text-center">
-            <p className="text-blue-400 text-xs">
-              © 2025 Calinog Water District · All rights reserved
+            <p className="text-navy-400 text-xs">
+              © 2025 Metro Roxas Water District · All rights reserved
             </p>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore'
 const ROLE_HOME = {
   customer:    '/customer/submit',
   admin:       '/admin/dashboard',
-  maintenance: '/maintenance/tasks',
+  maintenance_personnel: '/maintenance/tasks',
 }
 
 const schema = z.object({
@@ -57,7 +57,7 @@ export default function LoginPage() {
     const map = {
       customer:    { email: 'customer@demo.com',   password: 'demo1234' },
       admin:       { email: 'admin@demo.com',       password: 'demo1234' },
-      maintenance: { email: 'maintenance@demo.com', password: 'demo1234' },
+      maintenance_personnel: { email: 'maintenance@demo.com', password: 'demo1234' },
     }
     setValue('email', map[role].email)
     setValue('password', map[role].password)
@@ -222,7 +222,7 @@ export default function LoginPage() {
             {[
               { role: 'customer',    label: 'Customer',    icon: '👤', color: 'bg-navy-50 border-navy-200 text-navy-700 hover:bg-navy-100' },
               { role: 'admin',       label: 'Admin',       icon: '👨‍💼', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
-              { role: 'maintenance', label: 'Maintenance', icon: '🔧', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
+              { role: 'maintenance_personnel', label: 'Maintenance', icon: '🔧', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
             ].map(({ role, label, icon, color }) => (
               <button key={role} onClick={() => fillDemo(role)}
                 className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-xs font-semibold transition-colors ${color}`}>

@@ -132,7 +132,8 @@ function ComplaintCard({ c }) {
 
 export default function MyComplaintsPage() {
   const user       = useAuthStore(s => s.user)
-  const complaints = useComplaintStore(s => s.getMyComplaints(user.id))
+  const getMyComplaints = useComplaintStore(s => s.getMyComplaints)
+  const complaints = getMyComplaints(user?.id) || []
   const [filter, setFilter] = useState('all')
 
   const filtered = filter === 'all' ? complaints : complaints.filter(c => c.status === filter)

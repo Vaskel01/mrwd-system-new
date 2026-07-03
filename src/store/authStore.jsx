@@ -14,9 +14,6 @@ export const useAuthStore = create((set) => ({
       })
       if (error) throw error
 
-      console.log('Auth user:', data.user)
-      console.log('Auth session:', data.session)
-
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -24,7 +21,7 @@ export const useAuthStore = create((set) => ({
         .single()
 
       if (profileError) throw profileError
-
+      
       set({ user: profile, loading: false })
       return profile
 

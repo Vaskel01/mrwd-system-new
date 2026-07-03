@@ -15,7 +15,7 @@ const NAV = {
     { to: '/admin/assign',        icon: AssignIcon,  label: 'Assign Tasks' },
     { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
   ],
-  maintenance: [
+  maintenance_personnel: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
   ],
@@ -24,12 +24,12 @@ const NAV = {
 const ROLE_CONFIG = {
   customer:    { tag: 'Consumer',   gradient: 'from-blue-500 to-blue-600',   dot: '#60a5fa' },
   admin:       { tag: 'Admin',      gradient: 'from-navy-700 to-navy-900',   dot: '#e6b020' },
-  maintenance: { tag: 'Technician', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
+  maintenance_personnel: { tag: 'Technician', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
 // ── SVG Icons ──
 function DashIcon({ className }) {
-  return <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+  return <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 01２ ２v２a２ ２ ０ ０１－２ ２h－２a２ ２ ０ ０１－２－２V５zM１４ １１a１ １ ０ ０１１ １v１h１a１ １ ０ １１０ ２h－１v１a１ １ ０ １１－２ －２v－１h－１a１ １ ０ １１０ －２h１v－１a１ １ ０ ０１１ －１z"/></svg>
 }
 function ListIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>

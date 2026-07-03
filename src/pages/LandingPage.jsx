@@ -33,31 +33,6 @@ function StepCard({ number, icon, title, description }) {
   )
 }
 
-// ── Role Card ─────────────────────────────────────────────────
-function RoleCard({ icon, role, color, bgColor, description, features }) {
-  return (
-    <div className={`rounded-2xl p-6 border-2 ${bgColor} flex flex-col gap-4`}>
-      <div className="flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${color}`}>
-          {icon}
-        </div>
-        <h3 className="font-display font-bold text-gray-900 text-lg">{role}</h3>
-      </div>
-      <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
-      <ul className="space-y-2">
-        {features.map((f, i) => (
-          <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-            <svg className="w-4 h-4 text-gold-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-            </svg>
-            {f}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
 // ── Feature Pill ──────────────────────────────────────────────
 function FeaturePill({ icon, label }) {
   return (
@@ -205,69 +180,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Wave divider */}
-      <div className="bg-white"><Wave fill="#EFF6FF" /></div>
-
-      {/* ── Who Is This For ── */}
-      <section className="bg-navy-50 py-20 px-5">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <span className="text-gold-600 text-sm font-bold uppercase tracking-widest">Built For Everyone</span>
-            <h2 className="font-display font-extrabold text-gray-900 text-4xl mt-2">
-              One System, Three Roles
-            </h2>
-            <p className="text-gray-500 mt-3 text-lg max-w-lg mx-auto">
-              Whether you're a resident, a staff member, or a manager — this system has a place for you.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <RoleCard
-              icon="👤"
-              role="Customer"
-              color="bg-navy-100"
-              bgColor="border-navy-200 bg-white"
-              description="Residents and consumers of Metro Roxas Water District who want to report a problem or check their billing."
-              features={[
-                'Submit water complaints',
-                'Track complaint status',
-                'View billing statements',
-                'Read announcements',
-              ]}
-            />
-            <RoleCard
-              icon="👨‍💼"
-              role="Admin"
-              color="bg-purple-100"
-              bgColor="border-purple-200 bg-white"
-              description="Metro Roxas Water District staff who manage incoming complaints, assign tasks, and post official announcements."
-              features={[
-                'View all complaints',
-                'See priority scores',
-                'Assign to maintenance',
-                'Post announcements',
-              ]}
-            />
-            <RoleCard
-              icon="🔧"
-              role="Maintenance"
-              color="bg-green-100"
-              bgColor="border-green-200 bg-white"
-              description="Field personnel who receive assigned tasks and update the status of each complaint as they work."
-              features={[
-                'View assigned tasks',
-                'See location details',
-                'Update task status',
-                'Read announcements',
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Wave divider */}
-      <div className="bg-navy-50"><Wave fill="#ffffff" /></div>
 
       {/* ── Features ── */}
       <section className="bg-white py-20 px-5">

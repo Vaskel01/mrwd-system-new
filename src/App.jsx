@@ -80,12 +80,12 @@ export default function App() {
 
         {/* ── Maintenance ── */}
         <Route path="/maintenance/tasks" element={
-          <ProtectedRoute allowedRoles={['maintenance_personnel']}>
+          <ProtectedRoute allowedRoles={['maintenance']}>
             <AppLayout><MaintenanceTasksPage /></AppLayout>
           </ProtectedRoute>
         }/>
         <Route path="/maintenance/announcements" element={
-          <ProtectedRoute allowedRoles={['maintenance_personnel']}>
+          <ProtectedRoute allowedRoles={['maintenance']}>
             <AppLayout><AnnouncementsPage /></AppLayout>
           </ProtectedRoute>
         }/>

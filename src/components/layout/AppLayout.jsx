@@ -15,7 +15,7 @@ const NAV = {
     { to: '/admin/assign',        icon: AssignIcon,  label: 'Assign Tasks' },
     { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
   ],
-  maintenance_personnel: [
+  maintenance: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
   ],
@@ -24,7 +24,7 @@ const NAV = {
 const ROLE_CONFIG = {
   customer:    { tag: 'Consumer',   gradient: 'from-blue-500 to-blue-600',   dot: '#60a5fa' },
   admin:       { tag: 'Admin',      gradient: 'from-navy-700 to-navy-900',   dot: '#e6b020' },
-  maintenance_personnel: { tag: 'Technician', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
+  maintenance: { tag: 'Technician', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
 // ── SVG Icons ──

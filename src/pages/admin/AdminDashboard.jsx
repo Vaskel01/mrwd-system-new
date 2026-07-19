@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
 import { useAuthStore } from '../../store/authStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
@@ -28,8 +29,11 @@ function StatCard({ label, value, sub, accent, icon }) {
 
 export default function AdminDashboard() {
   const complaints  = useComplaintStore(s => s.complaints)
+  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const user        = useAuthStore(s => s.user)
   const navigate    = useNavigate()
+
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const total       = complaints.length
   const pending     = complaints.filter(c => c.status === 'pending').length

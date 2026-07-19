@@ -1,16 +1,72 @@
-# React + Vite
+# Metro Roxas Water District — Complaint Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React (Vite) frontend, an Express API, and Supabase (Postgres + Auth +
+Storage) as the database layer.
 
-Currently, two official plugins are available:
+## First-time setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 1. Set up the database
 
-## React Compiler
+1. Open your Supabase project → **SQL Editor** → New Query.
+2. Paste the contents of `supabase/migration.sql` and run it. It creates
+   the `profiles`, `complaints`, `bills`, and `announcements` tables, all
+   Row Level Security policies, and a `complaint-photos` storage bucket.
+   It's safe to re-run.
+3. Create the three demo accounts (Supabase only lets you create Auth
+   users through the Auth API/Dashboard, not plain SQL):
+   **Dashboard → Authentication → Add User**, for each of:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+   | Email                  | Password   | User metadata (raw JSON)                                  |
+   |-------------------------|------------|-------------------------------------------------------------|
+   | customer@demo.com       | demo1234   | `{"full_name": "Juan dela Cruz", "role": "customer"}`       |
+   | admin@demo.com          | demo1234   | `{"full_name": "Maria Santos", "role": "admin"}`             |
+   | maintenance@demo.com    | demo1234   | `{"full_name": "Pedro Reyes", "role": "maintenance"}`        |
 
-## Expanding the ESLint configuration
+   The migration's trigger auto-creates a matching `profiles` row for
+   each one. If a profile doesn't appear, double check the metadata
+   JSON was entered under "User Metadata", not "App Metadata".
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 2. Backend
+
+```bash
+cd server
+cp .env.example .env       # then fill in your Supabase URL + anon key
+npm install
+npm run dev                 # http://localhost:4000
+```
+
+### 3. Frontend
+
+The frontend already has a `.env` with the Supabase URL/key and
+`VITE_API_URL=http://localhost:4000/api`. From the project root:
+
+```bash
+npm install
+npm run dev                 # http://localhost:5173
+```
+
+Both servers need to be running at the same time for the app to work.
+
+## How it's wired together
+
+- **Frontend (`src/`)** never talks to Postgres directly except for
+  photo uploads (straight to Supabase Storage, using the signed-in
+  user's own session). Everything else — auth, complaints, billing,
+  announcements — goes through the Express API.
+- **Backend (`server/`)** holds the priority-scoring engine and all
+  business logic. It never uses a Supabase service-role key; every
+  request is made with the caller's own access token forwarded to
+  Supabase, so Postgres Row Level Security is what actually enforces
+  who can see or change what. If you inspect a request in devtools,
+  you're seeing real permission checks, not just UI-level hiding.
+- **Database (Supabase)** — schema and policies are in
+  `supabase/migration.sql`. Row Level Security is the source of truth
+  for authorization, not the Express routes.
+
+## Project structure
+
+```
+src/            React frontend (Vite)
+server/         Express API (separate Node project — own package.json)
+supabase/       SQL migration (schema + RLS + storage bucket)
+```

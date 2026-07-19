@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAnnouncementStore } from '../../store/announcementStore'
 import { useAuthStore } from '../../store/authStore'
-import { ANNOUNCEMENT_CATEGORIES } from '../../mock/data'
+import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -48,8 +48,11 @@ const schema = z.object({
 export default function AdminAnnouncementsPage() {
   const user               = useAuthStore(s => s.user)
   const announcements      = useAnnouncementStore(s => s.announcements)
+  const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const postAnnouncement   = useAnnouncementStore(s => s.postAnnouncement)
   const deleteAnnouncement = useAnnouncementStore(s => s.deleteAnnouncement)
+
+  useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
 
   const [posting, setPosting]             = useState(false)
   const [toast, setToast]                 = useState('')

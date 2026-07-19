@@ -1,7 +1,7 @@
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge } from '../../components/ui/Badges'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import InlineMap from '../../components/ui/InlineMap'
 
 function timeAgo(iso) {
@@ -129,9 +129,12 @@ function TaskCard({ t, onStatus }) {
 export default function MaintenanceTasksPage() {
   const user         = useAuthStore(s => s.user)
   const complaints   = useComplaintStore(s => s.complaints)
+  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const updateStatus = useComplaintStore(s => s.updateStatus)
   const [toast, setToast] = useState('')
   const [tab,   setTab]   = useState('active')
+
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const myTasks  = complaints.filter(c => c.assigned_to === user.id)
     .sort((a, b) => b.priority_score - a.priority_score)

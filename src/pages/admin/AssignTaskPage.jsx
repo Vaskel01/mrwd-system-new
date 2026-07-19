@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
-import { MAINTENANCE_STAFF } from '../../mock/data'
+import { apiFetch } from '../../lib/api'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 
 function timeAgo(iso) {
@@ -20,14 +20,21 @@ const PRIORITY_STRIPE = {
 
 export default function AssignTaskPage() {
   const complaints      = useComplaintStore(s => s.complaints)
+  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const assignComplaint = useComplaintStore(s => s.assignComplaint)
   const updateStatus    = useComplaintStore(s => s.updateStatus)
 
+  const [staffList, setStaffList]         = useState([])
   const [selectedId, setSelectedId]       = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
   const [assigning, setAssigning]         = useState(false)
   const [toast, setToast]                 = useState({ msg: '', type: 'success' })
   const [assignedTab, setAssignedTab]     = useState('active')
+
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
+  useEffect(() => {
+    apiFetch('/users/maintenance-staff').then(({ staff }) => setStaffList(staff)).catch(() => {})
+  }, [])
 
   // Unassigned = no staff, not yet finished
   const unassigned = complaints
@@ -49,13 +56,17 @@ export default function AssignTaskPage() {
   const handleAssign = async () => {
     if (!selectedComplaint || !selectedStaff) return
     setAssigning(true)
-    await new Promise(r => setTimeout(r, 400))
-    const staff = MAINTENANCE_STAFF.find(s => s.id === selectedStaff)
-    assignComplaint(selectedComplaint.id, staff.id, staff.full_name)
-    setSelectedId(null)
-    setSelectedStaff('')
-    setAssigning(false)
-    showToast(`Assigned "${selectedComplaint.complaint_type}" to ${staff.full_name}`)
+    try {
+      const staff = staffList.find(s => s.id === selectedStaff)
+      await assignComplaint(selectedComplaint.id, staff.id)
+      setSelectedId(null)
+      setSelectedStaff('')
+      showToast(`Assigned "${selectedComplaint.complaint_type}" to ${staff.full_name}`)
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setAssigning(false)
+    }
   }
 
   const handleStatusChange = (id, newStatus) => {
@@ -161,7 +172,7 @@ export default function AssignTaskPage() {
                           className="input-field mb-2 text-sm"
                         >
                           <option value="">— Select maintenance staff —</option>
-                          {MAINTENANCE_STAFF.map(s => (
+                          {staffList.map(s => (
                             <option key={s.id} value={s.id}>{s.full_name}</option>
                           ))}
                         </select>

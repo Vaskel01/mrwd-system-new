@@ -1,0 +1,29 @@
+{
+  "typeScores": {
+    "Water Interruption": 40,
+    "Water Leak": 35,
+    "Dirty / Discolored Water": 30,
+    "Low Water Pressure": 20,
+    "Meter Problem": 15,
+    "New Connection Request": 10,
+    "Billing Concern": 5,
+    "Other": 10
+  },
+  "defaultTypeScore": 10,
+
+  "keywordWeights": {
+    "highKeywordMultiplier": 15,
+    "highKeywordCeiling": 45,
+    "mediumKeywordMultiplier": 8,
+    "mediumKeywordCeiling": 24,
+    "lowKeywordPenalty": 5
+  },
+
+  "photoBonus": 10,
+  "scoreCap": 100,
+
+  "priorityThresholds": {
+    "high": 60,
+    "medium": 30
+  }
+}

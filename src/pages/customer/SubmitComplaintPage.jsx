@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { scorePriority } from '../../lib/priorityScoring'
-import { COMPLAINT_TYPES } from '../../mock/data'
+import { COMPLAINT_TYPES } from '../../config/staticData'
 import { PriorityBadge } from '../../components/ui/Badges'
 
 const schema = z.object({

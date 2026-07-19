@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
@@ -111,7 +111,7 @@ function ComplaintCard({ c }) {
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">GPS Coordinates</p>
                 <p className="font-mono text-xs text-navy-600 mb-1">
-                  📍 {c.gps.lat.toFixed(5)}, {c.gps.lng.toFixed(5)} <span className="text-gray-400">±{c.gps.accuracy}m</span>
+                  📍 {c.gps.lat.toFixed(5)}, {c.gps.lng.toFixed(5)} {c.gps.accuracy != null && <span className="text-gray-400">±{c.gps.accuracy}m</span>}
                 </p>
                 <InlineMap lat={c.gps.lat} lng={c.gps.lng} accuracy={c.gps.accuracy} height={160} />
               </div>
@@ -133,8 +133,11 @@ function ComplaintCard({ c }) {
 export default function MyComplaintsPage() {
   const user       = useAuthStore(s => s.user)
   const getMyComplaints = useComplaintStore(s => s.getMyComplaints)
+  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const complaints = getMyComplaints(user?.id) || []
   const [filter, setFilter] = useState('all')
+
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const filtered = filter === 'all' ? complaints : complaints.filter(c => c.status === filter)
   const counts   = {

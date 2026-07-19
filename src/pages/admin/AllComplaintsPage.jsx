@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import InlineMap from '../../components/ui/InlineMap'
@@ -22,11 +22,14 @@ const PRIORITY_STRIPE = {
 
 export default function AllComplaintsPage() {
   const complaints = useComplaintStore(s => s.complaints)
+  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const [filterStatus, setFilterStatus]     = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('score')
   const [expanded, setExpanded] = useState(null)
+
+  useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const filtered = complaints
     .filter(c => filterStatus   === 'all' || c.status   === filterStatus)
@@ -151,7 +154,7 @@ export default function AllComplaintsPage() {
                               <span className="font-mono text-brand-600">
                                 📍 {c.gps.lat.toFixed(5)}, {c.gps.lng.toFixed(5)}
                               </span>
-                              <span className="text-gray-400 ml-1">±{c.gps.accuracy}m</span>
+                              {c.gps.accuracy != null && <span className="text-gray-400 ml-1">±{c.gps.accuracy}m</span>}
                               <InlineMap lat={c.gps.lat} lng={c.gps.lng} accuracy={c.gps.accuracy} height={180} />
                             </div>
                           ) : (

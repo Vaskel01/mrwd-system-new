@@ -1,65 +1,88 @@
 import { create } from 'zustand'
-import { MOCK_COMPLAINTS } from '../mock/data'
-import { scorePriority } from '../lib/priorityScoring'
+import { apiFetch } from '../lib/api'
+import { supabase } from '../lib/supabase'
+
+// Uploads a photo File directly to Supabase Storage (bucket:
+// complaint-photos) using the signed-in user's own session, so
+// Storage's Row Level Security policy — which only allows a user to
+// write under a folder named after their own user id — is satisfied.
+// Returns the public URL, or null if no photo was attached.
+async function uploadPhoto(file, userId) {
+  if (!file) return null
+
+  const ext = file.name.split('.').pop()
+  const path = `${userId}/${Date.now()}.${ext}`
+
+  const { error } = await supabase.storage.from('complaint-photos').upload(path, file)
+  if (error) throw new Error(`Photo upload failed: ${error.message}`)
+
+  const { data } = supabase.storage.from('complaint-photos').getPublicUrl(path)
+  return data.publicUrl
+}
 
 export const useComplaintStore = create((set, get) => ({
-  complaints: [...MOCK_COMPLAINTS],
+  complaints: [],
+  loading: false,
 
-  // Get complaints for a specific customer
+  // Fetch complaints visible to the signed-in user (RLS on the backend
+  // already scopes this to "mine" for customers, "assigned to me" for
+  // maintenance, and "everything" for admins).
+  fetchComplaints: async () => {
+    set({ loading: true })
+    try {
+      const { complaints } = await apiFetch('/complaints')
+      set({ complaints, loading: false })
+    } catch (err) {
+      set({ loading: false })
+      throw err
+    }
+  },
+
+  // Get complaints for a specific customer (derived filter over
+  // whatever fetchComplaints already loaded).
   getMyComplaints: (userId) =>
     get().complaints.filter(c => c.customer_id === userId),
 
-  // Submit a new complaint
-  // TODO: replace with → fetch('/api/complaints', { method: 'POST', body: ... })
-  submitComplaint: async (formData, userId, userName) => {
-    await new Promise(r => setTimeout(r, 1000))
+  // Submit a new complaint. Uploads the photo (if any) to Supabase
+  // Storage first, then sends the resulting URL to the backend, which
+  // computes the authoritative priority score and stores the record.
+  submitComplaint: async (formData, userId) => {
+    const photo_url = await uploadPhoto(formData.photo, userId)
 
-    const { score, priority } = scorePriority({
-      complaint_type: formData.complaint_type,
-      description:    formData.description,
-      has_photo:      !!formData.photo,
+    const { complaint } = await apiFetch('/complaints', {
+      method: 'POST',
+      body: JSON.stringify({
+        complaint_type: formData.complaint_type,
+        description: formData.description,
+        address: formData.address,
+        gps: formData.gps || null,
+        photo_url,
+      }),
     })
 
-    const newComplaint = {
-      id:             'c' + Date.now(),
-      customer_id:    userId,
-      customer_name:  userName,
-      complaint_type: formData.complaint_type,
-      description:    formData.description,
-      address:        formData.address,
-      gps:            formData.gps || null,   // { lat, lng, accuracy } or null
-      photo_url:      formData.photo ? URL.createObjectURL(formData.photo) : null,
-      status:         'pending',
-      priority,
-      priority_score: score,
-      assigned_to:    null,
-      assigned_name:  null,
-      created_at:     new Date().toISOString(),
-    }
-
-    set(s => ({ complaints: [newComplaint, ...s.complaints] }))
-    return newComplaint
+    set(s => ({ complaints: [complaint, ...s.complaints] }))
+    return complaint
   },
 
-  // Assign complaint to maintenance
-  // TODO: replace with → fetch(`/api/complaints/${id}/assign`, { method: 'PATCH', body: ... })
-  assignComplaint: (complaintId, staffId, staffName) => {
+  // Assign complaint to maintenance (admin only)
+  assignComplaint: async (complaintId, staffId) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assigned_to: staffId }),
+    })
     set(s => ({
-      complaints: s.complaints.map(c =>
-        c.id === complaintId
-          ? { ...c, assigned_to: staffId, assigned_name: staffName, status: 'pending' }
-          : c
-      )
+      complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
   },
 
-  // Update complaint status
-  // TODO: replace with → fetch(`/api/complaints/${id}/status`, { method: 'PATCH', body: ... })
-  updateStatus: (complaintId, status) => {
+  // Update complaint status (admin or assigned maintenance staff)
+  updateStatus: async (complaintId, status) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    })
     set(s => ({
-      complaints: s.complaints.map(c =>
-        c.id === complaintId ? { ...c, status } : c
-      )
+      complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
   },
 }))

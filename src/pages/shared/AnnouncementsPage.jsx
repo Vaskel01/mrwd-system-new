@@ -1,6 +1,6 @@
 import { useAnnouncementStore } from '../../store/announcementStore'
-import { ANNOUNCEMENT_CATEGORIES } from '../../mock/data'
-import { useState } from 'react'
+import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
+import { useState, useEffect } from 'react'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -30,7 +30,10 @@ function CategoryPill({ category }) {
 
 export default function AnnouncementsPage() {
   const announcements = useAnnouncementStore(s => s.announcements)
+  const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const [activeCategory, setActiveCategory] = useState('all')
+
+  useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
 
   const sorted = [...announcements].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   const filtered = activeCategory === 'all' ? sorted : sorted.filter(a => a.category === activeCategory)

@@ -1,28 +1,34 @@
 import { create } from 'zustand'
-import { MOCK_ANNOUNCEMENTS } from '../mock/data'
+import { apiFetch } from '../lib/api'
 
-export const useAnnouncementStore = create((set, get) => ({
-  announcements: [...MOCK_ANNOUNCEMENTS],
+export const useAnnouncementStore = create((set) => ({
+  announcements: [],
+  loading: false,
+
+  fetchAnnouncements: async () => {
+    set({ loading: true })
+    try {
+      const { announcements } = await apiFetch('/announcements')
+      set({ announcements, loading: false })
+    } catch (err) {
+      set({ loading: false })
+      throw err
+    }
+  },
 
   // Admin: post a new announcement
-  // TODO: replace with → fetch('/api/announcements', { method: 'POST', body: ... })
-  postAnnouncement: async (data, adminName) => {
-    await new Promise(r => setTimeout(r, 700))
-    const newAnnouncement = {
-      id:          'a' + Date.now(),
-      title:       data.title,
-      content:     data.content,
-      category:    data.category,
-      created_by:  adminName,
-      created_at:  new Date().toISOString(),
-    }
-    set(s => ({ announcements: [newAnnouncement, ...s.announcements] }))
-    return newAnnouncement
+  postAnnouncement: async (data) => {
+    const { announcement } = await apiFetch('/announcements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    set(s => ({ announcements: [announcement, ...s.announcements] }))
+    return announcement
   },
 
   // Admin: delete an announcement
-  // TODO: replace with → fetch(`/api/announcements/${id}`, { method: 'DELETE' })
-  deleteAnnouncement: (id) => {
+  deleteAnnouncement: async (id) => {
+    await apiFetch(`/announcements/${id}`, { method: 'DELETE' })
     set(s => ({ announcements: s.announcements.filter(a => a.id !== id) }))
   },
 }))

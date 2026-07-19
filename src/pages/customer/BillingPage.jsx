@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useBillingStore } from '../../store/billingStore'
 
@@ -22,7 +23,10 @@ function ConsumptionBar({ consumption, max = 30 }) {
 export default function BillingPage() {
   const user = useAuthStore(s => s.user)
   const getMyBills = useBillingStore(s => s.getMyBills)
+  const fetchBills = useBillingStore(s => s.fetchBills)
   const bills = getMyBills(user.id)
+
+  useEffect(() => { fetchBills() }, [fetchBills])
 
   const unpaidBills  = bills.filter(b => b.status === 'unpaid')
   const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + b.amount_due, 0)

@@ -1,0 +1,15 @@
+This file used to contain a schema guess (customer_id, complaint_type,
+etc.) written before I'd seen your actual Supabase project. That guess
+doesn't match your real database and running it will throw errors like
+"column customer_id does not exist" against your actual tables — so
+it's been removed rather than left around to run by accident.
+
+Your real schema already exists (profiles, complaints, complaint_categories,
+maintenance_tasks, task_updates, feedback — with resident_id, category_id,
+etc.). Use these two files instead, in order:
+
+  1. seed_categories.sql   — creates the complaint categories the app expects
+  2. rls-patch.sql          — Row Level Security policies written against
+                              your actual column names
+
+Run both in the Supabase SQL Editor. Safe to re-run either one.

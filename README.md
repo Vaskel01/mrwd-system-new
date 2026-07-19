@@ -7,14 +7,22 @@ Storage) as the database layer.
 
 ### 1. Set up the database
 
-1. Open your Supabase project → **SQL Editor** → New Query.
-2. Paste the contents of `supabase/migration.sql` and run it. It creates
-   the `profiles`, `complaints`, `bills`, and `announcements` tables, all
-   Row Level Security policies, and a `complaint-photos` storage bucket.
-   It's safe to re-run.
-3. Create the three demo accounts (Supabase only lets you create Auth
-   users through the Auth API/Dashboard, not plain SQL):
-   **Dashboard → Authentication → Add User**, for each of:
+Your Supabase project already has the real schema (`profiles`,
+`complaints`, `complaint_categories`, `maintenance_tasks`,
+`task_updates`, `feedback`) — you built that yourself, not from a file
+in this repo. Two things still need to be run against it, in order,
+from **Supabase Dashboard → SQL Editor → New Query**:
+
+1. `supabase/seed_categories.sql` — creates the complaint categories
+   the frontend's dropdown expects (names matter — the backend looks
+   categories up by exact name).
+2. `supabase/rls-patch.sql` — Row Level Security policies written
+   against your actual column names (`resident_id`, `category_id`,
+   etc.). Safe to re-run.
+
+Then create the three demo accounts (Supabase only lets you create
+Auth users through the Auth API/Dashboard, not plain SQL):
+**Dashboard → Authentication → Add User**, for each of:
 
    | Email                  | Password   | User metadata (raw JSON)                                  |
    |-------------------------|------------|-------------------------------------------------------------|
@@ -22,9 +30,11 @@ Storage) as the database layer.
    | admin@demo.com          | demo1234   | `{"full_name": "Maria Santos", "role": "admin"}`             |
    | maintenance@demo.com    | demo1234   | `{"full_name": "Pedro Reyes", "role": "maintenance"}`        |
 
-   The migration's trigger auto-creates a matching `profiles` row for
-   each one. If a profile doesn't appear, double check the metadata
-   JSON was entered under "User Metadata", not "App Metadata".
+   This only auto-creates a matching `profiles` row if you already
+   have a trigger on `auth.users` that does that (you may have set
+   this up yourself already, since your schema wasn't built from this
+   repo). If no `profiles` row appears after creating a user, insert
+   one manually with a matching `id`.
 
 ### 2. Backend
 
@@ -47,26 +57,65 @@ npm run dev                 # http://localhost:5173
 
 Both servers need to be running at the same time for the app to work.
 
+## Deploying (Vercel)
+
+The `api/` folder is a Vercel Serverless Function that wraps the exact
+same Express app — one deployment, no separate backend host, no CORS
+between frontend and backend since they end up on the same domain.
+
+1. Push this repo to GitHub, then **Import Project** in Vercel.
+2. Vercel auto-detects it as a Vite project — leave build settings as
+   default (it'll run `npm run build`, publish `dist/`, and pick up
+   `api/[...path].js` as a function automatically).
+3. **Project Settings → Environment Variables**, add:
+
+   | Name | Value |
+   |---|---|
+   | `VITE_SUPABASE_URL` | same as your local `.env` |
+   | `VITE_SUPABASE_ANON_KEY` | same as your local `.env` |
+   | `VITE_API_URL` | `/api` *(relative — same origin now, not `localhost:4000`)* |
+   | `SUPABASE_URL` | same value as `VITE_SUPABASE_URL`, **without** the `VITE_` prefix (this one is read by the serverless function, server-side) |
+   | `SUPABASE_ANON_KEY` | same value as `VITE_SUPABASE_ANON_KEY`, without the `VITE_` prefix |
+
+4. Deploy. Any time you change an env var, trigger a redeploy —
+   `VITE_*` vars are baked into the build at build time, not read at
+   runtime, so just saving the variable in the dashboard isn't enough.
+
+If complaints stop saving specifically on the deployed site (but work
+locally), it's almost always one of: `VITE_API_URL` not set to `/api`,
+or the two non-`VITE_` server vars missing.
+
 ## How it's wired together
 
 - **Frontend (`src/`)** never talks to Postgres directly except for
   photo uploads (straight to Supabase Storage, using the signed-in
   user's own session). Everything else — auth, complaints, billing,
   announcements — goes through the Express API.
-- **Backend (`server/`)** holds the priority-scoring engine and all
-  business logic. It never uses a Supabase service-role key; every
-  request is made with the caller's own access token forwarded to
-  Supabase, so Postgres Row Level Security is what actually enforces
-  who can see or change what. If you inspect a request in devtools,
-  you're seeing real permission checks, not just UI-level hiding.
-- **Database (Supabase)** — schema and policies are in
-  `supabase/migration.sql`. Row Level Security is the source of truth
-  for authorization, not the Express routes.
+- **Backend (`server/app.js`)** holds the priority-scoring engine and
+  all business logic, as one Express app used two different ways:
+  - locally, `server/index.js` imports it and calls `.listen()` — a
+    normal, persistent Node process
+  - on Vercel, `api/[...path].js` imports the same app and exports it
+    directly — Vercel calls it per-request as a serverless function,
+    no `.listen()` needed
+  It never uses a Supabase service-role key; every request is made
+  with the caller's own access token forwarded to Supabase, so
+  Postgres Row Level Security is what actually enforces who can see
+  or change what — not the Express routes themselves.
+- **Database (Supabase)** — your actual schema (built independently of
+  this repo), with `supabase/seed_categories.sql` and
+  `supabase/rls-patch.sql` layered on top. Row Level Security is the
+  source of truth for authorization, not the Express routes.
 
 ## Project structure
 
 ```
-src/            React frontend (Vite)
-server/         Express API (separate Node project — own package.json)
-supabase/       SQL migration (schema + RLS + storage bucket)
+src/                    React frontend (Vite)
+server/app.js           The Express app (routes, middleware) — no listener
+server/index.js         Local dev only: imports app.js, calls .listen()
+server/package.json     Backend's own dependencies, for local `npm run dev`
+api/[...path].js        Vercel only: imports app.js, exports it as a function
+vercel.json             SPA rewrite rules for Vercel
+supabase/                seed_categories.sql + rls-patch.sql (run against your existing schema)
 ```
+

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
-import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { PriorityBadge } from '../../components/ui/Badges'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import InlineMap from '../../components/ui/InlineMap'
 
 function timeAgo(iso) {
@@ -133,11 +134,17 @@ function ComplaintCard({ c }) {
 export default function MyComplaintsPage() {
   const user       = useAuthStore(s => s.user)
   const getMyComplaints = useComplaintStore(s => s.getMyComplaints)
+  const loading = useComplaintStore(s => s.loading)
+  const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const complaints = getMyComplaints(user?.id) || []
   const [filter, setFilter] = useState('all')
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
+
+  if (loading && complaints.length === 0) {
+    return <PageLoader label="Loading your reports..." />
+  }
 
   const filtered = filter === 'all' ? complaints : complaints.filter(c => c.status === filter)
   const counts   = {
@@ -164,7 +171,9 @@ export default function MyComplaintsPage() {
         </div>
       </div>
 
-      {complaints.length === 0 ? (
+      {error && complaints.length === 0 ? (
+        <ErrorBanner message={error} onRetry={fetchComplaints} />
+      ) : complaints.length === 0 ? (
         <div className="card rounded-xl p-16 text-center">
           <div className="text-6xl mb-4">📋</div>
           <h2 className="font-display font-bold text-navy-800 text-xl mb-2">No reports yet</h2>

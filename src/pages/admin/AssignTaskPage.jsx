@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
 import { apiFetch } from '../../lib/api'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -20,21 +22,32 @@ const PRIORITY_STRIPE = {
 
 export default function AssignTaskPage() {
   const complaints      = useComplaintStore(s => s.complaints)
+  const loading         = useComplaintStore(s => s.loading)
+  const error           = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const assignComplaint = useComplaintStore(s => s.assignComplaint)
   const updateStatus    = useComplaintStore(s => s.updateStatus)
 
   const [staffList, setStaffList]         = useState([])
+  const [staffError, setStaffError]       = useState('')
   const [selectedId, setSelectedId]       = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
   const [assigning, setAssigning]         = useState(false)
   const [toast, setToast]                 = useState({ msg: '', type: 'success' })
   const [assignedTab, setAssignedTab]     = useState('active')
+  const [rejectTarget, setRejectTarget]   = useState(null)
+  const [rejecting, setRejecting]         = useState(false)
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
   useEffect(() => {
-    apiFetch('/users/maintenance-staff').then(({ staff }) => setStaffList(staff)).catch(() => {})
+    apiFetch('/users/maintenance-staff')
+      .then(({ staff }) => setStaffList(staff))
+      .catch(err => setStaffError(err.message))
   }, [])
+
+  if (loading && complaints.length === 0) {
+    return <PageLoader label="Loading tasks..." />
+  }
 
   // Unassigned = no staff, not yet finished
   const unassigned = complaints
@@ -74,6 +87,20 @@ export default function AssignTaskPage() {
     showToast(`Status updated to ${newStatus.replace('_', ' ')}`)
   }
 
+  const handleReject = async () => {
+    if (!rejectTarget) return
+    setRejecting(true)
+    try {
+      await updateStatus(rejectTarget.id, 'rejected')
+      showToast(`"${rejectTarget.complaint_type}" was rejected.`)
+      setRejectTarget(null)
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setRejecting(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -91,6 +118,11 @@ export default function AssignTaskPage() {
         }`}>
           {toast.type === 'success' ? '✓' : '!'} {toast.msg}
         </div>
+      )}
+
+      {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      {staffError && (
+        <ErrorBanner message={`Couldn't load the maintenance staff list: ${staffError}`} />
       )}
 
       {/* Stats strip */}
@@ -268,7 +300,7 @@ export default function AssignTaskPage() {
                           </button>
                         )}
                         {(c.status === 'pending' || c.status === 'in_progress') && (
-                          <button onClick={() => handleStatusChange(c.id, 'rejected')}
+                          <button onClick={() => setRejectTarget(c)}
                             className="text-xs px-3 py-1.5 font-bold border bg-red-50 border-red-200 text-red-600 hover:bg-red-100 transition-colors">
                             ✕ Reject
                           </button>
@@ -310,6 +342,17 @@ export default function AssignTaskPage() {
         </div>
 
       </div>
+
+      <ConfirmDialog
+        open={!!rejectTarget}
+        title="Reject this complaint?"
+        message={rejectTarget ? `"${rejectTarget.complaint_type}" from ${rejectTarget.customer_name} will be marked as rejected. This won't delete it, but there's no undo button in the app — you'd need to change it back manually.` : ''}
+        confirmLabel="Reject Complaint"
+        danger
+        loading={rejecting}
+        onConfirm={handleReject}
+        onCancel={() => setRejectTarget(null)}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useBillingStore } from '../../store/billingStore'
+import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 
 function formatPeso(amount) {
   return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })
@@ -23,6 +24,8 @@ function ConsumptionBar({ consumption, max = 30 }) {
 export default function BillingPage() {
   const user = useAuthStore(s => s.user)
   const getMyBills = useBillingStore(s => s.getMyBills)
+  const loading = useBillingStore(s => s.loading)
+  const error = useBillingStore(s => s.error)
   const fetchBills = useBillingStore(s => s.fetchBills)
   const bills = getMyBills(user.id)
 
@@ -32,6 +35,22 @@ export default function BillingPage() {
   const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + b.amount_due, 0)
   const latestBill   = bills[0]
   const overdueBills = bills.filter(b => isOverdue(b.due_date, b.status))
+
+  if (loading && bills.length === 0) {
+    return <PageLoader label="Loading your billing history..." />
+  }
+
+  if (error && bills.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
+          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing Statement</h1>
+        </div>
+        <ErrorBanner message={error} onRetry={fetchBills} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -87,6 +106,13 @@ export default function BillingPage() {
           <span className="text-xs text-gray-400">{bills.length} records</span>
         </div>
 
+        {bills.length === 0 ? (
+          <div className="p-8">
+            <EmptyState icon="🧾" title="No bills yet"
+              description="Your billing statements will show up here once they're issued." />
+          </div>
+        ) : (
+        <>
         {/* Mobile: card list */}
         <div className="sm:hidden divide-y divide-gray-100">
           {bills.map(b => (
@@ -147,6 +173,8 @@ export default function BillingPage() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </div>
 
       <p className="text-xs text-gray-400 mt-4 text-center">

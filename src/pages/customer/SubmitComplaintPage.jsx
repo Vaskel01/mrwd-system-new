@@ -7,6 +7,7 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { scorePriority } from '../../lib/priorityScoring'
 import { COMPLAINT_TYPES } from '../../config/staticData'
 import { PriorityBadge } from '../../components/ui/Badges'
+import { ErrorBanner } from '../../components/ui/Feedback'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
@@ -128,6 +129,7 @@ export default function SubmitComplaintPage() {
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(null)
   const [priorityPreview, setPriorityPreview] = useState(null)
 
@@ -218,6 +220,7 @@ export default function SubmitComplaintPage() {
 
   const onSubmit = async (data) => {
     setSubmitting(true)
+    setSubmitError(null)
     try {
       const result = await submitComplaint(
         { ...data, photo, gps: gpsCoords },
@@ -228,6 +231,8 @@ export default function SubmitComplaintPage() {
       reset()
       setPhoto(null); setPhotoPreview(null); setPriorityPreview(null); setStep(0)
       setGpsCoords(null); setGpsError(null); setLocationMode(null)
+    } catch (err) {
+      setSubmitError(err.message)
     } finally { setSubmitting(false) }
   }
 
@@ -557,6 +562,8 @@ export default function SubmitComplaintPage() {
                 </div>
               </div>
             )}
+
+            {submitError && <div className="px-5"><ErrorBanner message={submitError} /></div>}
 
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(2)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>

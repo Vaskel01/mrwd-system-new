@@ -1,6 +1,6 @@
 import { useAnnouncementStore } from '../../store/announcementStore'
-import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
 import { useState, useEffect } from 'react'
+import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -30,6 +30,8 @@ function CategoryPill({ category }) {
 
 export default function AnnouncementsPage() {
   const announcements = useAnnouncementStore(s => s.announcements)
+  const loading = useAnnouncementStore(s => s.loading)
+  const error = useAnnouncementStore(s => s.error)
   const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const [activeCategory, setActiveCategory] = useState('all')
 
@@ -39,6 +41,10 @@ export default function AnnouncementsPage() {
   const filtered = activeCategory === 'all' ? sorted : sorted.filter(a => a.category === activeCategory)
   const categories = ['all', ...new Set(announcements.map(a => a.category))]
 
+  if (loading && announcements.length === 0) {
+    return <PageLoader label="Loading announcements..." />
+  }
+
   if (announcements.length === 0) {
     return (
       <div>
@@ -46,10 +52,10 @@ export default function AnnouncementsPage() {
           <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Official Notices</p>
           <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Announcements</h1>
         </div>
-        <div className="card rounded-xl border-dashed p-12 text-center">
-          <p className="text-4xl mb-3">📢</p>
-          <p className="font-bold text-gray-500">No announcements posted yet.</p>
-        </div>
+        {error
+          ? <ErrorBanner message={error} onRetry={fetchAnnouncements} />
+          : <EmptyState icon="📢" title="No announcements posted yet." />
+        }
       </div>
     )
   }
@@ -85,7 +91,7 @@ export default function AnnouncementsPage() {
             <h2 className="font-black text-gray-900 text-base sm:text-lg tracking-tight mb-2 leading-snug">{latest.title}</h2>
             <p className="text-sm text-gray-600 leading-relaxed mb-4">{latest.content}</p>
             <div className="flex items-center gap-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
-              <span className="font-semibold text-gray-600">{latest.created_by}</span>
+              <span className="font-semibold text-gray-600">{latest.created_by_name}</span>
               <span>·</span>
               <span>{timeAgo(latest.created_at)}</span>
             </div>
@@ -126,7 +132,7 @@ export default function AnnouncementsPage() {
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">{a.content}</p>
                   <div className="text-xs text-gray-400 flex items-center gap-2">
-                    <span className="font-semibold text-gray-500">{a.created_by}</span>
+                    <span className="font-semibold text-gray-500">{a.created_by_name}</span>
                     <span>·</span>
                     <span>{timeAgo(a.created_at)}</span>
                   </div>

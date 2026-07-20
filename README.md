@@ -24,6 +24,11 @@ from **Supabase Dashboard → SQL Editor → New Query**:
    a trigger that does it automatically (covers the case where your
    Supabase project requires email confirmation, so there's no session
    yet to act with at signup time). Safe to re-run.
+4. `supabase/create-announcements-and-bills.sql` — creates the
+   `announcements` and `bills` tables, which never existed in your
+   original schema (only the tables in your ERD did). Without this,
+   the Announcements and Billing pages fail with a
+   "Could not find the table" error. Safe to re-run.
 
 With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't

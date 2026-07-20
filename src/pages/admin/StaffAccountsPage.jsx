@@ -3,10 +3,15 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useStaffStore } from '../../store/staffStore'
+import { PageLoader, EmptyState, ErrorBanner } from '../../components/ui/Feedback'
 
 const ROLE_BADGE = {
   admin:       'bg-purple-100 text-purple-800 border-purple-200',
   maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
+}
+const ROLE_LABEL = {
+  admin: 'Admin',
+  maintenance_personnel: 'Maintenance',
 }
 
 function timeAgo(iso) {
@@ -27,6 +32,7 @@ const schema = z.object({
 export default function StaffAccountsPage() {
   const staff        = useStaffStore(s => s.staff)
   const loading       = useStaffStore(s => s.loading)
+  const fetchError    = useStaffStore(s => s.error)
   const fetchStaff   = useStaffStore(s => s.fetchStaff)
   const createStaff  = useStaffStore(s => s.createStaff)
 
@@ -87,6 +93,8 @@ export default function StaffAccountsPage() {
         </div>
       )}
 
+      {fetchError && <ErrorBanner message={fetchError} onRetry={fetchStaff} />}
+
       {/* Create form */}
       {showForm && (
         <div className="bg-white border border-gray-200 overflow-hidden">
@@ -94,9 +102,7 @@ export default function StaffAccountsPage() {
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest">New Staff Account</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 font-medium">{error}</div>
-            )}
+            {error && <ErrorBanner message={error} />}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Full name <span className="text-red-500">*</span></label>
@@ -142,16 +148,13 @@ export default function StaffAccountsPage() {
       )}
 
       {/* List */}
-      {loading ? (
-        <div className="bg-white border border-gray-200 p-12 text-center text-gray-400">Loading staff accounts...</div>
+      {loading && staff.length === 0 ? (
+        <PageLoader label="Loading staff accounts..." />
       ) : staff.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-4xl mb-3">👥</p>
-          <p className="font-bold text-gray-500">No staff accounts yet.</p>
-          <p className="text-sm text-gray-400 mt-1">Click "New Account" to create an admin or maintenance login.</p>
-        </div>
+        <EmptyState icon="👥" title="No staff accounts yet."
+          description='Click "New Account" to create an admin or maintenance login.' />
       ) : (
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="bg-white border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left">
@@ -164,14 +167,14 @@ export default function StaffAccountsPage() {
             <tbody className="divide-y divide-gray-100">
               {staff.map(s => (
                 <tr key={s.id}>
-                  <td className="px-5 py-3.5 font-semibold text-gray-800">{s.full_name}</td>
-                  <td className="px-5 py-3.5 text-gray-500">{s.email}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5 font-semibold text-gray-800 whitespace-nowrap">{s.full_name}</td>
+                  <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{s.email}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2 py-0.5 text-xs font-black uppercase tracking-wide border ${ROLE_BADGE[s.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                      {s.role}
+                      {ROLE_LABEL[s.role] || s.role}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-gray-400">{timeAgo(s.created_at)}</td>
+                  <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{timeAgo(s.created_at)}</td>
                 </tr>
               ))}
             </tbody>

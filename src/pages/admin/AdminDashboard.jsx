@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
 import { useAuthStore } from '../../store/authStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { PageLoader, EmptyState } from '../../components/ui/Feedback'
 import { useNavigate } from 'react-router-dom'
 
 function timeAgo(iso) {
@@ -29,6 +30,7 @@ function StatCard({ label, value, sub, accent, icon }) {
 
 export default function AdminDashboard() {
   const complaints  = useComplaintStore(s => s.complaints)
+  const loading     = useComplaintStore(s => s.loading)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const user        = useAuthStore(s => s.user)
   const navigate    = useNavigate()
@@ -46,6 +48,10 @@ export default function AdminDashboard() {
   const recent = [...complaints]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 6)
+
+  if (loading && complaints.length === 0) {
+    return <PageLoader label="Loading dashboard..." />
+  }
 
   return (
     <div className="space-y-6">
@@ -131,6 +137,11 @@ export default function AdminDashboard() {
           </button>
         </div>
 
+        {recent.length === 0 ? (
+          <EmptyState icon="📋" title="No complaints filed yet"
+            description="Once residents start submitting reports, they'll show up here." />
+        ) : (
+        <>
         {/* Desktop */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
@@ -176,6 +187,8 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
     </div>
   )

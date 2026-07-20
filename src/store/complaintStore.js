@@ -23,18 +23,18 @@ async function uploadPhoto(file, userId) {
 export const useComplaintStore = create((set, get) => ({
   complaints: [],
   loading: false,
+  error: null,
 
   // Fetch complaints visible to the signed-in user (RLS on the backend
   // already scopes this to "mine" for customers, "assigned to me" for
   // maintenance, and "everything" for admins).
   fetchComplaints: async () => {
-    set({ loading: true })
+    set({ loading: true, error: null })
     try {
       const { complaints } = await apiFetch('/complaints')
       set({ complaints, loading: false })
     } catch (err) {
-      set({ loading: false })
-      throw err
+      set({ loading: false, error: err.message })
     }
   },
 

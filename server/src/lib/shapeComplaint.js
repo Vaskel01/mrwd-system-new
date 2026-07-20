@@ -11,7 +11,7 @@
 //   lat, lng                   → gps: { lat, lng }
 //   submitted_at                → created_at
 //   (joined profiles.full_name) → customer_name
-//   (joined maintenance_tasks)  → assigned_to
+//   (joined maintenance_tasks)  → assigned_to, assigned_name
 
 /**
  * Fetches complaint rows plus everything needed to join them, and
@@ -30,12 +30,9 @@ export async function fetchShapedComplaints(supabase, { filter } = {}) {
   const residentIds = [...new Set(rows.map(r => r.resident_id).filter(Boolean))]
   const complaintIds = rows.map(r => r.id)
 
-  const [{ data: categories }, { data: profiles }, { data: tasks }] = await Promise.all([
+  const [{ data: categories }, { data: tasks }] = await Promise.all([
     categoryIds.length
       ? supabase.from('complaint_categories').select('id, name').in('id', categoryIds)
-      : { data: [] },
-    residentIds.length
-      ? supabase.from('profiles').select('id, full_name').in('id', residentIds)
       : { data: [] },
     complaintIds.length
       ? supabase.from('maintenance_tasks').select('*').in('complaint_id', complaintIds).order('created_at', { ascending: false })
@@ -43,13 +40,21 @@ export async function fetchShapedComplaints(supabase, { filter } = {}) {
   ])
 
   const categoryMap = Object.fromEntries((categories || []).map(c => [c.id, c.name]))
-  const profileMap  = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]))
 
   // Most recent task per complaint (tasks already ordered newest-first)
   const taskMap = {}
   for (const t of tasks || []) {
     if (!taskMap[t.complaint_id]) taskMap[t.complaint_id] = t
   }
+
+  // Need names for both residents (customer_name) and whoever's
+  // assigned (assigned_name) — fetch both sets of profiles together.
+  const assignedStaffIds = Object.values(taskMap).map(t => t.assigned_staff_id).filter(Boolean)
+  const profileIds = [...new Set([...residentIds, ...assignedStaffIds])]
+  const { data: profiles } = profileIds.length
+    ? await supabase.from('profiles').select('id, full_name').in('id', profileIds)
+    : { data: [] }
+  const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]))
 
   return rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap))
 }
@@ -76,6 +81,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     rule_score: row.rule_score,
     sentiment_score: row.sentiment_score,
     assigned_to: task ? task.assigned_staff_id : null,
+    assigned_name: task ? (profileMap[task.assigned_staff_id] || 'Unassigned staff') : null,
     task_status: task ? task.status : null,
     created_at: row.submitted_at,
     updated_at: row.updated_at,

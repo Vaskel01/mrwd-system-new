@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import InlineMap from '../../components/ui/InlineMap'
 
 function timeAgo(iso) {
@@ -22,6 +23,8 @@ const PRIORITY_STRIPE = {
 
 export default function AllComplaintsPage() {
   const complaints = useComplaintStore(s => s.complaints)
+  const loading = useComplaintStore(s => s.loading)
+  const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const [filterStatus, setFilterStatus]     = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
@@ -30,6 +33,10 @@ export default function AllComplaintsPage() {
   const [expanded, setExpanded] = useState(null)
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
+
+  if (loading && complaints.length === 0) {
+    return <PageLoader label="Loading complaints..." />
+  }
 
   const filtered = complaints
     .filter(c => filterStatus   === 'all' || c.status   === filterStatus)
@@ -65,6 +72,8 @@ export default function AllComplaintsPage() {
           </div>
         </div>
       </div>
+
+      {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
 
       {/* Filter panel */}
       <div className="card rounded-xl p-4 space-y-3">
@@ -120,7 +129,9 @@ export default function AllComplaintsPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">No complaints match the current filters.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">
+                {complaints.length === 0 ? 'No complaints have been filed yet.' : 'No complaints match the current filters.'}
+              </td></tr>
             ) : filtered.map((c, i) => (
               <>
                 <tr key={c.id} onClick={() => setExpanded(expanded === c.id ? null : c.id)}
@@ -176,8 +187,10 @@ export default function AllComplaintsPage() {
       {/* Mobile cards */}
       <div className="sm:hidden space-y-3 p-3">
         {filtered.length === 0 ? (
-          <div className="bg-white border border-dashed border-gray-200 p-8 text-center text-gray-400 text-sm">No complaints found.</div>
-        ) : filtered.map((c, i) => (
+          <div className="bg-white border border-dashed border-gray-200 p-8 text-center text-gray-400 text-sm">
+            {complaints.length === 0 ? 'No complaints have been filed yet.' : 'No complaints match the current filters.'}
+          </div>
+        ) : filtered.map((c) => (
           <div key={c.id} className={`bg-white border border-gray-200 border-l-4 ${PRIORITY_STRIPE[c.priority]} overflow-hidden`}>
             <div className="p-4">
               <div className="flex items-start justify-between gap-2 mb-2">

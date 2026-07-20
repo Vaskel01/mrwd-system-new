@@ -103,7 +103,7 @@ export default function AppLayout({ children }) {
   // Current page label
   const currentItem = navItems.find(i => location.pathname.startsWith(i.to))
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full scrollbar-thin overflow-y-auto">
       {/* Brand header */}
       <div className="px-4 pt-6 pb-5 shrink-0">
@@ -189,7 +189,7 @@ export default function AppLayout({ children }) {
         lg:translate-x-0 transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `} style={{ width: 240, background: 'linear-gradient(180deg, #0f2240 0%, #1b3366 60%, #0f2240 100%)' }}>
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* ── Main area ── */}

@@ -1,6 +1,7 @@
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge } from '../../components/ui/Badges'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import { useState, useEffect } from 'react'
 import InlineMap from '../../components/ui/InlineMap'
 
@@ -129,6 +130,8 @@ function TaskCard({ t, onStatus }) {
 export default function MaintenanceTasksPage() {
   const user         = useAuthStore(s => s.user)
   const complaints   = useComplaintStore(s => s.complaints)
+  const loading = useComplaintStore(s => s.loading)
+  const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const updateStatus = useComplaintStore(s => s.updateStatus)
   const [toast, setToast] = useState('')
@@ -146,6 +149,10 @@ export default function MaintenanceTasksPage() {
   const handleStatus = (id, status) => {
     updateStatus(id, status)
     showToast(status === 'completed' ? '✅ Task marked complete' : 'Status updated')
+  }
+
+  if (loading && complaints.length === 0) {
+    return <PageLoader label="Loading your tasks..." />
   }
 
   return (
@@ -191,7 +198,9 @@ export default function MaintenanceTasksPage() {
         </div>
       )}
 
-      {myTasks.length === 0 ? (
+      {myTasks.length === 0 && error ? (
+        <ErrorBanner message={error} onRetry={fetchComplaints} />
+      ) : myTasks.length === 0 ? (
         <div className="card rounded-xl p-16 text-center">
           <div className="text-6xl mb-4">🔧</div>
           <h2 className="font-display font-bold text-navy-800 text-xl mb-2">No tasks assigned yet</h2>

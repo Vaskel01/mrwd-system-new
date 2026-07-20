@@ -4,15 +4,15 @@ import { apiFetch } from '../lib/api'
 export const useAnnouncementStore = create((set) => ({
   announcements: [],
   loading: false,
+  error: null,
 
   fetchAnnouncements: async () => {
-    set({ loading: true })
+    set({ loading: true, error: null })
     try {
       const { announcements } = await apiFetch('/announcements')
       set({ announcements, loading: false })
     } catch (err) {
-      set({ loading: false })
-      throw err
+      set({ loading: false, error: err.message })
     }
   },
 

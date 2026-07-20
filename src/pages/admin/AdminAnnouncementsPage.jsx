@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAnnouncementStore } from '../../store/announcementStore'
 import { useAuthStore } from '../../store/authStore'
 import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
+import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -48,6 +50,8 @@ const schema = z.object({
 export default function AdminAnnouncementsPage() {
   const user               = useAuthStore(s => s.user)
   const announcements      = useAnnouncementStore(s => s.announcements)
+  const loading            = useAnnouncementStore(s => s.loading)
+  const error               = useAnnouncementStore(s => s.error)
   const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const postAnnouncement   = useAnnouncementStore(s => s.postAnnouncement)
   const deleteAnnouncement = useAnnouncementStore(s => s.deleteAnnouncement)
@@ -55,8 +59,10 @@ export default function AdminAnnouncementsPage() {
   useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
 
   const [posting, setPosting]             = useState(false)
+  const [postError, setPostError]         = useState('')
   const [toast, setToast]                 = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [deleting, setDeleting]           = useState(false)
   const [showForm, setShowForm]           = useState(false)
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
@@ -70,20 +76,38 @@ export default function AdminAnnouncementsPage() {
 
   const onSubmit = async (data) => {
     setPosting(true)
-    await postAnnouncement(data, user.full_name)
-    setPosting(false)
-    reset()
-    setShowForm(false)
-    showToast('Announcement posted.')
+    setPostError('')
+    try {
+      await postAnnouncement(data, user.full_name)
+      reset()
+      setShowForm(false)
+      showToast('Announcement posted.')
+    } catch (err) {
+      setPostError(err.message)
+    } finally {
+      setPosting(false)
+    }
   }
 
-  const handleDelete = (id) => {
-    deleteAnnouncement(id)
-    setConfirmDelete(null)
-    showToast('Announcement deleted.')
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      await deleteAnnouncement(confirmDelete.id)
+      setConfirmDelete(null)
+      showToast('Announcement deleted.')
+    } catch (err) {
+      showToast(err.message)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const sorted = [...announcements].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+  if (loading && announcements.length === 0) {
+    return <PageLoader label="Loading announcements..." />
+  }
 
   return (
     <div className="space-y-5">
@@ -109,6 +133,8 @@ export default function AdminAnnouncementsPage() {
         </div>
       )}
 
+      {error && <ErrorBanner message={error} onRetry={fetchAnnouncements} />}
+
       {/* Compose form */}
       {showForm && (
         <div className="bg-white border border-gray-200 mb-5 overflow-hidden">
@@ -116,6 +142,7 @@ export default function AdminAnnouncementsPage() {
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest">New Announcement</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
+            {postError && <ErrorBanner message={postError} />}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Title <span className="text-red-500">*</span></label>
@@ -160,11 +187,8 @@ export default function AdminAnnouncementsPage() {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-4xl mb-3">📢</p>
-          <p className="font-bold text-gray-500">No announcements yet.</p>
-          <p className="text-sm text-gray-400 mt-1">Click "New Post" to publish one.</p>
-        </div>
+        <EmptyState icon="📢" title="No announcements yet."
+          description='Click "New Post" to publish one.' />
       ) : (
         <div className="space-y-2">
           {sorted.map((a, i) => (
@@ -180,28 +204,18 @@ export default function AdminAnnouncementsPage() {
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">{a.content}</p>
                     <p className="text-xs text-gray-400">
-                      <span className="font-semibold text-gray-500">{a.created_by}</span> · {timeAgo(a.created_at)}
+                      <span className="font-semibold text-gray-500">{a.created_by_name}</span> · {timeAgo(a.created_at)}
                     </p>
                   </div>
 
                   {/* Delete control */}
                   <div className="shrink-0">
-                    {confirmDelete === a.id ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500 mr-1">Delete?</span>
-                        <button onClick={() => handleDelete(a.id)}
-                          className="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 font-bold transition-colors">Yes</button>
-                        <button onClick={() => setConfirmDelete(null)}
-                          className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2.5 py-1 font-bold transition-colors">No</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setConfirmDelete(a.id)}
-                        className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                      </button>
-                    )}
+                    <button onClick={() => setConfirmDelete(a)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -209,6 +223,17 @@ export default function AdminAnnouncementsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this announcement?"
+        message={confirmDelete ? `"${confirmDelete.title}" will be removed for everyone. This can't be undone.` : ''}
+        confirmLabel="Delete"
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

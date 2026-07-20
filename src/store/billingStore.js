@@ -4,16 +4,16 @@ import { apiFetch } from '../lib/api'
 export const useBillingStore = create((set, get) => ({
   bills: [],
   loading: false,
+  error: null,
 
   // RLS scopes this to "my bills" for customers, "everyone's" for admins.
   fetchBills: async () => {
-    set({ loading: true })
+    set({ loading: true, error: null })
     try {
       const { bills } = await apiFetch('/billing')
       set({ bills, loading: false })
     } catch (err) {
-      set({ loading: false })
-      throw err
+      set({ loading: false, error: err.message })
     }
   },
 

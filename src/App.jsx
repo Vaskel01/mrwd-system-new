@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage'
 
 // Auth
 import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
 
 // Customer
 import SubmitComplaintPage from './pages/customer/SubmitComplaintPage'
@@ -18,6 +19,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AllComplaintsPage from './pages/admin/AllComplaintsPage'
 import AssignTaskPage from './pages/admin/AssignTaskPage'
 import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage'
+import StaffAccountsPage from './pages/admin/StaffAccountsPage'
 
 // Maintenance
 import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
@@ -31,8 +33,9 @@ export default function App() {
       <Routes>
 
         {/* ── Public ── */}
-        <Route path="/"      element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/"         element={<LandingPage />} />
+        <Route path="/login"    element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* ── Customer ── */}
         <Route path="/customer/submit" element={
@@ -75,6 +78,11 @@ export default function App() {
         <Route path="/admin/announcements" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AppLayout><AdminAnnouncementsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/admin/staff" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AppLayout><StaffAccountsPage /></AppLayout>
           </ProtectedRoute>
         }/>
 

@@ -19,22 +19,21 @@ from **Supabase Dashboard → SQL Editor → New Query**:
 2. `supabase/rls-patch.sql` — Row Level Security policies written
    against your actual column names (`resident_id`, `category_id`,
    etc.). Safe to re-run.
+3. `supabase/enable-signup.sql` — lets people actually create accounts:
+   a policy allowing a new user to insert their own `profiles` row, plus
+   a trigger that does it automatically (covers the case where your
+   Supabase project requires email confirmation, so there's no session
+   yet to act with at signup time). Safe to re-run.
 
-Then create the three demo accounts (Supabase only lets you create
-Auth users through the Auth API/Dashboard, not plain SQL):
-**Dashboard → Authentication → Add User**, for each of:
-
-   | Email                  | Password   | User metadata (raw JSON)                                  |
-   |-------------------------|------------|-------------------------------------------------------------|
-   | customer@demo.com       | demo1234   | `{"full_name": "Juan dela Cruz", "role": "customer"}`       |
-   | admin@demo.com          | demo1234   | `{"full_name": "Maria Santos", "role": "admin"}`             |
-   | maintenance@demo.com    | demo1234   | `{"full_name": "Pedro Reyes", "role": "maintenance"}`        |
-
-   This only auto-creates a matching `profiles` row if you already
-   have a trigger on `auth.users` that does that (you may have set
-   this up yourself already, since your schema wasn't built from this
-   repo). If no `profiles` row appears after creating a user, insert
-   one manually with a matching `id`.
+With that in place, customers can create their own accounts from
+**Sign up** on the login page. Admin and maintenance accounts aren't
+open to public self-registration (anyone could otherwise pick "admin"
+from a dropdown) — an existing admin creates those from **Staff
+Accounts** in the admin panel instead. For your first admin account,
+before any admin exists yet, create one the same way as before:
+**Dashboard → Authentication → Add User**, with User Metadata:
+`{"full_name": "Maria Santos", "role": "admin"}`. Every account after
+that can be created from inside the app.
 
 ### 2. Backend
 

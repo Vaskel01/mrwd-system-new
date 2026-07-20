@@ -22,6 +22,40 @@ as $$
   select role from public.profiles where id = auth.uid()
 $$;
 
+-- These two exist to break a circular dependency: the complaints
+-- policy needs to check maintenance_tasks, and the maintenance_tasks
+-- policy needs to check complaints. If both did that with a plain
+-- EXISTS subquery, Postgres would have to evaluate each policy to
+-- answer the other one — infinite recursion. Wrapping the cross-table
+-- check in a SECURITY DEFINER function makes that inner query run
+-- with elevated privileges that bypass RLS entirely, so it doesn't
+-- re-trigger the other table's policy.
+create or replace function public.is_assigned_to_complaint(p_complaint_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.maintenance_tasks
+    where complaint_id = p_complaint_id and assigned_staff_id = auth.uid()
+  )
+$$;
+
+create or replace function public.is_resident_of_complaint(p_complaint_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.complaints
+    where id = p_complaint_id and resident_id = auth.uid()
+  )
+$$;
+
 -- ─────────────────────────────────────────────
 -- complaint_categories — everyone signed in can read; admin writes
 -- ─────────────────────────────────────────────
@@ -46,10 +80,7 @@ create policy "complaints_select" on public.complaints
   for select using (
     resident_id = auth.uid()
     or public.current_user_role() = 'admin'
-    or exists (
-      select 1 from public.maintenance_tasks t
-      where t.complaint_id = complaints.id and t.assigned_staff_id = auth.uid()
-    )
+    or public.is_assigned_to_complaint(id)
   );
 
 drop policy if exists "complaints_insert_own" on public.complaints;
@@ -62,10 +93,7 @@ drop policy if exists "complaints_update_admin_or_assignee" on public.complaints
 create policy "complaints_update_admin_or_assignee" on public.complaints
   for update using (
     public.current_user_role() = 'admin'
-    or exists (
-      select 1 from public.maintenance_tasks t
-      where t.complaint_id = complaints.id and t.assigned_staff_id = auth.uid()
-    )
+    or public.is_assigned_to_complaint(id)
   );
 
 -- ─────────────────────────────────────────────
@@ -78,10 +106,7 @@ create policy "tasks_select" on public.maintenance_tasks
   for select using (
     assigned_staff_id = auth.uid()
     or public.current_user_role() = 'admin'
-    or exists (
-      select 1 from public.complaints c
-      where c.id = maintenance_tasks.complaint_id and c.resident_id = auth.uid()
-    )
+    or public.is_resident_of_complaint(complaint_id)
   );
 
 drop policy if exists "tasks_insert_admin" on public.maintenance_tasks;

@@ -10,9 +10,16 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   )
 }
 
-// Plain anon client — used only for the login route, where there is
-// no user session yet.
-export const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Creates a fresh, unauthenticated client — used for login/signup,
+// where there's no user session yet. A new instance per call (rather
+// than one shared singleton reused across requests) avoids one
+// request's sign-in/sign-up mutating another concurrent request's
+// in-memory auth state on a shared client instance.
+export function supabaseAnonClient() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
 
 // Creates a client scoped to a specific user's access token, so every
 // query made with it is subject to that user's Row Level Security

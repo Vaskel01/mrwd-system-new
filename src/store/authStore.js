@@ -29,6 +29,18 @@ if (storedAccessToken && storedRefreshToken) {
   })
 }
 
+async function applySession(set, user, access_token, refresh_token) {
+  // Keep the local supabase-js client's session in sync so direct
+  // Storage uploads (photo attachments) are authenticated as this
+  // user too, not just calls to the Express API.
+  await supabase.auth.setSession({ access_token, refresh_token })
+
+  setToken(access_token)
+  localStorage.setItem(REFRESH_KEY, refresh_token)
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  set({ user, loading: false })
+}
+
 export const useAuthStore = create((set) => ({
   // Restored synchronously so a page refresh doesn't bounce a signed-in
   // user back to /login before the app has a chance to render.
@@ -42,17 +54,32 @@ export const useAuthStore = create((set) => ({
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
-
-      // Keep the local supabase-js client's session in sync so direct
-      // Storage uploads (photo attachments) are authenticated as this
-      // user too, not just calls to the Express API.
-      await supabase.auth.setSession({ access_token, refresh_token })
-
-      setToken(access_token)
-      localStorage.setItem(REFRESH_KEY, refresh_token)
-      localStorage.setItem(USER_KEY, JSON.stringify(user))
-      set({ user, loading: false })
+      await applySession(set, user, access_token, refresh_token)
       return user
+    } catch (err) {
+      set({ loading: false })
+      throw err
+    }
+  },
+
+  // Customer self-registration. Returns { user } and signs the person
+  // in immediately if the Supabase project doesn't require email
+  // confirmation, or { requiresEmailConfirmation: true } if it does.
+  signUp: async (fullName, email, password) => {
+    set({ loading: true })
+    try {
+      const result = await apiFetch('/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ full_name: fullName, email, password }),
+      })
+
+      if (result.requiresEmailConfirmation) {
+        set({ loading: false })
+        return result
+      }
+
+      await applySession(set, result.user, result.access_token, result.refresh_token)
+      return result
     } catch (err) {
       set({ loading: false })
       throw err
@@ -67,3 +94,4 @@ export const useAuthStore = create((set) => ({
     set({ user: null })
   },
 }))
+

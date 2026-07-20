@@ -232,8 +232,8 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Need an account? Contact the Metro Roxas Water District office.
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Need an account? <Link to="/register" className="text-brand-600 font-semibold hover:underline">Sign up</Link>
           </p>
 
         </div>

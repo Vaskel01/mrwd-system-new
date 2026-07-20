@@ -14,6 +14,7 @@ const NAV = {
     { to: '/admin/complaints',    icon: ListIcon,    label: 'All Complaints' },
     { to: '/admin/assign',        icon: AssignIcon,  label: 'Assign Tasks' },
     { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
+    { to: '/admin/staff',         icon: UsersIcon,   label: 'Staff Accounts' },
   ],
   maintenance: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
@@ -29,7 +30,10 @@ const ROLE_CONFIG = {
 
 // ── SVG Icons ──
 function DashIcon({ className }) {
-  return <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 01２ ２v２a２ ２ ０ ０１－２ ２h－２a２ ２ ０ ０１－２－２V５zM１４ １１a１ １ ０ ０１１ １v１h１a１ １ ０ １１０ ２h－１v１a１ １ ０ １１－２ －２v－１h－１a１ １ ０ １１０ －２h１v－１a１ １ ０ ０１１ －１z"/></svg>
+  return <svg className={className} viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+}
+function UsersIcon({ className }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 2c1.1 0 2 .9 2 2v.01M7 10a4 4 0 100-8 4 4 0 000 8z"/></svg>
 }
 function ListIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>

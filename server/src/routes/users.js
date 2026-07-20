@@ -9,7 +9,7 @@ router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, 
   const { data, error } = await req.supabase
     .from('profiles')
     .select('id, full_name, email')
-    .eq('role', 'maintenance')
+    .eq('role', 'maintenance_personnel')
 
   if (error) return res.status(400).json({ error: error.message })
   res.json({ staff: data })
@@ -21,7 +21,7 @@ router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
   const { data, error } = await req.supabase
     .from('profiles')
     .select('id, full_name, email, role, created_at')
-    .in('role', ['admin', 'maintenance'])
+    .in('role', ['admin', 'maintenance_personnel'])
     .order('created_at', { ascending: false })
 
   if (error) return res.status(400).json({ error: error.message })
@@ -36,9 +36,9 @@ router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
 router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   const { email, password, full_name, role } = req.body || {}
 
-  if (!email || !password || !full_name || !['admin', 'maintenance'].includes(role)) {
+  if (!email || !password || !full_name || !['admin', 'maintenance_personnel'].includes(role)) {
     return res.status(400).json({
-      error: 'full_name, email, password, and a role of "admin" or "maintenance" are required.',
+      error: 'full_name, email, password, and a role of "admin" or "maintenance_personnel" are required.',
     })
   }
   if (password.length < 6) {

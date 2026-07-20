@@ -6,7 +6,7 @@ import { useStaffStore } from '../../store/staffStore'
 
 const ROLE_BADGE = {
   admin:       'bg-purple-100 text-purple-800 border-purple-200',
-  maintenance: 'bg-amber-100 text-amber-900 border-amber-200',
+  maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
 }
 
 function timeAgo(iso) {
@@ -21,7 +21,7 @@ const schema = z.object({
   full_name: z.string().min(2, 'Enter a full name'),
   email:     z.string().email('Enter a valid email address'),
   password:  z.string().min(6, 'Password must be at least 6 characters'),
-  role:      z.enum(['admin', 'maintenance'], { errorMap: () => ({ message: 'Select a role' }) }),
+  role:      z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select a role' }) }),
 })
 
 export default function StaffAccountsPage() {
@@ -110,7 +110,7 @@ export default function StaffAccountsPage() {
                 <select {...register('role')} className={`input-field ${errors.role ? 'input-error' : ''}`}>
                   <option value="">Select...</option>
                   <option value="admin">Admin</option>
-                  <option value="maintenance">Maintenance</option>
+                  <option value="maintenance_personnel">Maintenance</option>
                 </select>
                 {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
               </div>

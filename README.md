@@ -29,11 +29,23 @@ With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't
 open to public self-registration (anyone could otherwise pick "admin"
 from a dropdown) — an existing admin creates those from **Staff
-Accounts** in the admin panel instead. For your first admin account,
-before any admin exists yet, create one the same way as before:
-**Dashboard → Authentication → Add User**, with User Metadata:
-`{"full_name": "Maria Santos", "role": "admin"}`. Every account after
-that can be created from inside the app.
+Accounts** in the admin panel instead.
+
+For your very first admin account, before any admin exists yet to use
+that page: **Dashboard → Authentication → Add User**, enter an email +
+password (leave "Auto confirm user?" checked), click **Create user**.
+Supabase's dashboard doesn't expose a way to set the role at creation
+time, so it'll default to `customer` — fix that with one query in the
+**SQL Editor**:
+
+```sql
+update public.profiles
+set role = 'admin', full_name = 'Your Name'
+where email = 'the-email-you-just-used@example.com';
+```
+
+Then log in with that email/password. Every account after that first
+one can be created from inside the app instead.
 
 ### 2. Backend
 

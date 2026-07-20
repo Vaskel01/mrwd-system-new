@@ -106,7 +106,7 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
 // PATCH /api/complaints/:id/status — admin or the assigned maintenance staff
 // Updates both the maintenance_tasks row (the audit trail) and the
 // complaints row (what customers/admins see as the current status).
-router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance'), async (req, res) => {
+router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
   const { status } = req.body || {}
   if (!['pending', 'in_progress', 'completed'].includes(status)) {
     return res.status(400).json({ error: 'status must be pending, in_progress, or completed.' })
@@ -116,7 +116,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance'), as
   if (status === 'completed') taskUpdate.completed_at = new Date().toISOString()
 
   let taskQuery = req.supabase.from('maintenance_tasks').update(taskUpdate).eq('complaint_id', req.params.id)
-  if (req.user.role === 'maintenance') taskQuery = taskQuery.eq('assigned_staff_id', req.user.id)
+  if (req.user.role === 'maintenance_personnel') taskQuery = taskQuery.eq('assigned_staff_id', req.user.id)
   const { error: taskErr } = await taskQuery
 
   if (taskErr) return res.status(400).json({ error: taskErr.message })

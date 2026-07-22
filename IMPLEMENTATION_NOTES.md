@@ -68,3 +68,13 @@ No additional database migration is required for this second UI/QOL update.
 - Run `supabase/feedback-staff-visibility.sql` in the Supabase SQL Editor so assigned maintenance personnel can read feedback under Row Level Security.
 - The Submit Complaint page now uses the same available content width as the other portal tabs.
 - Sidebar navigation items now share a consistent minimum height and non-wrapping label treatment.
+
+## Dataset-backed classifier update
+
+- Added `docs/keyword-dataset.xlsx` and CSV/JSON copies of the structured keyword dataset.
+- Added explicit category, confidence, sentiment, and priority classification results.
+- Added longest-phrase-first matching, stemming, negation handling, category mismatch detection, and explanations.
+- Complaint Details now displays the complete stored analysis.
+- Admins can rerun the classifier for older complaints through **Classify Existing**.
+- Run `supabase/dataset-backed-classification.sql` before filing or reclassifying complaints.
+- The included 25-case seed evaluation passes, but it is not a substitute for independent validation using MRWD-labeled complaints.

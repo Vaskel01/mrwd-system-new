@@ -43,6 +43,68 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
+// POST /api/complaints/reclassify-all — admin only
+// Re-runs the current dataset classifier for older complaints so their
+// details page can show the same stored analysis as newly filed reports.
+router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const [{ data: complaints, error: complaintsError }, { data: categories, error: categoriesError }] = await Promise.all([
+      req.supabase.from('complaints').select('id, category_id, description, photo_urls'),
+      req.supabase.from('complaint_categories').select('id, name, base_severity_score'),
+    ])
+
+    if (complaintsError) throw complaintsError
+    if (categoriesError) throw categoriesError
+
+    const categoryMap = Object.fromEntries((categories || []).map(category => [category.id, category]))
+    const failures = []
+    let updated = 0
+
+    for (const row of complaints || []) {
+      const category = categoryMap[row.category_id]
+      if (!category) {
+        failures.push({ id: row.id, error: 'Complaint category not found.' })
+        continue
+      }
+
+      const result = scoreComplaint({
+        complaint_type: category.name,
+        description: row.description,
+        has_photo: Array.isArray(row.photo_urls) && row.photo_urls.length > 0,
+        base_severity_score: category.base_severity_score,
+      })
+
+      const { error } = await req.supabase
+        .from('complaints')
+        .update({
+          priority: result.priority,
+          priority_score: result.priority_score,
+          rule_score: result.rule_score,
+          sentiment_score: result.sentiment_score,
+          classified_category: result.predicted_category,
+          classification_confidence: result.category_confidence,
+          classification_sentiment: result.classification_sentiment,
+          classification_mismatch: result.classification_mismatch,
+          classification_basis: result.classification_basis,
+          classification_keywords: result.matched_keywords,
+          classification_negated_keywords: result.negated_keywords,
+          classification_reasons: result.reasons,
+          classifier_version: result.classifier_version,
+          classification_method: result.classification_method,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id)
+
+      if (error) failures.push({ id: row.id, error: error.message })
+      else updated += 1
+    }
+
+    res.json({ updated, failed: failures.length, failures })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
 // GET /api/complaints/:id — one full complaint record visible under the
 // same RLS rules as the complaint list. Used by the shared details page.
 router.get('/:id', requireAuth, async (req, res) => {
@@ -75,11 +137,29 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
     })
   }
 
-  const { rule_score, sentiment_score, priority_score, priority, reasons } = scoreComplaint({
+  const classification = scoreComplaint({
+    complaint_type,
     description,
     has_photo: !!photo_url,
     base_severity_score: category.base_severity_score,
   })
+
+  const {
+    rule_score,
+    sentiment_score,
+    priority_score,
+    priority,
+    predicted_category,
+    category_confidence,
+    classification_sentiment,
+    classification_mismatch,
+    classification_basis,
+    matched_keywords,
+    negated_keywords,
+    reasons,
+    classifier_version,
+    classification_method,
+  } = classification
 
   const { data: inserted, error } = await req.supabase
     .from('complaints')
@@ -96,6 +176,16 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
       priority_score,
       rule_score,
       sentiment_score,
+      classified_category: predicted_category,
+      classification_confidence: category_confidence,
+      classification_sentiment,
+      classification_mismatch,
+      classification_basis,
+      classification_keywords: matched_keywords,
+      classification_negated_keywords: negated_keywords,
+      classification_reasons: reasons,
+      classifier_version,
+      classification_method,
     })
     .select()
     .single()

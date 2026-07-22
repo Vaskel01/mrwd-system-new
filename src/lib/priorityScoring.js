@@ -1,174 +1,208 @@
-// ─────────────────────────────────────────────────────────
-// HYBRID SENTIMENT-AWARE PRIORITY SCORING ALGORITHM
-// Pure JavaScript — runs entirely on the frontend
-// Deterministic, rule-based NLP — no ML models involved.
+// Dataset-backed rule-based complaint classifier.
 //
-// S = min( T
-//         + min(H * highMult,  highCeil)
-//         + min(M * medMult,   medCeil)
-//         - lowPenalty * 1[low matches > 0]
-//         + photoBonus * 1[has_photo]
-//       , scoreCap )
+// The classifier produces four explicit outputs after analyzing the text:
+//   1. predicted complaint category
+//   2. category confidence
+//   3. sentiment / urgency label
+//   4. final priority class (low, medium, or high)
 //
-// All numeric weights (highMult, highCeil, medMult, medCeil,
-// lowPenalty, photoBonus, scoreCap) are externalized to
-// src/config/scoringConfig.json — nothing here is a hardcoded
-// "magic number".
-//
-// Pipeline:
-//   1. normalizeText()               (textPreprocessor.js)
-//   2. extractPhraseMatches()        multi-word phrases matched
-//      FIRST and masked out of the text as single combined tokens
-//   3. tokenize() the remaining text, stem() each token, and match
-//      against single-word keyword roots with a negation-aware
-//      sliding window (skips "no flooding", "not urgent", etc.)
-//   4. removeStopwords() before matching the low-urgency word list
-// ─────────────────────────────────────────────────────────
+// The frontend runs this copy for a live preview. The backend runs the
+// canonical copy again before saving, so customers cannot alter the result.
 
 import scoringConfig from '../config/scoringConfig.json'
-import {
-  HIGH_PHRASES, HIGH_WORDS,
-  MEDIUM_PHRASES, MEDIUM_WORDS,
-  LOW_WORDS, NEGATION_WORDS,
-} from './keywordDictionary'
-import { normalizeText, tokenize, stem, removeStopwords } from './textPreprocessor'
+import keywordDataset from '../data/complaintKeywordDataset.json'
+import { normalizeText, tokenize, stem } from './textPreprocessor'
 
-const NEGATION_WINDOW = 3 // words to look back for a negation trigger
+const NEGATION_WORDS = new Set(['no', 'not', 'never', 'none', 'without'])
+const NEGATION_WINDOW = 3
+const ACTIVE_ENTRIES = keywordDataset.entries.filter(entry => entry.active !== false)
+const PHRASE_ENTRIES = ACTIVE_ENTRIES
+  .filter(entry => entry.match_type === 'phrase')
+  .map(entry => ({ ...entry, phraseTokens: tokenize(normalizeText(entry.term)) }))
+  .sort((a, b) => b.phraseTokens.length - a.phraseTokens.length)
+const WORD_ENTRIES = ACTIVE_ENTRIES
+  .filter(entry => entry.match_type === 'word')
+  .map(entry => ({ ...entry, root: stem(normalizeText(entry.term)) }))
 
-// Combine phrase lists once, longest-phrase-first, so that e.g.
-// "no supply for hours" (4 words) is matched and masked before the
-// shorter "no supply" (2 words) can steal part of it. This is what
-// "prioritize multi-word exact phrases... before evaluating
-// individual words" means in practice: longer, more specific phrases
-// win first.
-const ALL_PHRASES = [
-  ...HIGH_PHRASES.map(phrase => ({ phrase, category: 'high' })),
-  ...MEDIUM_PHRASES.map(phrase => ({ phrase, category: 'medium' })),
-].sort((a, b) => b.phrase.split(' ').length - a.phrase.split(' ').length)
-
-/**
- * Scans normalizedText for every known phrase (longest first) and
- * masks each match out of the text once found, so downstream
- * word-level matching never re-evaluates words that were already
- * consumed by a phrase match.
- */
-function extractPhraseMatches(normalizedText) {
-  let workingText = ` ${normalizedText} `
-  const matches = { high: [], medium: [] }
-
-  for (const { phrase, category } of ALL_PHRASES) {
-    const needle = ` ${phrase} `
-    if (workingText.includes(needle)) {
-      matches[category].push(phrase)
-      workingText = workingText.split(needle).join(' ')
-    }
-  }
-
-  return { matches, remainingText: workingText.trim().replace(/\s+/g, ' ') }
+function isNegated(tokens, startIndex) {
+  const from = Math.max(0, startIndex - NEGATION_WINDOW)
+  return tokens.slice(from, startIndex).some(token => NEGATION_WORDS.has(token))
 }
 
-/**
- * Matches stemmed single-word tokens against a root-keyword list.
- * If negationEnabled, a match is discarded when a negation word
- * ("no", "not", "never", "none") appears anywhere in the preceding
- * NEGATION_WINDOW tokens — e.g. "no flooding" does not score
- * "flooding" as an urgent keyword.
- */
-function extractWordMatches(tokens, rootKeywords, negationEnabled) {
-  const rootSet = new Set(rootKeywords)
-  const seen = new Set()
-  const matches = []
+function sameSlice(tokens, start, phraseTokens) {
+  if (start + phraseTokens.length > tokens.length) return false
+  return phraseTokens.every((token, offset) => tokens[start + offset] === token)
+}
+
+function extractDatasetMatches(description) {
+  const normalized = normalizeText(description)
+  const tokens = tokenize(normalized)
+  const consumed = new Array(tokens.length).fill(false)
+  const matched = []
   const negated = []
 
-  tokens.forEach((token, i) => {
-    const root = stem(token)
-    if (!rootSet.has(root) || seen.has(root)) return
+  // Longest exact phrases win first, preventing shorter entries from
+  // double-counting text such as "days without water" and "without water".
+  for (const entry of PHRASE_ENTRIES) {
+    for (let i = 0; i < tokens.length; i += 1) {
+      const rangeUsed = entry.phraseTokens.some((_, offset) => consumed[i + offset])
+      if (rangeUsed || !sameSlice(tokens, i, entry.phraseTokens)) continue
 
-    if (negationEnabled) {
-      const windowStart = Math.max(0, i - NEGATION_WINDOW)
-      const precedingWindow = tokens.slice(windowStart, i)
-      if (precedingWindow.some(w => NEGATION_WORDS.has(w))) {
-        negated.push(root)
-        return
+      if (entry.negation_sensitive && isNegated(tokens, i)) {
+        negated.push(entry.term)
+        break
       }
+
+      matched.push(entry)
+      entry.phraseTokens.forEach((_, offset) => { consumed[i + offset] = true })
+      break
     }
+  }
 
-    seen.add(root)
-    matches.push(root)
-  })
+  // Remaining words are stemmed so variants such as leak/leaks/leaking
+  // resolve to the same dataset row.
+  for (const entry of WORD_ENTRIES) {
+    for (let i = 0; i < tokens.length; i += 1) {
+      if (consumed[i] || stem(tokens[i]) !== entry.root) continue
 
-  return { matches, negated }
+      if (entry.negation_sensitive && isNegated(tokens, i)) {
+        negated.push(entry.term)
+        break
+      }
+
+      matched.push(entry)
+      consumed[i] = true
+      break
+    }
+  }
+
+  return { normalized, tokens, matched, negated: [...new Set(negated)] }
+}
+
+function classifyCategory(matched, selectedCategory, hasDescription) {
+  const categoryScores = {}
+  for (const entry of matched) {
+    if (!entry.complaint_category || !entry.category_weight) continue
+    categoryScores[entry.complaint_category] =
+      (categoryScores[entry.complaint_category] || 0) + Number(entry.category_weight)
+  }
+
+  const ranked = Object.entries(categoryScores).sort((a, b) => b[1] - a[1])
+  if (!ranked.length) {
+    return {
+      predicted_category: selectedCategory || 'Other',
+      category_confidence: hasDescription ? 25 : 0,
+      category_scores: categoryScores,
+      classification_basis: 'selected-category fallback',
+    }
+  }
+
+  const [predictedCategory, topScore] = ranked[0]
+  const secondScore = ranked[1]?.[1] || 0
+  const smoothing = scoringConfig.categoryConfidenceSmoothing ?? 5
+  const confidence = Math.min(99, Math.round((topScore / (topScore + secondScore + smoothing)) * 100))
+
+  return {
+    predicted_category: predictedCategory,
+    category_confidence: confidence,
+    category_scores: categoryScores,
+    classification_basis: 'matched keyword dataset',
+  }
+}
+
+function classifySentiment(matched) {
+  const urgentScore = matched
+    .filter(entry => entry.sentiment === 'urgent')
+    .reduce((sum, entry) => sum + Math.max(0, Number(entry.priority_weight) || 0), 0)
+  const negativeScore = matched
+    .filter(entry => entry.sentiment === 'negative')
+    .reduce((sum, entry) => sum + Math.max(0, Number(entry.priority_weight) || 0), 0)
+
+  if (urgentScore >= (scoringConfig.sentimentThresholds?.urgent ?? 12)) return 'urgent'
+  if (urgentScore + negativeScore >= (scoringConfig.sentimentThresholds?.negative ?? 4)) return 'negative'
+  return 'neutral'
 }
 
 /**
- * Scores a complaint and returns priority level + numeric score
- * @param {{ complaint_type: string, description: string, has_photo: boolean }} input
- * @returns {{ score: number, priority: 'low' | 'medium' | 'high', reasons: string[] }}
+ * @param {{ complaint_type: string, description: string, has_photo: boolean, base_severity_score?: number }} input
  */
-export function scorePriority({ complaint_type, description, has_photo }) {
+export function classifyComplaint({ complaint_type, description, has_photo, base_severity_score }) {
   const cfg = scoringConfig
-  let score = 0
   const reasons = []
+  const { matched, negated } = extractDatasetMatches(description)
+  const categoryResult = classifyCategory(matched, complaint_type, Boolean(normalizeText(description)))
+  const classification_mismatch = Boolean(
+    complaint_type &&
+    categoryResult.predicted_category !== complaint_type &&
+    categoryResult.category_confidence >= (cfg.categoryMismatchThreshold ?? 60)
+  )
+  const selectedBaseScore = Math.round(base_severity_score ?? cfg.typeScores?.[complaint_type] ?? cfg.defaultTypeScore ?? 10)
+  const predictedBaseScore = Math.round(cfg.typeScores?.[categoryResult.predicted_category] ?? selectedBaseScore)
+  const rule_score = classification_mismatch ? predictedBaseScore : selectedBaseScore
+  reasons.push(classification_mismatch
+    ? `Classified category base severity (${categoryResult.predicted_category}, +${rule_score})`
+    : `Selected category base severity (+${rule_score})`)
 
-  // 1. Type-based score (externalized lookup table)
-  const typeScore = cfg.typeScores[complaint_type] ?? cfg.defaultTypeScore
-  score += typeScore
-  reasons.push(`Type "${complaint_type}" (+${typeScore})`)
+  const rawKeywordAdjustment = matched.reduce((sum, entry) => sum + (Number(entry.priority_weight) || 0), 0)
+  const keywordAdjustment = Math.max(
+    cfg.keywordAdjustmentLimits?.minimum ?? -10,
+    Math.min(rawKeywordAdjustment, cfg.keywordAdjustmentLimits?.maximum ?? 50)
+  )
+  const photoAdjustment = has_photo ? (cfg.photoBonus ?? 10) : 0
+  const sentiment_score = keywordAdjustment + photoAdjustment
+  const priority_score = Math.max(0, Math.min(rule_score + sentiment_score, cfg.scoreCap ?? 100))
+  const classification_sentiment = classifySentiment(matched)
 
-  // 2. Text pre-processing: lowercase + strip punctuation
-  const normalized = normalizeText(description)
-
-  // 3. Compound phrase matching FIRST (as single combined tokens)
-  const { matches: phraseMatches, remainingText } = extractPhraseMatches(normalized)
-
-  // 4. Word-level matching on what's left, with stemming + negation window
-  const remainingTokens = tokenize(remainingText)
-  const highWordResult = extractWordMatches(remainingTokens, HIGH_WORDS, true)
-  const medWordResult  = extractWordMatches(remainingTokens, MEDIUM_WORDS, true)
-
-  // 5. Low-urgency keywords: stop-words filtered out first, no negation logic needed
-  const filteredTokens = removeStopwords(remainingTokens)
-  const lowWordResult = extractWordMatches(filteredTokens, LOW_WORDS, false)
-
-  const highMatches = [...phraseMatches.high, ...highWordResult.matches]
-  const medMatches  = [...phraseMatches.medium, ...medWordResult.matches]
-  const lowMatches  = lowWordResult.matches
-  const negatedMatches = [...highWordResult.negated, ...medWordResult.negated]
-
-  const { keywordWeights } = cfg
-
-  if (highMatches.length > 0) {
-    const add = Math.min(highMatches.length * keywordWeights.highKeywordMultiplier, keywordWeights.highKeywordCeiling)
-    score += add
-    reasons.push(`Urgent keywords: "${highMatches.slice(0, 3).join(', ')}" (+${add})`)
+  if (matched.length) {
+    const visibleTerms = matched.slice(0, 6).map(entry => entry.term).join(', ')
+    const sign = keywordAdjustment >= 0 ? '+' : ''
+    reasons.push(`Dataset terms: "${visibleTerms}" (${sign}${keywordAdjustment})`)
+  } else {
+    reasons.push('No dataset keyword matched; selected category used as fallback')
   }
-  if (medMatches.length > 0) {
-    const add = Math.min(medMatches.length * keywordWeights.mediumKeywordMultiplier, keywordWeights.mediumKeywordCeiling)
-    score += add
-    reasons.push(`Concern keywords: "${medMatches.slice(0, 3).join(', ')}" (+${add})`)
-  }
-  if (lowMatches.length > 0) {
-    score -= keywordWeights.lowKeywordPenalty
-    reasons.push(`Low-urgency keywords detected (-${keywordWeights.lowKeywordPenalty})`)
-  }
-  if (negatedMatches.length > 0) {
-    reasons.push(`Negated keywords ignored: "${negatedMatches.slice(0, 3).join(', ')}"`)
-  }
+  reasons.push(`Text classified as ${categoryResult.predicted_category} (${categoryResult.category_confidence}% confidence)`)
+  if (classification_mismatch) reasons.push(`Selected type differs from the text classification (${complaint_type})`)
+  if (negated.length) reasons.push(`Negated terms ignored: "${negated.slice(0, 4).join(', ')}"`)
+  if (has_photo) reasons.push(`Photo evidence (+${photoAdjustment})`)
 
-  // 6. Photo attachment bonus
-  if (has_photo) {
-    score += cfg.photoBonus
-    reasons.push(`Photo attached (+${cfg.photoBonus})`)
-  }
-
-  // 7. Clamp score
-  score = Math.max(0, Math.min(score, cfg.scoreCap))
-
-  // 8. Classify
   let priority
-  if (score >= cfg.priorityThresholds.high) priority = 'high'
-  else if (score >= cfg.priorityThresholds.medium) priority = 'medium'
+  if (priority_score >= cfg.priorityThresholds.high) priority = 'high'
+  else if (priority_score >= cfg.priorityThresholds.medium) priority = 'medium'
   else priority = 'low'
 
-  return { score, priority, reasons }
+  const matched_keywords = matched.map(entry => ({
+    id: entry.id,
+    term: entry.term,
+    match_type: entry.match_type,
+    complaint_category: entry.complaint_category,
+    category_weight: entry.category_weight,
+    priority_weight: entry.priority_weight,
+    severity: entry.severity,
+    sentiment: entry.sentiment,
+    context: entry.context,
+  }))
+
+  return {
+    score: priority_score,
+    priority,
+    rule_score,
+    sentiment_score,
+    priority_score,
+    keyword_adjustment: keywordAdjustment,
+    photo_adjustment: photoAdjustment,
+    predicted_category: categoryResult.predicted_category,
+    category_confidence: categoryResult.category_confidence,
+    category_scores: categoryResult.category_scores,
+    classification_basis: categoryResult.classification_basis,
+    classification_sentiment,
+    classification_mismatch,
+    matched_keywords,
+    negated_keywords: negated,
+    reasons,
+    classifier_version: cfg.classifierVersion || keywordDataset.version,
+    classification_method: cfg.classificationMethod || 'Dataset-backed rule-based text classification',
+  }
 }
+
+// Backwards-compatible name used by the existing submission page.
+export const scorePriority = classifyComplaint

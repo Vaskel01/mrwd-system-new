@@ -1,0 +1,130 @@
+﻿id,term,match_type,complaint_category,category_weight,priority_weight,severity,sentiment,context,negation_sensitive,source,rationale,active
+KW-001,days without water,phrase,Water Interruption,10,20,high,urgent,duration,True,Initial domain-informed thesis dataset; validate with MRWD staff,Extended total loss of supply.,True
+KW-002,no water,phrase,Water Interruption,9,18,high,urgent,issue,False,Initial domain-informed thesis dataset; validate with MRWD staff,Direct indication of total service loss.,True
+KW-003,no supply,phrase,Water Interruption,9,18,high,urgent,issue,False,Initial domain-informed thesis dataset; validate with MRWD staff,Direct indication of total service loss.,True
+KW-004,water outage,phrase,Water Interruption,9,16,high,urgent,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common term for a supply interruption.,True
+KW-005,without water,phrase,Water Interruption,8,15,high,urgent,issue,False,Initial domain-informed thesis dataset; validate with MRWD staff,Indicates the resident has no usable supply.,True
+KW-006,water interruption,phrase,Water Interruption,8,12,high,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit complaint category phrase.,True
+KW-007,supply interruption,phrase,Water Interruption,8,12,high,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit supply disruption phrase.,True
+KW-008,water cut off,phrase,Water Interruption,7,10,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Indicates stopped water service.,True
+KW-009,walang tubig,phrase,Water Interruption,9,18,high,urgent,issue,False,Initial domain-informed thesis dataset; validate with MRWD staff,Common Filipino phrase meaning no water.,True
+KW-010,wala tubig,phrase,Water Interruption,9,18,high,urgent,issue,False,Initial domain-informed thesis dataset; validate with MRWD staff,Common local phrasing meaning no water.,True
+KW-011,outage,word,Water Interruption,6,10,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Single-word indication of service interruption.,True
+KW-012,interrupt,word,Water Interruption,5,7,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem covers interrupted/interruption.,True
+KW-013,water main break,phrase,Water Leak,10,20,high,urgent,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Major distribution-line failure.,True
+KW-014,burst pipe,phrase,Water Leak,10,20,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Severe leak with possible flooding or damage.,True
+KW-015,pipe burst,phrase,Water Leak,10,20,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Severe leak with possible flooding or damage.,True
+KW-016,main break,phrase,Water Leak,9,18,high,urgent,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Likely major water-main failure.,True
+KW-017,road flooding,phrase,Water Leak,8,17,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Leak is affecting public access or safety.,True
+KW-018,leaking pipe,phrase,Water Leak,9,12,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Clear pipe leakage report.,True
+KW-019,broken pipe,phrase,Water Leak,8,12,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Damaged pipe likely causing water loss.,True
+KW-020,water leak,phrase,Water Leak,9,10,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit complaint category phrase.,True
+KW-021,tagas ng tubig,phrase,Water Leak,9,12,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common Filipino phrase for water leakage.,True
+KW-022,flooding,word,Water Leak,7,15,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible major leak or burst causing flooding.,True
+KW-023,burst,word,Water Leak,7,15,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem indicates a ruptured pipe.,True
+KW-024,leak,word,Water Leak,6,7,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem covers leak/leaks/leaking/leaked.,True
+KW-025,puddle,word,Water Leak,3,3,low,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,May indicate a small hidden leak.,True
+KW-026,spray,word,Water Leak,3,5,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Pressurized water escaping from a pipe.,True
+KW-027,contaminated water,phrase,Dirty / Discolored Water,10,20,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Potentially unsafe water quality.,True
+KW-028,dirty water,phrase,Dirty / Discolored Water,10,16,high,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Water is visibly unclean.,True
+KW-029,maruming tubig,phrase,Dirty / Discolored Water,10,16,high,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common Filipino phrase meaning dirty water.,True
+KW-030,black water,phrase,Dirty / Discolored Water,9,15,high,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Severe discoloration.,True
+KW-031,discolored water,phrase,Dirty / Discolored Water,9,14,high,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit discoloration report.,True
+KW-032,brown water,phrase,Dirty / Discolored Water,9,14,high,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common sign of rust or sediment.,True
+KW-033,rusty water,phrase,Dirty / Discolored Water,8,11,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible rust or sediment contamination.,True
+KW-034,cloudy water,phrase,Dirty / Discolored Water,8,10,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible turbidity or sediment issue.,True
+KW-035,yellow water,phrase,Dirty / Discolored Water,8,10,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Visible discoloration.,True
+KW-036,foul odor,phrase,Dirty / Discolored Water,7,10,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Strong smell may indicate water-quality concern.,True
+KW-037,bad smell,phrase,Dirty / Discolored Water,6,7,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Unusual water odor.,True
+KW-038,unusual smell,phrase,Dirty / Discolored Water,6,6,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Unusual water odor.,True
+KW-039,may amoy,phrase,Dirty / Discolored Water,7,8,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common Filipino phrase meaning it has an odor.,True
+KW-040,contaminate,word,Dirty / Discolored Water,8,15,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem indicates contamination.,True
+KW-041,discolor,word,Dirty / Discolored Water,6,8,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem indicates unusual water color.,True
+KW-042,odor,word,Dirty / Discolored Water,4,5,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Unusual odor.,True
+KW-043,smell,word,Dirty / Discolored Water,4,5,medium,negative,quality,True,Initial domain-informed thesis dataset; validate with MRWD staff,Unusual smell.,True
+KW-044,low water pressure,phrase,Low Water Pressure,10,12,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Exact complaint category phrase.,True
+KW-045,mahina ang tubig,phrase,Low Water Pressure,10,10,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Common Filipino phrase for weak water flow.,True
+KW-046,low pressure,phrase,Low Water Pressure,9,10,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit pressure problem.,True
+KW-047,weak water flow,phrase,Low Water Pressure,9,8,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Describes insufficient water flow.,True
+KW-048,weak flow,phrase,Low Water Pressure,8,7,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Describes insufficient water flow.,True
+KW-049,low flow,phrase,Low Water Pressure,8,7,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Describes insufficient water flow.,True
+KW-050,slow water flow,phrase,Low Water Pressure,7,6,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Describes weak supply at the tap.,True
+KW-051,pressure,word,Low Water Pressure,5,4,low,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Pressure-related complaint term.,True
+KW-052,trickle,word,Low Water Pressure,6,5,medium,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,Very weak water flow.,True
+KW-053,weak,word,Low Water Pressure,3,2,low,negative,issue,True,Initial domain-informed thesis dataset; validate with MRWD staff,General weak-flow indicator.,True
+KW-054,incorrect meter reading,phrase,Meter Problem,10,7,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible inaccurate meter measurement.,True
+KW-055,wrong meter reading,phrase,Meter Problem,10,7,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible inaccurate meter measurement.,True
+KW-056,meter running fast,phrase,Meter Problem,9,8,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible over-recording or faulty meter.,True
+KW-057,meter not moving,phrase,Meter Problem,9,7,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible stuck or non-functioning meter.,True
+KW-058,broken meter,phrase,Meter Problem,9,8,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Physical meter failure.,True
+KW-059,damaged meter,phrase,Meter Problem,9,7,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Physical meter damage.,True
+KW-060,faulty meter,phrase,Meter Problem,9,8,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit meter malfunction.,True
+KW-061,meter reading,phrase,Meter Problem,6,2,low,neutral,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Meter-related report or inquiry.,True
+KW-062,water meter,phrase,Meter Problem,6,2,low,neutral,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,General meter reference.,True
+KW-063,meter,word,Meter Problem,5,1,low,neutral,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,General meter-related keyword.,True
+KW-064,reading,word,Meter Problem,2,0,low,neutral,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,May support a meter classification.,True
+KW-065,payment not reflected,phrase,Billing Concern,10,5,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Payment posting or account-balance issue.,True
+KW-066,high water bill,phrase,Billing Concern,10,6,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Unexpectedly high charge.,True
+KW-067,incorrect bill,phrase,Billing Concern,10,5,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit billing error.,True
+KW-068,wrong bill,phrase,Billing Concern,10,5,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit billing error.,True
+KW-069,billing error,phrase,Billing Concern,10,5,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit billing error.,True
+KW-070,duplicate charge,phrase,Billing Concern,9,5,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible duplicate billing.,True
+KW-071,copy of bill,phrase,Billing Concern,8,-4,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Document request rather than an emergency.,True
+KW-072,bill statement,phrase,Billing Concern,7,-2,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Statement request or inquiry.,True
+KW-073,billing concern,phrase,Billing Concern,8,3,low,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit complaint category phrase.,True
+KW-074,overcharge,word,Billing Concern,8,6,medium,negative,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Stem covers overcharged/overcharging.,True
+KW-075,refund,word,Billing Concern,5,1,low,neutral,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Billing-resolution request.,True
+KW-076,bill,word,Billing Concern,5,0,low,neutral,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,General billing keyword.,True
+KW-077,charge,word,Billing Concern,5,1,low,neutral,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,General billing charge keyword.,True
+KW-078,payment,word,Billing Concern,4,0,low,neutral,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,General payment keyword.,True
+KW-079,balance,word,Billing Concern,4,0,low,neutral,billing,True,Initial domain-informed thesis dataset; validate with MRWD staff,Account-balance keyword.,True
+KW-080,receipt,word,Billing Concern,3,-1,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Usually an administrative request.,True
+KW-081,new water connection,phrase,New Connection Request,10,2,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit application for new water service.,True
+KW-082,apply for connection,phrase,New Connection Request,10,1,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Application for a new connection.,True
+KW-083,connection application,phrase,New Connection Request,9,1,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Application for a new connection.,True
+KW-084,new connection,phrase,New Connection Request,9,2,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit complaint category phrase.,True
+KW-085,service connection,phrase,New Connection Request,8,2,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Request for water service installation.,True
+KW-086,installation request,phrase,New Connection Request,7,1,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Service installation request.,True
+KW-087,connection,word,New Connection Request,5,0,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,General connection keyword.,True
+KW-088,installation,word,New Connection Request,4,0,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,General installation keyword.,True
+KW-089,application,word,New Connection Request,4,-1,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Administrative application term.,True
+KW-090,immediate danger,phrase,,0,18,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit public-safety danger.,True
+KW-091,health risk,phrase,,0,18,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit threat to health.,True
+KW-092,whole barangay,phrase,,0,15,high,urgent,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Large number of affected residents.,True
+KW-093,entire barangay,phrase,,0,15,high,urgent,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Large number of affected residents.,True
+KW-094,entire street,phrase,,0,12,high,urgent,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Multiple households likely affected.,True
+KW-095,many households,phrase,,0,12,high,urgent,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Multiple households affected.,True
+KW-096,several houses,phrase,,0,10,high,urgent,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Multiple households affected.,True
+KW-097,neighbors affected,phrase,,0,8,medium,negative,scope,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem affects more than one residence.,True
+KW-098,for two days,phrase,,0,12,high,urgent,duration,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem has persisted for a long period.,True
+KW-099,several days,phrase,,0,15,high,urgent,duration,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem has persisted for a long period.,True
+KW-100,since yesterday,phrase,,0,6,medium,negative,duration,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem has continued overnight.,True
+KW-101,for hours,phrase,,0,5,medium,negative,duration,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem has persisted for hours.,True
+KW-102,getting worse,phrase,,0,8,medium,negative,trend,True,Initial domain-informed thesis dataset; validate with MRWD staff,Condition is escalating.,True
+KW-103,repeated complaint,phrase,,0,5,medium,negative,history,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem has already been reported.,True
+KW-104,senior citizen,phrase,,0,7,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Potentially vulnerable resident is affected.,True
+KW-105,emergency,word,,0,18,high,urgent,urgency,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit emergency language.,True
+KW-106,urgent,word,,0,12,high,urgent,urgency,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit urgency language.,True
+KW-107,dangerous,word,,0,15,high,urgent,safety,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicit safety risk.,True
+KW-108,critical,word,,0,14,high,urgent,urgency,True,Initial domain-informed thesis dataset; validate with MRWD staff,Critical condition language.,True
+KW-109,immediate,word,,0,10,high,urgent,urgency,True,Initial domain-informed thesis dataset; validate with MRWD staff,Requests immediate response.,True
+KW-110,hospital,word,,0,10,high,urgent,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Health facility may be affected.,True
+KW-111,school,word,,0,8,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,School population may be affected.,True
+KW-112,daycare,word,,0,8,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Young children may be affected.,True
+KW-113,elderly,word,,0,7,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Potentially vulnerable resident is affected.,True
+KW-114,baby,word,,0,7,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Infant may be affected.,True
+KW-115,infant,word,,0,8,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Infant may be affected.,True
+KW-116,children,word,,0,6,medium,negative,vulnerability,True,Initial domain-informed thesis dataset; validate with MRWD staff,Children may be affected.,True
+KW-117,sick,word,,0,10,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible health impact.,True
+KW-118,vomit,word,,0,12,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible water-related illness symptom.,True
+KW-119,diarrhea,word,,0,12,high,urgent,health,True,Initial domain-informed thesis dataset; validate with MRWD staff,Possible water-related illness symptom.,True
+KW-120,recurring,word,,0,4,medium,negative,history,True,Initial domain-informed thesis dataset; validate with MRWD staff,Problem happens repeatedly.,True
+KW-121,minor,word,,0,-6,low,neutral,modifier,True,Initial domain-informed thesis dataset; validate with MRWD staff,Explicitly describes limited severity.,True
+KW-122,small,word,,0,-3,low,neutral,modifier,True,Initial domain-informed thesis dataset; validate with MRWD staff,May indicate limited severity.,True
+KW-123,inquiry,word,,0,-5,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Information request rather than urgent damage.,True
+KW-124,question,word,,0,-5,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Information request rather than urgent damage.,True
+KW-125,schedule,word,,0,-4,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Scheduling request.,True
+KW-126,information,word,,0,-4,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Information request.,True
+KW-127,follow up,phrase,,0,-2,low,neutral,inquiry,True,Initial domain-informed thesis dataset; validate with MRWD staff,Follow-up wording alone does not imply severity.,True
+KW-128,request,word,,0,-2,low,neutral,request,True,Initial domain-informed thesis dataset; validate with MRWD staff,Generic request wording.,True
+KW-129,broken,word,Meter Problem,4,5,medium,negative,meter,True,Initial domain-informed thesis dataset; validate with MRWD staff,Supports a meter fault when the complaint says the meter is broken in reversed word order.,True

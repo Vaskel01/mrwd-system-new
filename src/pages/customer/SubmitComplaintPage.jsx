@@ -249,7 +249,7 @@ export default function SubmitComplaintPage() {
               </svg>
             </div>
             <h2 className="text-xl font-black text-gray-900 mb-1 font-display tracking-tight">COMPLAINT FILED</h2>
-            <p className="text-gray-400 text-sm mb-6">Auto-scored and queued for review</p>
+            <p className="text-gray-400 text-sm mb-6">Analyzed, classified, and queued for review</p>
 
             <div className="text-left rounded-lg border border-gray-100 divide-y divide-gray-100 mb-6 text-sm">
               <div className="flex items-center justify-between px-4 py-3">
@@ -257,11 +257,22 @@ export default function SubmitComplaintPage() {
                 <span className="font-mono text-xs text-gray-700">{submitted.id}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Type</span>
-                <span className="font-semibold text-gray-800">{submitted.complaint_type}</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected Type</span>
+                <span className="font-semibold text-gray-800 text-right">{submitted.complaint_type}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 gap-4">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Classified As</span>
+                <div className="text-right">
+                  <p className="font-semibold text-navy-800">{submitted.classified_category || submitted.complaint_type}</p>
+                  {submitted.classification_confidence != null && <p className="text-xs text-gray-400">{Math.round(Number(submitted.classification_confidence))}% confidence</p>}
+                </div>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Priority</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Text Sentiment</span>
+                <span className="font-bold text-gray-700 capitalize">{submitted.classification_sentiment || 'neutral'}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Priority Class</span>
                 <PriorityBadge priority={submitted.priority} />
               </div>
               <div className="flex items-center justify-between px-4 py-3">
@@ -293,7 +304,7 @@ export default function SubmitComplaintPage() {
         </svg>
         <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
         <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">File a Report</h1>
-        <p className="relative text-navy-300 text-sm mt-1">Your complaint is auto-scored by urgency and type.</p>
+        <p className="relative text-navy-300 text-sm mt-1">Your complaint is analyzed and classified using the keyword dataset.</p>
       </div>
 
       {/* Step rail */}
@@ -549,16 +560,42 @@ export default function SubmitComplaintPage() {
             </div>
 
             {priorityPreview && (
-              <div className={`mx-5 my-4 border-l-4 px-4 py-3 text-sm ${
+              <div className={`mx-5 my-4 border-l-4 px-4 py-4 text-sm ${
                 priorityPreview.priority === 'high' ? 'border-red-500 bg-red-50' :
                 priorityPreview.priority === 'medium' ? 'border-amber-400 bg-amber-50' : 'border-green-500 bg-green-50'
               }`}>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-bold text-gray-700 text-xs uppercase tracking-wider mb-1">Estimated Priority</p>
-                    <PriorityBadge priority={priorityPreview.priority} />
+                    <p className="font-bold text-gray-700 text-xs uppercase tracking-wider mb-1">Classifier Result</p>
+                    <p className="font-display font-black text-navy-900">{priorityPreview.predicted_category}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{priorityPreview.category_confidence}% category confidence · {priorityPreview.classification_sentiment} sentiment</p>
                   </div>
-                  <span className="font-black text-3xl text-gray-900">{priorityPreview.score}<span className="text-sm font-normal text-gray-400">/100</span></span>
+                  <div className="text-right shrink-0">
+                    <PriorityBadge priority={priorityPreview.priority} />
+                    <p className="font-black text-3xl text-gray-900 mt-1">{priorityPreview.score}<span className="text-sm font-normal text-gray-400">/100</span></p>
+                  </div>
+                </div>
+
+                {priorityPreview.classification_mismatch && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
+                    <p className="text-xs font-bold text-amber-900">The description appears to match a different category.</p>
+                    <p className="text-xs text-amber-700 mt-0.5">Selected: {watchedType} · Classified: {priorityPreview.predicted_category}</p>
+                  </div>
+                )}
+
+                <div className="mt-3">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5">Matched Dataset Terms</p>
+                  {priorityPreview.matched_keywords.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {priorityPreview.matched_keywords.slice(0, 8).map(item => (
+                        <span key={item.id} className="rounded-full bg-white/80 border border-gray-200 px-2 py-1 text-xs font-bold text-gray-700">
+                          {item.term} <span className={Number(item.priority_weight) >= 0 ? 'text-green-700' : 'text-red-600'}>{Number(item.priority_weight) >= 0 ? '+' : ''}{item.priority_weight}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">No dataset term matched. The selected category is used as fallback.</p>
+                  )}
                 </div>
               </div>
             )}

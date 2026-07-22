@@ -28,6 +28,7 @@ export default function AllComplaintsPage() {
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const restoreComplaint = useComplaintStore(s => s.restoreComplaint)
+  const reclassifyAllComplaints = useComplaintStore(s => s.reclassifyAllComplaints)
 
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
@@ -35,6 +36,8 @@ export default function AllComplaintsPage() {
   const [sortBy, setSortBy] = useState('score')
   const [restoringId, setRestoringId] = useState(null)
   const [actionError, setActionError] = useState('')
+  const [reclassifying, setReclassifying] = useState(false)
+  const [reclassifyMessage, setReclassifyMessage] = useState('')
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
@@ -71,6 +74,20 @@ export default function AllComplaintsPage() {
     }
   }
 
+  const handleReclassifyAll = async () => {
+    setReclassifying(true)
+    setActionError('')
+    setReclassifyMessage('')
+    try {
+      const result = await reclassifyAllComplaints()
+      setReclassifyMessage(`Classifier updated ${result.updated} complaint${result.updated === 1 ? '' : 's'}${result.failed ? `; ${result.failed} failed` : ''}.`)
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setReclassifying(false)
+    }
+  }
+
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
 
   return (
@@ -89,6 +106,7 @@ export default function AllComplaintsPage() {
       </div>
 
       {(error || actionError) && <ErrorBanner message={actionError || error} onRetry={fetchComplaints} />}
+      {reclassifyMessage && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">{reclassifyMessage}</div>}
 
       <div className="card rounded-xl p-4 space-y-3">
         <div className="relative">
@@ -104,7 +122,11 @@ export default function AllComplaintsPage() {
                 style={filterStatus === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>{l}</button>
             ))}
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <button onClick={handleReclassifyAll} disabled={reclassifying}
+              className="inline-flex items-center gap-2 text-xs border border-navy-200 px-3 py-1.5 text-navy-700 bg-navy-50 font-bold rounded-full hover:bg-navy-100 disabled:opacity-50">
+              {reclassifying ? <><Spinner className="w-3.5 h-3.5 border-2 border-navy-700" /> Classifying...</> : '↻ Classify Existing'}
+            </button>
             <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="all">Any Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
             </select>

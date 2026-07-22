@@ -101,6 +101,14 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
+  // Admin-only batch reclassification for complaints created before
+  // the dataset-backed classifier was installed.
+  reclassifyAllComplaints: async () => {
+    const result = await apiFetch('/complaints/reclassify-all', { method: 'POST' })
+    await get().fetchComplaints()
+    return result
+  },
+
   // Admin-only undo for a rejected complaint.
   restoreComplaint: async (complaintId) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/restore`, {

@@ -146,14 +146,16 @@ create policy "task_updates_insert" on public.task_updates
   );
 
 -- ─────────────────────────────────────────────
--- feedback — the resident who filed the complaint can write, admin can read all
+-- feedback — customers submit their own; admins and assigned technicians can read
 -- ─────────────────────────────────────────────
 alter table public.feedback enable row level security;
 
 drop policy if exists "feedback_select" on public.feedback;
 create policy "feedback_select" on public.feedback
   for select using (
-    resident_id = auth.uid() or public.current_user_role() = 'admin'
+    resident_id = auth.uid()
+    or public.current_user_role() = 'admin'
+    or public.is_assigned_to_complaint(complaint_id)
   );
 
 drop policy if exists "feedback_insert_own" on public.feedback;

@@ -285,7 +285,7 @@ export default function SubmitComplaintPage() {
   }
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="w-full space-y-6">
       {/* Page header */}
       <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">

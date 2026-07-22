@@ -59,3 +59,12 @@ This revision also includes:
    - Search, role filters, workload sorting, summary counters, refresh controls, mobile cards, technician task links, copy-email actions, workload/completion metrics, password show/hide, secure password generation, and temporary credential copying.
 
 No additional database migration is required for this second UI/QOL update.
+
+## Feedback visibility and Submit Complaint sizing update
+
+- Completed complaint details now show customer feedback to administrators and the assigned maintenance personnel.
+- Customers can still submit one rating and optional comment from their own completed complaint details.
+- Staff see a clear "No customer feedback yet" state when nothing has been submitted.
+- Run `supabase/feedback-staff-visibility.sql` in the Supabase SQL Editor so assigned maintenance personnel can read feedback under Row Level Security.
+- The Submit Complaint page now uses the same available content width as the other portal tabs.
+- Sidebar navigation items now share a consistent minimum height and non-wrapping label treatment.

@@ -208,8 +208,13 @@ export default function ComplaintDetailsPage() {
             )}
           </div>
 
-          {user?.role === 'customer' && complaint.status === 'completed' && (
-            <div className="card rounded-xl p-5"><FeedbackBox complaintId={complaint.id} /></div>
+          {complaint.status === 'completed' && (
+            <div className="card rounded-xl p-5">
+              <h2 className="font-display font-bold text-navy-900 mb-3">
+                {user?.role === 'customer' ? 'Resolution Feedback' : 'Customer Feedback'}
+              </h2>
+              <FeedbackBox complaintId={complaint.id} />
+            </div>
           )}
         </div>
       </div>

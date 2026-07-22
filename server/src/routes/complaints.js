@@ -328,17 +328,27 @@ router.post('/:id/feedback', requireAuth, requireRole('customer'), async (req, r
   res.status(201).json({ feedback: data })
 })
 
-// GET /api/complaints/:id/feedback — fetch existing feedback, if any
-// (so the frontend knows whether to show the form or the submitted rating)
+// GET /api/complaints/:id/feedback — fetch existing feedback, if any.
+// Access mirrors the complaint itself: the filing customer, admins, and the
+// maintenance personnel assigned to that complaint may view it.
 router.get('/:id/feedback', requireAuth, async (req, res) => {
-  const { data, error } = await req.supabase
-    .from('feedback')
-    .select('*')
-    .eq('complaint_id', req.params.id)
-    .maybeSingle()
+  try {
+    const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
+    if (!complaint) {
+      return res.status(404).json({ error: 'Complaint not found or you do not have access to it.' })
+    }
 
-  if (error) return res.status(400).json({ error: error.message })
-  res.json({ feedback: data || null })
+    const { data, error } = await req.supabase
+      .from('feedback')
+      .select('*')
+      .eq('complaint_id', req.params.id)
+      .maybeSingle()
+
+    if (error) return res.status(400).json({ error: error.message })
+    res.json({ feedback: data || null })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
 })
 
 // POST /api/complaints/bulk-assign — admin only

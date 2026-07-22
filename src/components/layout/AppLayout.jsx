@@ -130,7 +130,7 @@ export default function AppLayout({ children }) {
           return (
             <NavLink key={item.to} to={item.to} onClick={closeSidebar}
               className={({ isActive }) =>
-                `group flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150 rounded-lg ${
+                `group w-full min-h-[42px] flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150 rounded-lg ${
                   isActive
                     ? 'bg-white/15 text-white shadow-sm'
                     : 'text-navy-200 hover:bg-white/8 hover:text-white'
@@ -142,7 +142,7 @@ export default function AppLayout({ children }) {
                   <span className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-gold-300' : 'text-navy-400 group-hover:text-white'}`}>
                     <Icon className="w-full h-full" />
                   </span>
-                  <span>{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                   {isActive && <span className="ml-auto w-1 h-1 rounded-full bg-gold-400" />}
                 </>
               )}

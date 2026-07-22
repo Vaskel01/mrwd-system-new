@@ -131,6 +131,8 @@
 
   /* ── Status badges ── */
   .badge-pending     { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 2px; }
+  .badge-assigned    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; border-radius: 2px; }
+  .badge-en_route    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 2px; }
   .badge-in_progress { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 2px; }
   .badge-completed   { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 2px; }
 }

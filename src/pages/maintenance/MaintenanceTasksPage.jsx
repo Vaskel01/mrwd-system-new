@@ -1,9 +1,10 @@
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge } from '../../components/ui/Badges'
-import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import { useState, useEffect } from 'react'
 import InlineMap from '../../components/ui/InlineMap'
+import Timeline from '../../components/ui/Timeline'
 
 function timeAgo(iso) {
   const d = Date.now() - new Date(iso).getTime()
@@ -14,8 +15,11 @@ function timeAgo(iso) {
   return `${Math.floor(h / 24)}d ago`
 }
 
-const STATUS_STEPS  = ['pending', 'in_progress', 'completed']
-const STATUS_LABELS = { pending: 'Pending', in_progress: 'In Progress', completed: 'Done' }
+// From a technician's point of view, "pending" isn't reachable — a
+// task only becomes visible to them once it's been assigned, so the
+// progression they actually experience starts there.
+const STATUS_STEPS  = ['assigned', 'en_route', 'in_progress', 'completed']
+const STATUS_LABELS = { assigned: 'Assigned', en_route: 'En Route', in_progress: 'On Site', completed: 'Done' }
 const PRIORITY_BORDER = { high: '#fecaca', medium: '#fde68a', low: '#bbf7d0' }
 const PRIORITY_STRIPE = {
   high:   'linear-gradient(90deg,#dc2626,#f87171)',
@@ -24,8 +28,29 @@ const PRIORITY_STRIPE = {
 }
 
 function TaskCard({ t, onStatus }) {
+  const postComment = useComplaintStore(s => s.postComment)
   const stepIdx  = STATUS_STEPS.indexOf(t.status)
   const [mapOpen, setMapOpen] = useState(false)
+  const [logOpen, setLogOpen] = useState(false)
+  const [comment, setComment] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handlePostComment = async () => {
+    if (!comment.trim()) return
+    setPosting(true)
+    setCommentError('')
+    try {
+      await postComment(t.id, comment.trim())
+      setComment('')
+      setRefreshKey(k => k + 1)
+    } catch (err) {
+      setCommentError(err.message)
+    } finally {
+      setPosting(false)
+    }
+  }
 
   return (
     <div className="card rounded-xl overflow-hidden"
@@ -53,6 +78,13 @@ function TaskCard({ t, onStatus }) {
         </div>
 
         <p className="text-sm text-gray-600 leading-relaxed mb-3">{t.description}</p>
+
+        {t.task_notes && (
+          <div className="mb-3 px-3 py-2.5 rounded-lg text-sm" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider mb-0.5">📌 Admin Note</p>
+            <p className="text-amber-900">{t.task_notes}</p>
+          </div>
+        )}
 
         {/* Address row */}
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -95,10 +127,20 @@ function TaskCard({ t, onStatus }) {
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          {t.status === 'pending' && (
-            <button onClick={() => onStatus(t.id, 'in_progress')} className="btn-primary flex-1 rounded-lg text-sm">
-              ▶ Start Task
+          {t.status === 'assigned' && (
+            <button onClick={() => onStatus(t.id, 'en_route')} className="btn-primary flex-1 rounded-lg text-sm">
+              🚚 On My Way
             </button>
+          )}
+          {t.status === 'en_route' && (
+            <>
+              <button onClick={() => onStatus(t.id, 'in_progress')} className="btn-primary flex-1 rounded-lg text-sm">
+                📍 Arrived — Start Work
+              </button>
+              <button onClick={() => onStatus(t.id, 'assigned')}
+                className="px-4 rounded-lg text-sm font-semibold transition-all text-gray-600"
+                style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>↩</button>
+            </>
           )}
           {t.status === 'in_progress' && (
             <>
@@ -107,11 +149,9 @@ function TaskCard({ t, onStatus }) {
                 style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)' }}>
                 ✓ Mark Complete
               </button>
-              <button onClick={() => onStatus(t.id, 'pending')}
+              <button onClick={() => onStatus(t.id, 'en_route')}
                 className="px-4 rounded-lg text-sm font-semibold transition-all text-gray-600"
-                style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>
-                ↩
-              </button>
+                style={{ background: '#f3f4f6', border: '1px solid #e5e7eb' }}>↩</button>
             </>
           )}
           {t.status === 'completed' && (
@@ -122,6 +162,29 @@ function TaskCard({ t, onStatus }) {
             </div>
           )}
         </div>
+
+        {/* Notes & activity log toggle */}
+        <button onClick={() => setLogOpen(v => !v)}
+          className="mt-3 text-xs font-semibold text-navy-500 hover:text-navy-800 transition-colors flex items-center gap-1">
+          {logOpen ? '▲ Hide activity log' : '▼ Add a note / view activity log'}
+        </button>
+
+        {logOpen && (
+          <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid #f0f4f8' }}>
+            <Timeline key={`${t.id}-${t.status}-${refreshKey}`} complaintId={t.id} refreshKey={`${t.status}-${refreshKey}`} />
+            {commentError && <p className="text-xs text-red-600">{commentError}</p>}
+            <div className="flex gap-2">
+              <input value={comment} onChange={e => setComment(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handlePostComment()}
+                placeholder="e.g. Waiting on a replacement part..."
+                className="input-field text-sm flex-1" />
+              <button onClick={handlePostComment} disabled={posting || !comment.trim()}
+                className="btn-primary text-sm px-4 flex items-center gap-1.5 disabled:opacity-50">
+                {posting ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Post'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

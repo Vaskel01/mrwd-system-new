@@ -4,6 +4,8 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import InlineMap from '../../components/ui/InlineMap'
+import Timeline from '../../components/ui/Timeline'
+import FeedbackBox from '../../components/ui/FeedbackBox'
 
 function timeAgo(iso) {
   const d = Date.now() - new Date(iso).getTime()
@@ -15,8 +17,10 @@ function timeAgo(iso) {
 }
 
 const STATUS_CONFIG = {
-  pending:     { bar: 15,  color: '#94a3b8', icon: '⏳', label: 'Pending Review',  msg: 'Your report is queued for review.' },
-  in_progress: { bar: 60,  color: '#3463b0', icon: '🔧', label: 'In Progress',     msg: 'A technician is on this.' },
+  pending:     { bar: 10,  color: '#94a3b8', icon: '⏳', label: 'Pending Review',  msg: 'Your report is queued for review.' },
+  assigned:    { bar: 35,  color: '#7c3aed', icon: '📋', label: 'Assigned',        msg: 'A technician has been assigned to this.' },
+  en_route:    { bar: 55,  color: '#c2410c', icon: '🚚', label: 'En Route',        msg: 'A technician is on the way.' },
+  in_progress: { bar: 80,  color: '#3463b0', icon: '🔧', label: 'On Site',         msg: 'A technician is working on this now.' },
   completed:   { bar: 100, color: '#16a34a', icon: '✓',  label: 'Resolved',        msg: 'This issue has been resolved.' },
   rejected:    { bar: 100, color: '#dc2626', icon: '✗',  label: 'Rejected',        msg: 'This report was closed.' },
 }
@@ -117,6 +121,15 @@ function ComplaintCard({ c }) {
                 <InlineMap lat={c.gps.lat} lng={c.gps.lng} accuracy={c.gps.accuracy} height={160} />
               </div>
             )}
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Progress Timeline</p>
+              <Timeline key={`${c.id}-${c.status}`} complaintId={c.id} refreshKey={c.status} />
+            </div>
+            {c.status === 'completed' && (
+              <div>
+                <FeedbackBox complaintId={c.id} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -146,11 +159,13 @@ export default function MyComplaintsPage() {
     return <PageLoader label="Loading your reports..." />
   }
 
-  const filtered = filter === 'all' ? complaints : complaints.filter(c => c.status === filter)
+  const filtered = filter === 'all' ? complaints
+    : filter === 'in_progress' ? complaints.filter(c => ['assigned', 'en_route', 'in_progress'].includes(c.status))
+    : complaints.filter(c => c.status === filter)
   const counts   = {
     all:         complaints.length,
     pending:     complaints.filter(c => c.status === 'pending').length,
-    in_progress: complaints.filter(c => c.status === 'in_progress').length,
+    in_progress: complaints.filter(c => ['assigned', 'en_route', 'in_progress'].includes(c.status)).length,
     completed:   complaints.filter(c => c.status === 'completed').length,
   }
 

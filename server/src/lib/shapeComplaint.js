@@ -11,7 +11,14 @@
 //   lat, lng                   → gps: { lat, lng }
 //   submitted_at                → created_at
 //   (joined profiles.full_name) → customer_name
-//   (joined maintenance_tasks)  → assigned_to, assigned_name
+//   (joined maintenance_tasks)  → assigned_to, assigned_name, task_notes
+//   (computed)                  → similar_ids, similar_count (possible duplicates)
+
+// Statuses still considered "active work" for duplicate-detection
+// purposes — no point flagging two reports as duplicates of each
+// other if one's already closed out.
+const ACTIVE_STATUSES = new Set(['pending', 'assigned', 'en_route', 'in_progress'])
+const DUPLICATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
  * Fetches complaint rows plus everything needed to join them, and
@@ -56,7 +63,8 @@ export async function fetchShapedComplaints(supabase, { filter } = {}) {
     : { data: [] }
   const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]))
 
-  return rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap))
+  const shaped = rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap))
+  return flagPossibleDuplicates(shaped)
 }
 
 export async function fetchShapedComplaintById(supabase, id) {
@@ -83,7 +91,42 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     assigned_to: task ? task.assigned_staff_id : null,
     assigned_name: task ? (profileMap[task.assigned_staff_id] || 'Unassigned staff') : null,
     task_status: task ? task.status : null,
+    task_notes: task ? task.notes : null,
     created_at: row.submitted_at,
     updated_at: row.updated_at,
   }
 }
+
+// Groups still-active complaints by (type + location) and flags any
+// group with more than one member as possible duplicates of each
+// other — e.g. five residents on the same street all reporting "no
+// water" within a day of each other. Location grouping falls back to
+// the free-text address when no zone is set, since the current
+// submission form doesn't collect a zone value.
+function flagPossibleDuplicates(shaped) {
+  const groups = {}
+  for (const c of shaped) {
+    if (!ACTIVE_STATUSES.has(c.status)) continue
+    const locationKey = (c.zone || c.address || '').toLowerCase().trim()
+    if (!locationKey) continue
+    const key = `${c.complaint_type}::${locationKey}`
+    ;(groups[key] ||= []).push(c)
+  }
+
+  for (const group of Object.values(groups)) {
+    if (group.length < 2) continue
+    for (const c of group) {
+      const related = group.filter(o =>
+        o.id !== c.id &&
+        Math.abs(new Date(o.created_at) - new Date(c.created_at)) <= DUPLICATE_WINDOW_MS
+      )
+      if (related.length > 0) {
+        c.similar_count = related.length
+        c.similar_ids = related.map(r => r.id)
+      }
+    }
+  }
+
+  return shaped
+}
+

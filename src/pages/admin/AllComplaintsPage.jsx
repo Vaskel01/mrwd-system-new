@@ -48,9 +48,13 @@ export default function AllComplaintsPage() {
       c.customer_name.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => sortBy === 'score'
-      ? b.priority_score - a.priority_score
+      ? b.priority_score - a.priority_score || new Date(b.created_at) - new Date(a.created_at)
       : sortBy === 'priority'
-      ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+      ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || b.priority_score - a.priority_score
+      : sortBy === 'type'
+      ? a.complaint_type.localeCompare(b.complaint_type) || b.priority_score - a.priority_score
+      : sortBy === 'oldest'
+      ? new Date(a.created_at) - new Date(b.created_at)
       : new Date(b.created_at) - new Date(a.created_at)
     )
 
@@ -84,8 +88,8 @@ export default function AllComplaintsPage() {
             className="input-field pl-9" style={{ borderRadius: 8 }} />
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="flex gap-1">
-            {[['all','All'], ['pending','Pending'], ['in_progress','Active'], ['completed','Done']].map(([v, l]) => (
+          <div className="flex gap-1 flex-wrap">
+            {[['all','All'], ['pending','Pending'], ['assigned','Assigned'], ['en_route','En Route'], ['in_progress','On Site'], ['completed','Done'], ['rejected','Rejected']].map(([v, l]) => (
               <button key={v} onClick={() => setFilterStatus(v)}
                 className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                 style={filterStatus === v
@@ -108,7 +112,9 @@ export default function AllComplaintsPage() {
             className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
             <option value="score">↓ Score</option>
             <option value="priority">↓ Priority</option>
+            <option value="type">↓ Type (A-Z)</option>
             <option value="date">↓ Newest</option>
+            <option value="oldest">↓ Oldest</option>
           </select>
         </div>
       </div>
@@ -142,6 +148,11 @@ export default function AllComplaintsPage() {
                   <td className="px-4 py-3">
                     <p className="font-bold text-gray-900">{c.complaint_type}</p>
                     <p className="text-xs text-gray-400 truncate max-w-xs">{c.description.slice(0, 50)}…</p>
+                    {c.similar_count > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 mt-1">
+                        ⚠ {c.similar_count} similar nearby
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-700">{c.customer_name}</td>
                   <td className="px-4 py-3"><PriorityBadge priority={c.priority}/></td>
@@ -197,6 +208,11 @@ export default function AllComplaintsPage() {
                 <div>
                   <p className="font-black text-gray-900 text-sm">{c.complaint_type}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{c.customer_name} · {timeAgo(c.created_at)}</p>
+                  {c.similar_count > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 mt-1">
+                      ⚠ {c.similar_count} similar nearby
+                    </span>
+                  )}
                 </div>
                 <span className="font-black text-2xl text-gray-800 shrink-0">{c.priority_score}</span>
               </div>

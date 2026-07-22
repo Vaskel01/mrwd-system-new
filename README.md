@@ -29,6 +29,12 @@ from **Supabase Dashboard → SQL Editor → New Query**:
    original schema (only the tables in your ERD did). Without this,
    the Announcements and Billing pages fail with a
    "Could not find the table" error. Safe to re-run.
+5. `supabase/qol-status-and-feedback.sql` — expands the status
+   vocabulary (pending → assigned → en_route → in_progress →
+   completed, plus rejected), lets residents see the progress
+   timeline for their own complaints, and adds data-integrity
+   constraints for feedback (rating 1-5, one submission per
+   complaint). Safe to re-run.
 
 With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't

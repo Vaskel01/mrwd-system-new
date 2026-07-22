@@ -64,18 +64,20 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
-  // Assign complaint to maintenance (admin only)
-  assignComplaint: async (complaintId, staffId) => {
+  // Assign complaint to maintenance (admin only). notes is optional —
+  // instructions for the crew, shown on their task and logged to the timeline.
+  assignComplaint: async (complaintId, staffId, notes) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/assign`, {
       method: 'PATCH',
-      body: JSON.stringify({ assigned_to: staffId }),
+      body: JSON.stringify({ assigned_to: staffId, notes: notes || undefined }),
     })
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
   },
 
-  // Update complaint status (admin or assigned maintenance staff)
+  // Update complaint status (admin or assigned maintenance staff).
+  // Valid values: pending, assigned, en_route, in_progress, completed, rejected.
   updateStatus: async (complaintId, status) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/status`, {
       method: 'PATCH',
@@ -84,5 +86,59 @@ export const useComplaintStore = create((set, get) => ({
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
+  },
+
+  // Bulk-assign several complaints to one crew member at once (admin only)
+  bulkAssign: async (complaintIds, staffId, notes) => {
+    const result = await apiFetch('/complaints/bulk-assign', {
+      method: 'POST',
+      body: JSON.stringify({ complaint_ids: complaintIds, assigned_to: staffId, notes: notes || undefined }),
+    })
+    await get().fetchComplaints()
+    return result
+  },
+
+  // Bulk status change across several complaints at once (admin only,
+  // e.g. bulk-reject a batch of duplicate/invalid reports)
+  bulkStatus: async (complaintIds, status) => {
+    const result = await apiFetch('/complaints/bulk-status', {
+      method: 'POST',
+      body: JSON.stringify({ complaint_ids: complaintIds, status }),
+    })
+    await get().fetchComplaints()
+    return result
+  },
+
+  // Post a free-text note to a task's timeline without changing status
+  // (admin or the assigned maintenance staff)
+  postComment: async (complaintId, message) => {
+    const { update } = await apiFetch(`/complaints/${complaintId}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    })
+    return update
+  },
+
+  // Fetch the timeline for a complaint — visible to the resident who
+  // filed it, the assigned staff, or an admin
+  fetchUpdates: async (complaintId) => {
+    const { updates } = await apiFetch(`/complaints/${complaintId}/updates`)
+    return updates
+  },
+
+  // Customer: submit a 1-5 star rating + optional comment, only once
+  // the complaint is completed
+  submitFeedback: async (complaintId, rating, comment) => {
+    const { feedback } = await apiFetch(`/complaints/${complaintId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify({ rating, comment: comment || undefined }),
+    })
+    return feedback
+  },
+
+  // Fetch existing feedback for a complaint, if any
+  fetchFeedback: async (complaintId) => {
+    const { feedback } = await apiFetch(`/complaints/${complaintId}/feedback`)
+    return feedback
   },
 }))

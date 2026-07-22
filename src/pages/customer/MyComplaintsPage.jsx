@@ -117,7 +117,7 @@ export default function MyComplaintsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <div className="relative flex items-end justify-between">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>

@@ -49,6 +49,7 @@ export default function ComplaintDetailsPage() {
   const [posting, setPosting] = useState(false)
   const [commentError, setCommentError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [photoError, setPhotoError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -103,7 +104,7 @@ export default function ComplaintDetailsPage() {
         ← Back to {user?.role === 'maintenance_personnel' ? 'My Tasks' : user?.role === 'admin' ? 'All Complaints' : 'My Reports'}
       </button>
 
-      <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Complaint Details</p>
@@ -155,14 +156,28 @@ export default function ComplaintDetailsPage() {
             </div>
           )}
 
-          {photo && (
-            <div className="card rounded-xl p-5">
-              <h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>
-              <a href={photo} target="_blank" rel="noreferrer">
-                <img src={photo} alt="Complaint attachment" className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border border-gray-100" />
+          <div className="card rounded-xl p-5">
+            <h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>
+            {photo && !photoError ? (
+              <a href={photo} target="_blank" rel="noreferrer" className="block">
+                <img
+                  src={photo}
+                  alt="Complaint attachment"
+                  onError={() => setPhotoError(true)}
+                  className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border border-gray-100"
+                />
+                <p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p>
               </a>
-            </div>
-          )}
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center">
+                <div className="text-3xl mb-2">📷</div>
+                <p className="font-bold text-gray-700">No photo attached</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  {photoError ? 'The attached photo could not be loaded.' : 'The customer submitted this complaint without a photo.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-5">

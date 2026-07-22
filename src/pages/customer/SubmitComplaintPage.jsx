@@ -287,7 +287,7 @@ export default function SubmitComplaintPage() {
   return (
     <div className="max-w-xl space-y-6">
       {/* Page header */}
-      <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
           <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
         </svg>

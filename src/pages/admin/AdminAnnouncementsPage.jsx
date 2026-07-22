@@ -112,7 +112,7 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="page-band rounded-2xl overflow-hidden px-6 py-6 relative">
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
         <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
@@ -8,80 +8,34 @@ import InlineMap from '../../components/ui/InlineMap'
 import Timeline from '../../components/ui/Timeline'
 
 function timeAgo(iso) {
-  const d = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(d / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  const value = iso ? new Date(iso).getTime() : Date.now()
+  const diff = Date.now() - value
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
-const STATUS_STEPS = ['assigned', 'en_route', 'in_progress', 'completed']
-const STATUS_LABELS = { assigned: 'Assigned', en_route: 'En Route', in_progress: 'On Site', completed: 'Done' }
-const PRIORITY_BORDER = { high: '#fecaca', medium: '#fde68a', low: '#bbf7d0' }
-const PRIORITY_STRIPE = { high: '#dc2626', medium: '#d97706', low: '#16a34a' }
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+const PRIORITY_STRIPE = {
+  high: 'border-l-red-500',
+  medium: 'border-l-amber-400',
+  low: 'border-l-green-400',
+}
+const NEXT_STATUS = {
+  assigned: { value: 'en_route', label: 'On My Way', icon: '🚚' },
+  en_route: { value: 'in_progress', label: 'Start Work', icon: '📍' },
+  in_progress: { value: 'completed', label: 'Complete', icon: '✓' },
+}
 
-function TaskCard({ task, onStatus, onView }) {
-  const postComment = useComplaintStore(s => s.postComment)
-  const [mapOpen, setMapOpen] = useState(false)
-  const [logOpen, setLogOpen] = useState(false)
-  const [comment, setComment] = useState('')
-  const [posting, setPosting] = useState(false)
-  const [commentError, setCommentError] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
-  const stepIdx = STATUS_STEPS.indexOf(task.status)
-
-  const submitComment = async () => {
-    if (!comment.trim()) return
-    setPosting(true); setCommentError('')
-    try {
-      await postComment(task.id, comment.trim())
-      setComment(''); setRefreshKey(k => k + 1)
-    } catch (err) { setCommentError(err.message) }
-    finally { setPosting(false) }
-  }
-
-  return (
-    <div className="card rounded-xl overflow-hidden" style={{ borderColor: PRIORITY_BORDER[task.priority] }}>
-      <div className="h-1" style={{ background: PRIORITY_STRIPE[task.priority] }} />
-      <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap"><h2 className="font-display font-bold text-navy-900">{task.complaint_type}</h2><PriorityBadge priority={task.priority}/><StatusBadge status={task.status}/></div>
-            <p className="text-xs text-gray-400 mt-1">👤 {task.customer_name} · 🕒 {timeAgo(task.created_at)}</p>
-          </div>
-          <p className="font-display font-black text-3xl text-navy-900">{task.priority_score}</p>
-        </div>
-
-        <p className="text-sm text-gray-600 mt-3 leading-relaxed">{task.description}</p>
-        {task.task_notes && <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200"><p className="text-[10px] font-black text-amber-700 uppercase">Admin Instructions</p><p className="text-sm text-amber-900 mt-1">{task.task_notes}</p></div>}
-
-        <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-gray-400">📍 {task.address}</p>
-          {task.gps && <button onClick={() => setMapOpen(v => !v)} className="text-xs font-bold text-brand-700">{mapOpen ? 'Hide Map' : 'View Map'}</button>}
-        </div>
-        {mapOpen && task.gps && <div className="mt-3"><InlineMap lat={task.gps.lat} lng={task.gps.lng} accuracy={task.gps.accuracy} height={200}/></div>}
-
-        <div className="mt-4 flex gap-1">{STATUS_STEPS.map((s, i) => <div key={s} className="h-1.5 flex-1 rounded-full" style={{ background: i <= stepIdx ? '#3463b0' : '#e5e7eb' }} />)}</div>
-        <div className="flex justify-between text-[10px] text-gray-400 mt-1">{STATUS_STEPS.map((s, i) => <span key={s} className={i <= stepIdx ? 'font-bold text-navy-600' : ''}>{STATUS_LABELS[s]}</span>)}</div>
-
-        <div className="flex gap-2 mt-4 flex-wrap">
-          {task.status === 'assigned' && <button onClick={() => onStatus(task.id, 'en_route')} className="btn-primary rounded-lg text-sm flex-1">🚚 On My Way</button>}
-          {task.status === 'en_route' && <button onClick={() => onStatus(task.id, 'in_progress')} className="btn-primary rounded-lg text-sm flex-1">📍 Arrived — Start Work</button>}
-          {task.status === 'in_progress' && <button onClick={() => onStatus(task.id, 'completed')} className="rounded-lg text-sm font-bold py-2.5 px-4 text-white bg-green-600 flex-1">✓ Mark Complete</button>}
-          <button onClick={() => onView(task.id)} className="px-4 py-2.5 rounded-lg text-sm font-bold text-navy-700 border border-navy-200 bg-white">View Full Details</button>
-        </div>
-
-        <button onClick={() => setLogOpen(v => !v)} className="mt-3 text-xs font-bold text-navy-500">{logOpen ? '▲ Hide activity' : '▼ Add note / view activity'}</button>
-        {logOpen && <div className="mt-3 pt-3 border-t border-gray-100">
-          <Timeline complaintId={task.id} refreshKey={`${task.status}-${refreshKey}`}/>
-          {commentError && <p className="text-xs text-red-600 mb-2">{commentError}</p>}
-          <div className="flex gap-2"><input value={comment} onChange={e => setComment(e.target.value)} placeholder="Add a work update..." className="input-field text-sm flex-1"/><button onClick={submitComment} disabled={posting || !comment.trim()} className="btn-primary px-4 disabled:opacity-50">{posting ? <Spinner className="w-4 h-4 border-2 border-white"/> : 'Post'}</button></div>
-        </div>}
-      </div>
-    </div>
-  )
+function matchesSearch(task, query) {
+  if (!query) return true
+  return [
+    task.id, task.complaint_type, task.description, task.address,
+    task.customer_name, task.status, task.task_notes, task.rejection_reason,
+  ].some(value => String(value || '').toLowerCase().includes(query))
 }
 
 export default function MaintenanceTasksPage() {
@@ -92,48 +46,322 @@ export default function MaintenanceTasksPage() {
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const updateStatus = useComplaintStore(s => s.updateStatus)
-  const [tab, setTab] = useState('active')
+  const postComment = useComplaintStore(s => s.postComment)
+
+  const [view, setView] = useState('active')
   const [search, setSearch] = useState('')
-  const [toast, setToast] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('priority')
+  const [expandedId, setExpandedId] = useState(null)
+  const [comment, setComment] = useState('')
+  const [postingId, setPostingId] = useState(null)
+  const [updatingId, setUpdatingId] = useState(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [toast, setToast] = useState({ message: '', type: 'success' })
   const [actionError, setActionError] = useState('')
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
-  const myTasks = useMemo(() => complaints.filter(c => c.assigned_to === user?.id).sort((a, b) => b.priority_score - a.priority_score), [complaints, user?.id])
-  const q = search.trim().toLowerCase()
-  const searched = myTasks.filter(t => !q || [t.id, t.complaint_type, t.description, t.address, t.customer_name, t.status, t.task_notes].some(v => String(v || '').toLowerCase().includes(q)))
-  const active = searched.filter(t => t.status !== 'completed')
-  const completed = searched.filter(t => t.status === 'completed')
-  const totalCompleted = myTasks.filter(t => t.status === 'completed').length
-  const doneRate = myTasks.length ? Math.round(totalCompleted / myTasks.length * 100) : 0
+  const myTasks = useMemo(() => complaints.filter(c => c.assigned_to === user?.id), [complaints, user?.id])
+  const counts = useMemo(() => ({
+    all: myTasks.length,
+    active: myTasks.filter(t => ['assigned', 'en_route', 'in_progress'].includes(t.status)).length,
+    completed: myTasks.filter(t => t.status === 'completed').length,
+    rejected: myTasks.filter(t => t.status === 'rejected').length,
+  }), [myTasks])
 
-  const handleStatus = async (id, status) => {
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return myTasks
+      .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress'].includes(task.status) : task.status === view))
+      .filter(task => priorityFilter === 'all' || task.priority === priorityFilter)
+      .filter(task => statusFilter === 'all' || task.status === statusFilter)
+      .filter(task => matchesSearch(task, query))
+      .sort((a, b) => {
+        if (sortBy === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || b.priority_score - a.priority_score
+        if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at)
+        if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
+        if (sortBy === 'updated') return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+        if (sortBy === 'type') return a.complaint_type.localeCompare(b.complaint_type)
+        return b.priority_score - a.priority_score
+      })
+  }, [myTasks, view, priorityFilter, statusFilter, search, sortBy])
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    window.setTimeout(() => setToast({ message: '', type: 'success' }), 3000)
+  }
+
+  const handleStatus = async (task, status) => {
+    setUpdatingId(task.id)
     setActionError('')
     try {
-      await updateStatus(id, status)
-      setToast(status === 'completed' ? '✅ Task marked complete.' : 'Status updated.')
-      setTimeout(() => setToast(''), 3000)
-    } catch (err) { setActionError(err.message) }
+      await updateStatus(task.id, status)
+      setRefreshKey(key => key + 1)
+      showToast(status === 'completed' ? 'Task marked complete.' : 'Task status updated.')
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setUpdatingId(null)
+    }
   }
+
+  const handleComment = async taskId => {
+    if (!comment.trim()) return
+    setPostingId(taskId)
+    setActionError('')
+    try {
+      await postComment(taskId, comment.trim())
+      setComment('')
+      setRefreshKey(key => key + 1)
+      showToast('Work update added to the timeline.')
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setPostingId(null)
+    }
+  }
+
+  const toggleExpanded = taskId => {
+    setExpandedId(current => current === taskId ? null : taskId)
+    setComment('')
+  }
+
+  const copyAddress = async task => {
+    try {
+      await navigator.clipboard.writeText(task.address || '')
+      showToast('Address copied.')
+    } catch {
+      showToast('Could not copy the address.', 'error')
+    }
+  }
+
+  const openMap = task => {
+    const target = task.gps
+      ? `https://www.openstreetmap.org/?mlat=${task.gps.lat}&mlon=${task.gps.lng}#map=17/${task.gps.lat}/${task.gps.lng}`
+      : `https://www.openstreetmap.org/search?query=${encodeURIComponent(task.address || '')}`
+    window.open(target, '_blank', 'noopener,noreferrer')
+  }
+
+  const resetFilters = () => {
+    setSearch('')
+    setPriorityFilter('all')
+    setStatusFilter('all')
+    setSortBy('priority')
+  }
+
+  const renderActions = task => {
+    const next = NEXT_STATUS[task.status]
+    return (
+      <div className="flex items-center justify-end gap-2 flex-wrap" onClick={event => event.stopPropagation()}>
+        {next && (
+          <button onClick={() => handleStatus(task, next.value)} disabled={updatingId === task.id}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 ${next.value === 'completed' ? 'text-white bg-green-600' : 'text-brand-700 bg-brand-50 border border-brand-200'}`}>
+            {updatingId === task.id ? 'Updating…' : `${next.icon} ${next.label}`}
+          </button>
+        )}
+        <button onClick={() => toggleExpanded(task.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white">
+          {expandedId === task.id ? 'Hide Quick Tools' : 'Quick Tools'}
+        </button>
+        <button onClick={() => navigate(`/complaints/${task.id}`)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800">View</button>
+      </div>
+    )
+  }
+
+  const renderQuickTools = task => (
+    <div className="bg-slate-50 border-t border-gray-200 p-4 sm:p-5" onClick={event => event.stopPropagation()}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="space-y-4">
+          {task.task_notes && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+              <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Admin Instructions</p>
+              <p className="text-sm text-amber-900 mt-1 leading-relaxed">{task.task_notes}</p>
+            </div>
+          )}
+          <div className="card rounded-xl p-4 shadow-none">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Service Address</p>
+                <p className="text-sm text-gray-700 mt-1">{task.address}</p>
+              </div>
+              <div className="flex gap-2 flex-wrap justify-end">
+                <button onClick={() => copyAddress(task)} className="text-xs font-bold text-navy-700 border border-navy-200 rounded-lg px-3 py-1.5 bg-white">Copy</button>
+                <button onClick={() => openMap(task)} className="text-xs font-bold text-brand-700 border border-brand-200 rounded-lg px-3 py-1.5 bg-brand-50">Open Map ↗</button>
+              </div>
+            </div>
+            {task.gps && <div className="mt-4"><InlineMap lat={task.gps.lat} lng={task.gps.lng} accuracy={task.gps.accuracy} height={220} /></div>}
+          </div>
+        </div>
+        <div className="card rounded-xl p-4 shadow-none">
+          <h3 className="font-display font-bold text-navy-900 mb-3">Activity & Work Update</h3>
+          <Timeline complaintId={task.id} refreshKey={`${task.status}-${refreshKey}`} />
+          {task.status !== 'rejected' && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <textarea value={expandedId === task.id ? comment : ''} onChange={event => setComment(event.target.value)} rows={3}
+                placeholder="Add a work update..." className="input-field rounded-lg resize-none text-sm" />
+              <button onClick={() => handleComment(task.id)} disabled={postingId === task.id || !comment.trim()}
+                className="btn-primary rounded-lg w-full mt-2 disabled:opacity-50">
+                {postingId === task.id ? <><Spinner className="w-4 h-4 border-2 border-white" /> Posting…</> : 'Post Timeline Update'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const completionRate = counts.active + counts.completed > 0
+    ? Math.round(counts.completed / (counts.active + counts.completed) * 100)
+    : 0
 
   if (loading && complaints.length === 0) return <PageLoader label="Loading your tasks..." />
 
   return (
-    <div className="space-y-6">
-      <div className="page-band rounded-2xl px-6 py-6">
-        <div className="flex items-end justify-between"><div><p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Portal</p><h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1><p className="text-navy-300 text-sm mt-1">Search active or completed work and open the full timeline.</p></div><div className="text-right"><p className="font-display font-black text-4xl text-gold-400">{doneRate}%</p><p className="text-xs text-navy-300">completed</p></div></div>
+    <div className="space-y-5">
+      <div className="page-band wave-header rounded-2xl px-6 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Portal</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1>
+            <p className="text-navy-300 text-sm mt-1">A complaint-style work list with quick status, map, notes, and timeline tools.</p>
+          </div>
+          <div className="text-right">
+            <p className="font-display font-black text-5xl leading-none text-gold-400">{completionRate}%</p>
+            <p className="text-navy-300 text-[11px] uppercase tracking-wider">completion rate</p>
+          </div>
+        </div>
       </div>
 
-      {(error || actionError) && <ErrorBanner message={actionError || error} onRetry={fetchComplaints}/>} {toast && <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm font-bold">{toast}</div>}
-
-      {myTasks.length === 0 ? <div className="card rounded-xl p-16 text-center"><div className="text-6xl mb-4">🔧</div><h2 className="font-display font-bold text-navy-800 text-xl">No tasks assigned yet</h2></div> : <>
-        <div className="card rounded-xl p-4 space-y-3">
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search task ID, complaint, customer, location or status..." className="input-field rounded-lg"/>
-          <div className="flex gap-2">{[['active','Active Tasks', myTasks.filter(t => t.status !== 'completed').length], ['completed','Completed', totalCompleted]].map(([v,l,count]) => <button key={v} onClick={() => setTab(v)} className="px-4 py-2 rounded-full text-sm font-semibold" style={tab === v ? { background:'#0f2240',color:'#fff' } : { background:'#f3f4f6',color:'#6b7280' }}>{l} <b>{count}</b></button>)}</div>
+      {(error || actionError) && <ErrorBanner message={actionError || error} onRetry={fetchComplaints} />}
+      {toast.message && (
+        <div className={`p-3 rounded-xl border-l-4 text-sm font-bold ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>
+          {toast.message}
         </div>
+      )}
 
-        {tab === 'active' ? (active.length ? <div className="space-y-4">{active.map(t => <TaskCard key={t.id} task={t} onStatus={handleStatus} onView={id => navigate(`/complaints/${id}`)}/>)}</div> : <div className="card rounded-xl p-10 text-center text-gray-400">No active tasks match your search.</div>) : (completed.length ? <div className="space-y-3">{completed.map(t => <button key={t.id} onClick={() => navigate(`/complaints/${t.id}`)} className="card rounded-xl p-4 w-full text-left flex items-center justify-between hover:border-navy-300"><div><p className="font-bold text-gray-800">{t.complaint_type}</p><p className="text-xs text-gray-400 mt-1">📍 {t.address} · Completed {timeAgo(t.completed_at || t.updated_at)}</p><p className="text-xs font-bold text-navy-600 mt-2">View details, notes and complete timeline →</p></div><StatusBadge status="completed"/></button>)}</div> : <div className="card rounded-xl p-10 text-center text-gray-400">No completed tasks match your search.</div>)}
-      </>}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          ['active', 'Active', counts.active, 'text-brand-600'],
+          ['completed', 'Completed', counts.completed, 'text-green-600'],
+          ['rejected', 'Rejected', counts.rejected, 'text-red-600'],
+          ['all', 'All Tasks', counts.all, 'text-navy-800'],
+        ].map(([value, label, count, color]) => (
+          <button key={value} onClick={() => setView(value)}
+            className={`card rounded-xl p-4 text-left transition-all ${view === value ? 'ring-2 ring-navy-700 border-navy-300' : 'hover:border-navy-200'}`}>
+            <p className={`font-display font-black text-3xl ${color}`}>{count}</p>
+            <p className="text-xs font-bold text-gray-500 mt-1">{label}</p>
+          </button>
+        ))}
+      </div>
+
+      {myTasks.length > 0 && (
+        <div className="card rounded-xl p-4 space-y-3">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input value={search} onChange={event => setSearch(event.target.value)}
+              placeholder="Search task ID, complaint, customer, address, notes or status..."
+              className="input-field pl-9 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="all">Any Priority</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+            <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="all">Any Status</option>
+              <option value="assigned">Assigned</option>
+              <option value="en_route">En Route</option>
+              <option value="in_progress">On Site</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="priority">Priority</option>
+              <option value="updated">Recently Updated</option>
+              <option value="newest">Newest Filed</option>
+              <option value="oldest">Oldest Filed</option>
+              <option value="type">Type A–Z</option>
+            </select>
+            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
+          </div>
+        </div>
+      )}
+
+      {myTasks.length === 0 ? (
+        <div className="card rounded-xl p-16 text-center">
+          <div className="text-6xl mb-4">🔧</div>
+          <h2 className="font-display font-bold text-navy-800 text-xl">No tasks assigned yet</h2>
+          <p className="text-sm text-gray-400 mt-2">New assignments will appear here automatically.</p>
+        </div>
+      ) : (
+        <>
+          <div className="hidden md:block card rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
+                  {['Task', 'Customer', 'Priority', 'Status', 'Location', 'Updated', 'Actions'].map(header => (
+                    <th key={header} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
+                ) : filtered.map(task => (
+                  <Fragment key={task.id}>
+                    <tr onClick={() => navigate(`/complaints/${task.id}`)}
+                      className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                      <td className="px-4 py-3 max-w-sm">
+                        <p className="font-bold text-gray-900">{task.complaint_type}</p>
+                        <p className="text-xs text-gray-400 truncate">{task.description}</p>
+                        <p className="text-[10px] text-gray-300 font-mono mt-1">{task.id}</p>
+                        {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{task.customer_name}</td>
+                      <td className="px-4 py-3"><PriorityBadge priority={task.priority} /></td>
+                      <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
+                      <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{task.address}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(task.updated_at || task.created_at)}</td>
+                      <td className="px-4 py-3">{renderActions(task)}</td>
+                    </tr>
+                    {expandedId === task.id && (
+                      <tr key={`${task.id}-tools`}><td colSpan={7} className="p-0">{renderQuickTools(task)}</td></tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {filtered.length === 0 ? (
+              <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
+            ) : filtered.map(task => (
+              <div key={task.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                <div onClick={() => navigate(`/complaints/${task.id}`)} className="p-4 cursor-pointer">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
+                      <p className="text-xs text-gray-500 mt-1">{task.customer_name} · {timeAgo(task.updated_at || task.created_at)}</p>
+                      <p className="text-xs text-gray-400 truncate mt-1">📍 {task.address}</p>
+                    </div>
+                    <span className="font-display font-black text-2xl text-navy-800">{task.priority_score}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={task.priority} /><StatusBadge status={task.status} /></div>
+                  {task.task_notes && <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900"><b>Instructions:</b> {task.task_notes}</div>}
+                  <div className="mt-3 pt-3 border-t border-gray-100">{renderActions(task)}</div>
+                </div>
+                {expandedId === task.id && renderQuickTools(task)}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

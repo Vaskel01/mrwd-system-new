@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useComplaintStore } from '../../store/complaintStore'
 import { apiFetch } from '../../lib/api'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
@@ -16,22 +16,36 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
-const PRIORITY_STRIPE = { high: 'border-l-red-500', medium: 'border-l-amber-400', low: 'border-l-green-400' }
-const SORT_OPTIONS = {
-  priority: { label: 'Priority', cmp: (a, b) => b.priority_score - a.priority_score },
-  newest: { label: 'Newest', cmp: (a, b) => new Date(b.created_at) - new Date(a.created_at) },
-  oldest: { label: 'Oldest', cmp: (a, b) => new Date(a.created_at) - new Date(b.created_at) },
-  type: { label: 'Type A–Z', cmp: (a, b) => a.complaint_type.localeCompare(b.complaint_type) },
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+const PRIORITY_STRIPE = {
+  high: 'border-l-red-500',
+  medium: 'border-l-amber-400',
+  low: 'border-l-green-400',
+}
+const NEXT_STATUS = {
+  assigned: { value: 'en_route', label: 'Set En Route' },
+  en_route: { value: 'in_progress', label: 'Set On Site' },
+  in_progress: { value: 'completed', label: 'Mark Complete' },
 }
 
-function matchesSearch(c, query) {
+function matchesSearch(complaint, query) {
   if (!query) return true
-  return [c.id, c.complaint_type, c.description, c.customer_name, c.address, c.assigned_name, c.status, c.task_notes, c.rejection_reason]
-    .some(v => String(v || '').toLowerCase().includes(query))
+  return [
+    complaint.id, complaint.complaint_type, complaint.description,
+    complaint.customer_name, complaint.address, complaint.assigned_name,
+    complaint.status, complaint.task_notes, complaint.rejection_reason,
+  ].some(value => String(value || '').toLowerCase().includes(query))
+}
+
+function queueFor(complaint) {
+  if (!complaint.assigned_to && !['completed', 'rejected'].includes(complaint.status)) return 'unassigned'
+  if (complaint.assigned_to && !['completed', 'rejected'].includes(complaint.status)) return 'active'
+  return 'resolved'
 }
 
 export default function AssignTaskPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const complaints = useComplaintStore(s => s.complaints)
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
@@ -44,14 +58,17 @@ export default function AssignTaskPage() {
 
   const [staffList, setStaffList] = useState([])
   const [staffError, setStaffError] = useState('')
+  const [view, setView] = useState(searchParams.get('staff') ? 'active' : 'unassigned')
   const [search, setSearch] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [staffFilter, setStaffFilter] = useState(searchParams.get('staff') || 'all')
   const [sortBy, setSortBy] = useState('priority')
-  const [assignedTab, setAssignedTab] = useState('active')
-  const [selectedId, setSelectedId] = useState(null)
+  const [checked, setChecked] = useState(new Set())
+  const [assignTarget, setAssignTarget] = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
   const [assignNotes, setAssignNotes] = useState('')
   const [assigning, setAssigning] = useState(false)
-  const [checked, setChecked] = useState(new Set())
   const [bulkStaff, setBulkStaff] = useState('')
   const [bulkNotes, setBulkNotes] = useState('')
   const [bulkAssigning, setBulkAssigning] = useState(false)
@@ -59,54 +76,112 @@ export default function AssignTaskPage() {
   const [bulkRejectOpen, setBulkRejectOpen] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [restoringId, setRestoringId] = useState(null)
+  const [updatingId, setUpdatingId] = useState(null)
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
   useEffect(() => {
-    apiFetch('/users/maintenance-staff').then(({ staff }) => setStaffList(staff)).catch(err => setStaffError(err.message))
+    apiFetch('/users/maintenance-staff')
+      .then(({ staff }) => setStaffList(staff))
+      .catch(err => setStaffError(err.message))
   }, [])
 
-  const q = search.trim().toLowerCase()
-  const unassigned = useMemo(() => complaints
-    .filter(c => !c.assigned_to && !['completed', 'rejected'].includes(c.status))
-    .filter(c => matchesSearch(c, q))
-    .sort(SORT_OPTIONS[sortBy].cmp), [complaints, q, sortBy])
-  const assignedAll = useMemo(() => complaints.filter(c => c.assigned_to).filter(c => matchesSearch(c, q)).sort((a, b) => b.priority_score - a.priority_score), [complaints, q])
-  const assignedActive = assignedAll.filter(c => !['completed', 'rejected'].includes(c.status))
-  const assignedDone = assignedAll.filter(c => ['completed', 'rejected'].includes(c.status))
-  const selectedComplaint = unassigned.find(c => c.id === selectedId)
+  useEffect(() => {
+    const staff = searchParams.get('staff') || 'all'
+    setStaffFilter(staff)
+    if (staff !== 'all') setView('active')
+  }, [searchParams])
+
+  const counts = useMemo(() => ({
+    all: complaints.length,
+    unassigned: complaints.filter(c => queueFor(c) === 'unassigned').length,
+    active: complaints.filter(c => queueFor(c) === 'active').length,
+    resolved: complaints.filter(c => queueFor(c) === 'resolved').length,
+  }), [complaints])
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return complaints
+      .filter(c => view === 'all' || queueFor(c) === view)
+      .filter(c => priorityFilter === 'all' || c.priority === priorityFilter)
+      .filter(c => statusFilter === 'all' || c.status === statusFilter)
+      .filter(c => staffFilter === 'all' || c.assigned_to === staffFilter)
+      .filter(c => matchesSearch(c, query))
+      .sort((a, b) => {
+        if (sortBy === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || b.priority_score - a.priority_score
+        if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at)
+        if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
+        if (sortBy === 'type') return a.complaint_type.localeCompare(b.complaint_type)
+        if (sortBy === 'staff') return String(a.assigned_name || 'ZZZ').localeCompare(String(b.assigned_name || 'ZZZ'))
+        return b.priority_score - a.priority_score
+      })
+  }, [complaints, view, priorityFilter, statusFilter, staffFilter, search, sortBy])
+
+  const selectableRows = filtered.filter(c => queueFor(c) === 'unassigned')
+  const allSelectableChecked = selectableRows.length > 0 && selectableRows.every(c => checked.has(c.id))
+  const selectedComplaints = complaints.filter(c => checked.has(c.id) && queueFor(c) === 'unassigned')
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
-    setTimeout(() => setToast({ message: '', type: 'success' }), 3500)
+    window.setTimeout(() => setToast({ message: '', type: 'success' }), 3500)
   }
 
-  const handleAssign = async () => {
-    if (!selectedComplaint || !selectedStaff) return
-    setAssigning(true)
-    try {
-      await assignComplaint(selectedComplaint.id, selectedStaff, assignNotes.trim())
-      showToast('Complaint assigned successfully.')
-      setSelectedId(null); setSelectedStaff(''); setAssignNotes('')
-    } catch (err) { showToast(err.message, 'error') }
-    finally { setAssigning(false) }
+  const changeStaffFilter = value => {
+    setStaffFilter(value)
+    const next = new URLSearchParams(searchParams)
+    if (value === 'all') next.delete('staff')
+    else next.set('staff', value)
+    setSearchParams(next, { replace: true })
   }
 
-  const toggleChecked = id => setChecked(prev => {
-    const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
+  const toggleChecked = id => setChecked(previous => {
+    const next = new Set(previous)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
     return next
   })
 
+  const toggleAllShown = () => setChecked(previous => {
+    const next = new Set(previous)
+    if (allSelectableChecked) selectableRows.forEach(c => next.delete(c.id))
+    else selectableRows.forEach(c => next.add(c.id))
+    return next
+  })
+
+  const openAssignment = complaint => {
+    setAssignTarget(complaint)
+    setSelectedStaff('')
+    setAssignNotes('')
+  }
+
+  const handleAssign = async () => {
+    if (!assignTarget || !selectedStaff) return
+    setAssigning(true)
+    try {
+      await assignComplaint(assignTarget.id, selectedStaff, assignNotes.trim())
+      showToast(`“${assignTarget.complaint_type}” assigned successfully.`)
+      setAssignTarget(null)
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   const handleBulkAssign = async () => {
-    if (!checked.size || !bulkStaff) return
+    if (!selectedComplaints.length || !bulkStaff) return
     setBulkAssigning(true)
     try {
-      await bulkAssign([...checked], bulkStaff, bulkNotes.trim())
-      showToast(`${checked.size} complaints assigned.`)
-      setChecked(new Set()); setBulkStaff(''); setBulkNotes('')
-    } catch (err) { showToast(err.message, 'error') }
-    finally { setBulkAssigning(false) }
+      await bulkAssign(selectedComplaints.map(c => c.id), bulkStaff, bulkNotes.trim())
+      showToast(`${selectedComplaints.length} complaints assigned.`)
+      setChecked(new Set())
+      setBulkStaff('')
+      setBulkNotes('')
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setBulkAssigning(false)
+    }
   }
 
   const handleReject = async reason => {
@@ -117,12 +192,16 @@ export default function AssignTaskPage() {
         showToast(`“${rejectTarget.complaint_type}” rejected with a recorded reason.`)
         setRejectTarget(null)
       } else if (bulkRejectOpen) {
-        await bulkStatus([...checked], 'rejected', reason)
-        showToast(`${checked.size} complaints rejected with a recorded reason.`)
-        setChecked(new Set()); setBulkRejectOpen(false)
+        await bulkStatus(selectedComplaints.map(c => c.id), 'rejected', reason)
+        showToast(`${selectedComplaints.length} complaints rejected.`)
+        setChecked(new Set())
+        setBulkRejectOpen(false)
       }
-    } catch (err) { showToast(err.message, 'error') }
-    finally { setRejecting(false) }
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setRejecting(false)
+    }
   }
 
   const handleRestore = async complaint => {
@@ -130,69 +209,291 @@ export default function AssignTaskPage() {
     try {
       await restoreComplaint(complaint.id)
       showToast('Rejection undone. Complaint restored.')
-    } catch (err) { showToast(err.message, 'error') }
-    finally { setRestoringId(null) }
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setRestoringId(null)
+    }
   }
 
-  const handleStatus = async (id, status) => {
-    try { await updateStatus(id, status); showToast(`Status changed to ${status.replace('_', ' ')}.`) }
-    catch (err) { showToast(err.message, 'error') }
+  const handleStatus = async (complaint, status) => {
+    setUpdatingId(complaint.id)
+    try {
+      await updateStatus(complaint.id, status)
+      showToast(`“${complaint.complaint_type}” updated to ${status.replace('_', ' ')}.`)
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const resetFilters = () => {
+    setSearch('')
+    setPriorityFilter('all')
+    setStatusFilter('all')
+    changeStaffFilter('all')
+    setSortBy('priority')
+  }
+
+  const renderActions = complaint => {
+    const queue = queueFor(complaint)
+    const next = NEXT_STATUS[complaint.status]
+    return (
+      <div className="flex items-center justify-end gap-2 flex-wrap" onClick={event => event.stopPropagation()}>
+        {queue === 'unassigned' && (
+          <button onClick={() => openAssignment(complaint)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800 hover:bg-navy-900">Assign</button>
+        )}
+        {queue === 'active' && next && (
+          <button onClick={() => handleStatus(complaint, next.value)} disabled={updatingId === complaint.id}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200 disabled:opacity-50">
+            {updatingId === complaint.id ? 'Updating…' : next.label}
+          </button>
+        )}
+        {!['completed', 'rejected'].includes(complaint.status) && (
+          <button onClick={() => setRejectTarget(complaint)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 border border-red-200">Reject</button>
+        )}
+        {complaint.status === 'rejected' && (
+          <button onClick={() => handleRestore(complaint)} disabled={restoringId === complaint.id}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800 disabled:opacity-50">
+            {restoringId === complaint.id ? 'Restoring…' : '↶ Undo'}
+          </button>
+        )}
+        <button onClick={() => navigate(`/complaints/${complaint.id}`)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white">View</button>
+      </div>
+    )
   }
 
   if (loading && complaints.length === 0) return <PageLoader label="Loading tasks..." />
 
   return (
     <div className="space-y-5">
-      <div className="page-band rounded-2xl px-6 py-6"><p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Admin</p><h1 className="font-display font-black text-white text-2xl mt-1">Assign Tasks</h1><p className="text-navy-300 text-sm mt-1">Search, assign, reject with a reason, restore, and open complete task records.</p></div>
-
-      {toast.message && <div className={`p-3 border-l-4 text-sm font-bold ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>{toast.message}</div>}
-      {error && <ErrorBanner message={error} onRetry={fetchComplaints}/>} {staffError && <ErrorBanner message={staffError}/>} 
-
-      <div className="card rounded-xl p-4 flex flex-col sm:flex-row gap-3">
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search complaint, task ID, customer, address, technician or status..." className="input-field flex-1 rounded-lg"/>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field sm:w-44 rounded-lg">{Object.entries(SORT_OPTIONS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
+      <div className="page-band wave-header rounded-2xl px-6 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Admin · Dispatch</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Assign Tasks</h1>
+            <p className="text-navy-300 text-sm mt-1">Manage the entire dispatch queue from one complaint-style list.</p>
+          </div>
+          <div className="text-right">
+            <p className="font-display font-black text-5xl leading-none text-gold-400">{filtered.length}</p>
+            <p className="text-navy-300 text-[11px] uppercase tracking-wider">tasks shown</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 card rounded-xl overflow-hidden divide-x divide-gray-100 text-center">
-        <div className="p-3"><p className="font-black text-2xl text-amber-600">{unassigned.length}</p><p className="text-xs text-gray-400">Unassigned</p></div>
-        <div className="p-3"><p className="font-black text-2xl text-brand-600">{assignedActive.length}</p><p className="text-xs text-gray-400">Active</p></div>
-        <div className="p-3"><p className="font-black text-2xl text-green-600">{assignedDone.length}</p><p className="text-xs text-gray-400">Resolved/Rejected</p></div>
+      {toast.message && (
+        <div className={`p-3 rounded-xl border-l-4 text-sm font-bold ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>
+          {toast.message}
+        </div>
+      )}
+      {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      {staffError && <ErrorBanner message={staffError} />}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          ['unassigned', 'Unassigned', counts.unassigned, 'text-amber-600'],
+          ['active', 'Active', counts.active, 'text-brand-600'],
+          ['resolved', 'Resolved', counts.resolved, 'text-green-600'],
+          ['all', 'All Records', counts.all, 'text-navy-800'],
+        ].map(([value, label, count, color]) => (
+          <button key={value} onClick={() => setView(value)}
+            className={`card rounded-xl p-4 text-left transition-all ${view === value ? 'ring-2 ring-navy-700 border-navy-300' : 'hover:border-navy-200'}`}>
+            <p className={`font-display font-black text-3xl ${color}`}>{count}</p>
+            <p className="text-xs font-bold text-gray-500 mt-1">{label}</p>
+          </button>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <section>
-          <div className="flex items-center justify-between mb-3"><h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Unassigned Queue</h2><span className="text-xs font-bold text-amber-700">{unassigned.length} shown</span></div>
-          {unassigned.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-400">No unassigned complaints match your search.</div> : <>
-            <div className="card rounded-xl p-3 mb-3 space-y-2">
-              <div className="flex items-center gap-2"><input type="checkbox" checked={checked.size === unassigned.length && unassigned.length > 0} onChange={() => setChecked(checked.size === unassigned.length ? new Set() : new Set(unassigned.map(c => c.id)))} className="accent-brand-600"/><span className="text-xs font-bold text-gray-500">{checked.size ? `${checked.size} selected` : 'Select all shown'}</span></div>
-              {checked.size > 0 && <><div className="flex gap-2"><select value={bulkStaff} onChange={e => setBulkStaff(e.target.value)} className="input-field flex-1 text-sm"><option value="">Assign selected to…</option>{staffList.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select><button onClick={handleBulkAssign} disabled={!bulkStaff || bulkAssigning} className="btn-primary px-4 disabled:opacity-50">{bulkAssigning ? <Spinner className="w-4 h-4 border-2 border-white"/> : 'Assign'}</button></div><input value={bulkNotes} onChange={e => setBulkNotes(e.target.value)} placeholder="Instructions for all selected (optional)" className="input-field text-sm"/><button onClick={() => setBulkRejectOpen(true)} className="text-xs font-bold text-red-600">✕ Reject selected with one reason</button></>}
+      <div className="card rounded-xl p-4 space-y-3">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input value={search} onChange={event => setSearch(event.target.value)}
+            placeholder="Search ID, complaint, customer, address, status or technician..."
+            className="input-field pl-9 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+          <select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <option value="all">Any Priority</option>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+          <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <option value="all">Any Status</option>
+            <option value="pending">Pending</option>
+            <option value="assigned">Assigned</option>
+            <option value="en_route">En Route</option>
+            <option value="in_progress">On Site</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select value={staffFilter} onChange={event => changeStaffFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <option value="all">Any Technician</option>
+            {staffList.map(staff => <option key={staff.id} value={staff.id}>{staff.full_name}</option>)}
+          </select>
+          <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+            <option value="priority">Priority</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="type">Type A–Z</option>
+            <option value="staff">Technician A–Z</option>
+          </select>
+          <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm col-span-2 lg:col-span-1">Reset Filters</button>
+        </div>
+      </div>
+
+      {selectedComplaints.length > 0 && (
+        <div className="card rounded-xl p-4 border-navy-200 bg-navy-50/40 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-display font-bold text-navy-900">{selectedComplaints.length} unassigned complaint{selectedComplaints.length !== 1 ? 's' : ''} selected</p>
+              <p className="text-xs text-gray-500 mt-1">Assign or reject all selected records at once.</p>
             </div>
-            <div className="space-y-2">{unassigned.map(c => {
-              const selected = selectedId === c.id
-              return <div key={c.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[c.priority]}`}>
-                <div className="p-4 flex gap-3">
-                  <input type="checkbox" checked={checked.has(c.id)} onChange={() => toggleChecked(c.id)} className="accent-brand-600 mt-1"/>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between gap-3"><div><p className="font-bold text-gray-900">{c.complaint_type}</p><p className="text-xs text-gray-400 mt-1">{c.customer_name} · {timeAgo(c.created_at)}</p><p className="text-xs text-gray-400 truncate mt-1">📍 {c.address}</p></div><span className="font-black text-2xl text-navy-800">{c.priority_score}</span></div>
-                    <div className="flex items-center gap-2 mt-3"><PriorityBadge priority={c.priority}/><button onClick={() => navigate(`/complaints/${c.id}`)} className="text-xs font-bold text-navy-600 ml-auto">View Details</button><button onClick={() => { setSelectedId(selected ? null : c.id); setSelectedStaff(''); setAssignNotes('') }} className="text-xs font-bold text-brand-700">{selected ? 'Close' : 'Assign →'}</button></div>
-                  </div>
-                </div>
-                {selected && <div className="p-4 border-t border-brand-200 bg-brand-50 space-y-2"><select value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)} className="input-field text-sm"><option value="">Select maintenance staff…</option>{staffList.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}</select><textarea value={assignNotes} onChange={e => setAssignNotes(e.target.value)} rows={2} placeholder="Instructions for the technician (optional)" className="input-field resize-none text-sm"/><button onClick={handleAssign} disabled={!selectedStaff || assigning} className="btn-primary w-full disabled:opacity-50">{assigning ? 'Assigning…' : 'Confirm Assignment'}</button></div>}
-              </div>
-            })}</div>
-          </>}
-        </section>
+            <button onClick={() => setChecked(new Set())} className="text-xs font-bold text-gray-500">Clear selection</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
+            <select value={bulkStaff} onChange={event => setBulkStaff(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="">Assign selected to…</option>
+              {staffList.map(staff => <option key={staff.id} value={staff.id}>{staff.full_name}</option>)}
+            </select>
+            <input value={bulkNotes} onChange={event => setBulkNotes(event.target.value)} placeholder="Shared instructions (optional)" className="input-field rounded-lg text-sm" />
+            <button onClick={handleBulkAssign} disabled={!bulkStaff || bulkAssigning} className="btn-primary rounded-lg disabled:opacity-50">
+              {bulkAssigning ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Assign Selected'}
+            </button>
+            <button onClick={() => setBulkRejectOpen(true)} className="btn-danger rounded-lg">Reject Selected</button>
+          </div>
+        </div>
+      )}
 
-        <section>
-          <div className="flex items-center justify-between mb-3"><h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Assigned Tasks</h2><span className="text-xs font-bold text-brand-700">{assignedAll.length} shown</span></div>
-          <div className="grid grid-cols-2 card rounded-xl overflow-hidden mb-3"><button onClick={() => setAssignedTab('active')} className={`py-2 text-xs font-black ${assignedTab === 'active' ? 'bg-navy-900 text-white' : 'text-gray-500'}`}>ACTIVE ({assignedActive.length})</button><button onClick={() => setAssignedTab('done')} className={`py-2 text-xs font-black ${assignedTab === 'done' ? 'bg-navy-900 text-white' : 'text-gray-500'}`}>RESOLVED ({assignedDone.length})</button></div>
-
-          {assignedTab === 'active' ? (assignedActive.length ? <div className="space-y-2">{assignedActive.map(c => <div key={c.id} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]}`}><div className="flex justify-between gap-3"><div><p className="font-bold text-gray-900">{c.complaint_type}</p><p className="text-xs text-brand-600 font-bold mt-1">👷 {c.assigned_name}</p><p className="text-xs text-gray-400 mt-1">📍 {c.address}</p></div><div className="text-right"><StatusBadge status={c.status}/><p className="font-black text-xl text-navy-800 mt-1">{c.priority_score}</p></div></div><div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-100"><button onClick={() => navigate(`/complaints/${c.id}`)} className="text-xs px-3 py-1.5 font-bold border border-navy-200 text-navy-700">View Details</button>{c.status === 'assigned' && <button onClick={() => handleStatus(c.id, 'en_route')} className="text-xs px-3 py-1.5 font-bold border border-orange-200 text-orange-700">En Route</button>}{c.status === 'en_route' && <button onClick={() => handleStatus(c.id, 'in_progress')} className="text-xs px-3 py-1.5 font-bold border border-brand-200 text-brand-700">On Site</button>}{c.status === 'in_progress' && <button onClick={() => handleStatus(c.id, 'completed')} className="text-xs px-3 py-1.5 font-bold border border-green-200 text-green-700">Complete</button>}<button onClick={() => setRejectTarget(c)} className="text-xs px-3 py-1.5 font-bold border border-red-200 text-red-600">Reject</button></div></div>)}</div> : <div className="card rounded-xl p-10 text-center text-gray-400">No active tasks match your search.</div>) : (assignedDone.length ? <div className="space-y-2">{assignedDone.map(c => <div key={c.id} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]}`}><div className="flex justify-between gap-3"><div><p className="font-bold text-gray-800">{c.complaint_type}</p><p className="text-xs text-gray-400 mt-1">👷 {c.assigned_name}</p>{c.status === 'rejected' && <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded"><p className="text-xs text-red-700"><b>Reason:</b> {c.rejection_reason || 'Not recorded'}</p></div>}</div><StatusBadge status={c.status}/></div><div className="flex gap-2 mt-3"><button onClick={() => navigate(`/complaints/${c.id}`)} className="text-xs font-bold text-navy-700">View details & timeline →</button>{c.status === 'rejected' && <button onClick={() => handleRestore(c)} disabled={restoringId === c.id} className="ml-auto text-xs font-bold text-white bg-navy-800 px-3 py-1.5 rounded disabled:opacity-50">{restoringId === c.id ? 'Restoring…' : '↶ Undo Rejection'}</button>}</div></div>)}</div> : <div className="card rounded-xl p-10 text-center text-gray-400">No resolved tasks match your search.</div>)}
-        </section>
+      <div className="hidden md:block card rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
+              <th className="px-4 py-3 w-10">
+                {selectableRows.length > 0 && <input type="checkbox" checked={allSelectableChecked} onChange={toggleAllShown} className="accent-brand-600" aria-label="Select all shown unassigned complaints" />}
+              </th>
+              {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Actions'].map(header => (
+                <th key={header} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{header}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.length === 0 ? (
+              <tr><td colSpan={8} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
+            ) : filtered.map(complaint => {
+              const selectable = queueFor(complaint) === 'unassigned'
+              return (
+                <tr key={complaint.id} onClick={() => navigate(`/complaints/${complaint.id}`)}
+                  className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[complaint.priority]}`}>
+                  <td className="px-4 py-3" onClick={event => event.stopPropagation()}>
+                    {selectable && <input type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)} className="accent-brand-600" aria-label={`Select ${complaint.complaint_type}`} />}
+                  </td>
+                  <td className="px-4 py-3 max-w-sm">
+                    <p className="font-bold text-gray-900">{complaint.complaint_type}</p>
+                    <p className="text-xs text-gray-400 truncate">{complaint.description}</p>
+                    <p className="text-[10px] text-gray-300 font-mono mt-1">{complaint.id}</p>
+                    {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">{complaint.customer_name}</td>
+                  <td className="px-4 py-3"><PriorityBadge priority={complaint.priority} /></td>
+                  <td className="px-4 py-3"><StatusBadge status={complaint.status} /></td>
+                  <td className="px-4 py-3 text-gray-500">{complaint.assigned_name || 'Unassigned'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(complaint.created_at)}</td>
+                  <td className="px-4 py-3">{renderActions(complaint)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
-      <RejectionDialog open={!!rejectTarget} title="Reject this complaint?" description={rejectTarget ? `Explain why “${rejectTarget.complaint_type}” is being rejected. The customer will see this reason.` : ''} loading={rejecting} onConfirm={handleReject} onCancel={() => setRejectTarget(null)}/>
-      <RejectionDialog open={bulkRejectOpen} title={`Reject ${checked.size} complaints?`} description="Enter one clear reason that will be saved on every selected complaint and shown to each customer." confirmLabel={`Reject ${checked.size}`} loading={rejecting} onConfirm={handleReject} onCancel={() => setBulkRejectOpen(false)}/>
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
+        ) : filtered.map(complaint => {
+          const selectable = queueFor(complaint) === 'unassigned'
+          return (
+            <div key={complaint.id} onClick={() => navigate(`/complaints/${complaint.id}`)}
+              className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[complaint.priority]} cursor-pointer`}>
+              <div className="flex items-start gap-3">
+                {selectable && (
+                  <input type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)}
+                    onClick={event => event.stopPropagation()} className="accent-brand-600 mt-1" aria-label={`Select ${complaint.complaint_type}`} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900">{complaint.complaint_type}</p>
+                      <p className="text-xs text-gray-500 mt-1">{complaint.customer_name} · {timeAgo(complaint.created_at)}</p>
+                      <p className="text-xs text-gray-400 truncate mt-1">📍 {complaint.address}</p>
+                    </div>
+                    <span className="font-display font-black text-2xl text-navy-800">{complaint.priority_score}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={complaint.priority} /><StatusBadge status={complaint.status} /></div>
+                  <p className="text-xs text-gray-500 mt-3">👷 {complaint.assigned_name || 'Not assigned'}</p>
+                  {complaint.status === 'rejected' && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</div>
+                  )}
+                  <div className="mt-3 pt-3 border-t border-gray-100">{renderActions(complaint)}</div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {assignTarget && (
+        <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={() => !assigning && setAssignTarget(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onMouseDown={event => event.stopPropagation()}>
+            <div className="page-band wave-header px-6 py-5">
+              <p className="text-gold-400 text-[10px] font-black uppercase tracking-widest">Assign Complaint</p>
+              <h2 className="font-display font-black text-white text-xl mt-1">{assignTarget.complaint_type}</h2>
+              <p className="text-navy-300 text-xs mt-1">{assignTarget.customer_name} · {assignTarget.address}</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Maintenance Staff</label>
+                <select value={selectedStaff} onChange={event => setSelectedStaff(event.target.value)} className="input-field rounded-lg">
+                  <option value="">Select technician…</option>
+                  {staffList.map(staff => <option key={staff.id} value={staff.id}>{staff.full_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Instructions</label>
+                <textarea value={assignNotes} onChange={event => setAssignNotes(event.target.value)} rows={4}
+                  placeholder="Optional instructions for the technician" className="input-field rounded-lg resize-none" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setAssignTarget(null)} disabled={assigning} className="btn-secondary rounded-lg">Cancel</button>
+                <button onClick={handleAssign} disabled={!selectedStaff || assigning} className="btn-primary rounded-lg disabled:opacity-50">
+                  {assigning ? <><Spinner className="w-4 h-4 border-2 border-white" /> Assigning…</> : 'Confirm Assignment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <RejectionDialog
+        open={!!rejectTarget}
+        title="Reject this complaint?"
+        description={rejectTarget ? `Explain why “${rejectTarget.complaint_type}” is being rejected. The customer will see this reason.` : ''}
+        loading={rejecting}
+        onConfirm={handleReject}
+        onCancel={() => setRejectTarget(null)}
+      />
+      <RejectionDialog
+        open={bulkRejectOpen}
+        title={`Reject ${selectedComplaints.length} complaints?`}
+        description="Enter one clear reason that will be saved on every selected complaint and shown to each customer."
+        confirmLabel={`Reject ${selectedComplaints.length}`}
+        loading={rejecting}
+        onConfirm={handleReject}
+        onCancel={() => setBulkRejectOpen(false)}
+      />
     </div>
   )
 }

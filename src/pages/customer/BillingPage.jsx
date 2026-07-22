@@ -43,7 +43,7 @@ export default function BillingPage() {
   if (error && bills.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+        <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
           <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
           <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing Statement</h1>
         </div>
@@ -55,7 +55,7 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="page-band rounded-2xl px-6 py-6 relative overflow-hidden">
+      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
           <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
         </svg>

@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
 
       {/* Page header */}
-      <div className="page-band rounded-2xl overflow-hidden px-6 py-7 relative">
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-7 relative">
         {/* Decorative wave */}
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 80" preserveAspectRatio="none">
           <path d="M0,40 C200,0 400,80 600,40 C800,0 1000,80 1200,40 L1200,80 L0,80 Z" fill="white"/>

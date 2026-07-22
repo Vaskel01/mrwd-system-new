@@ -4,9 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
-import { scorePriority } from '../../lib/priorityScoring'
 import { COMPLAINT_TYPES } from '../../config/staticData'
-import { PriorityBadge } from '../../components/ui/Badges'
 import { ErrorBanner } from '../../components/ui/Feedback'
 
 const schema = z.object({
@@ -131,7 +129,6 @@ export default function SubmitComplaintPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(null)
-  const [priorityPreview, setPriorityPreview] = useState(null)
 
   // GPS / location state
   const [locationMode, setLocationMode] = useState(null) // null | 'gps' | 'pin'
@@ -147,15 +144,6 @@ export default function SubmitComplaintPage() {
   const watchedType = watch('complaint_type')
   const watchedDesc = watch('description')
   const watchedAddr = watch('address')
-
-  const updatePreview = () => {
-    if (watchedType && watchedDesc?.length >= 10) {
-      const result = scorePriority({ complaint_type: watchedType, description: watchedDesc, has_photo: !!photo })
-      setPriorityPreview(result)
-    } else {
-      setPriorityPreview(null)
-    }
-  }
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
@@ -215,7 +203,7 @@ export default function SubmitComplaintPage() {
     if (step === 0) valid = await trigger('complaint_type')
     if (step === 1) valid = await trigger('description')
     if (step === 2) valid = await trigger('address')
-    if (valid) { updatePreview(); setStep(s => s + 1) }
+    if (valid) setStep(s => s + 1)
   }
 
   const onSubmit = async (data) => {
@@ -229,7 +217,7 @@ export default function SubmitComplaintPage() {
       )
       setSubmitted(result)
       reset()
-      setPhoto(null); setPhotoPreview(null); setPriorityPreview(null); setStep(0)
+      setPhoto(null); setPhotoPreview(null); setStep(0)
       setGpsCoords(null); setGpsError(null); setLocationMode(null)
     } catch (err) {
       setSubmitError(err.message)
@@ -237,11 +225,10 @@ export default function SubmitComplaintPage() {
   }
 
   if (submitted) {
-    const priorityAccent = submitted.priority === 'high' ? 'bg-red-500' : submitted.priority === 'medium' ? 'bg-amber-400' : 'bg-green-500'
     return (
       <div className="max-w-lg mx-auto py-8 px-4">
         <div className="card rounded-xl overflow-hidden">
-          <div className={`h-2 w-full ${priorityAccent}`} />
+          <div className="h-2 w-full bg-gold-400" />
           <div className="p-8 text-center">
             <div className="w-14 h-14 rounded-2xl bg-navy-800 flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -249,7 +236,7 @@ export default function SubmitComplaintPage() {
               </svg>
             </div>
             <h2 className="text-xl font-black text-gray-900 mb-1 font-display tracking-tight">COMPLAINT FILED</h2>
-            <p className="text-gray-400 text-sm mb-6">Analyzed, classified, and queued for review</p>
+            <p className="text-gray-400 text-sm mb-6">Submitted successfully and queued for staff review</p>
 
             <div className="text-left rounded-lg border border-gray-100 divide-y divide-gray-100 mb-6 text-sm">
               <div className="flex items-center justify-between px-4 py-3">
@@ -257,27 +244,8 @@ export default function SubmitComplaintPage() {
                 <span className="font-mono text-xs text-gray-700">{submitted.id}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected Type</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Complaint Type</span>
                 <span className="font-semibold text-gray-800 text-right">{submitted.complaint_type}</span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 gap-4">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Classified As</span>
-                <div className="text-right">
-                  <p className="font-semibold text-navy-800">{submitted.classified_category || submitted.complaint_type}</p>
-                  {submitted.classification_confidence != null && <p className="text-xs text-gray-400">{Math.round(Number(submitted.classification_confidence))}% confidence</p>}
-                </div>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Text Sentiment</span>
-                <span className="font-bold text-gray-700 capitalize">{submitted.classification_sentiment || 'neutral'}</span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Priority Class</span>
-                <PriorityBadge priority={submitted.priority} />
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Score</span>
-                <span className="font-black text-2xl text-gray-900">{submitted.priority_score}<span className="text-xs font-normal text-gray-400">/100</span></span>
               </div>
               {submitted.gps && (
                 <div className="flex items-center justify-between px-4 py-3">
@@ -304,14 +272,13 @@ export default function SubmitComplaintPage() {
         </svg>
         <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
         <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">File a Report</h1>
-        <p className="relative text-navy-300 text-sm mt-1">Your complaint is analyzed and classified using the keyword dataset.</p>
+        <p className="relative text-navy-300 text-sm mt-1">Provide the issue details so the MRWD team can review and respond.</p>
       </div>
 
       {/* Step rail */}
-      <div className="flex items-center gap-0">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {STEP_LABELS.map((label, i) => (
-          <div key={i} className="flex items-center flex-1 last:flex-none">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors flex-1 border ${
+          <div key={i} className={`h-10 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-colors border ${
               i === step ? 'bg-navy-900 text-white border-navy-900' :
               i < step  ? 'bg-navy-800 text-white border-gold-500' :
                           'bg-white text-gray-400 border-gray-200'
@@ -321,14 +288,12 @@ export default function SubmitComplaintPage() {
               }`}>
                 {i < step ? '✓' : i + 1}
               </span>
-              <span className="hidden sm:inline">{label}</span>
-            </div>
-            {i < STEP_LABELS.length - 1 && <div className="w-px h-8 bg-gray-200 shrink-0" />}
+              <span className="hidden sm:inline truncate">{label}</span>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} onChange={updatePreview}>
+      <form onSubmit={handleSubmit(onSubmit)}>
 
         {/* Step 0 — Type */}
         {step === 0 && (
@@ -376,7 +341,7 @@ export default function SubmitComplaintPage() {
               <div>
                 <p className="text-sm font-bold text-gray-700 mb-1.5">
                   Photo
-                  <span className="ml-2 text-xs font-normal text-gold-600 bg-gold-50 px-2 py-0.5">+10 priority pts</span>
+                  <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5">Optional</span>
                 </p>
                 {photoPreview ? (
                   <div className="flex items-center gap-3 p-3 border border-gray-200 bg-gray-50">
@@ -558,47 +523,6 @@ export default function SubmitComplaintPage() {
                 <span className="text-gray-700">{photo ? '✓ Attached' : 'None'}</span>
               </div>
             </div>
-
-            {priorityPreview && (
-              <div className={`mx-5 my-4 border-l-4 px-4 py-4 text-sm ${
-                priorityPreview.priority === 'high' ? 'border-red-500 bg-red-50' :
-                priorityPreview.priority === 'medium' ? 'border-amber-400 bg-amber-50' : 'border-green-500 bg-green-50'
-              }`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-bold text-gray-700 text-xs uppercase tracking-wider mb-1">Classifier Result</p>
-                    <p className="font-display font-black text-navy-900">{priorityPreview.predicted_category}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{priorityPreview.category_confidence}% category confidence · {priorityPreview.classification_sentiment} sentiment</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <PriorityBadge priority={priorityPreview.priority} />
-                    <p className="font-black text-3xl text-gray-900 mt-1">{priorityPreview.score}<span className="text-sm font-normal text-gray-400">/100</span></p>
-                  </div>
-                </div>
-
-                {priorityPreview.classification_mismatch && (
-                  <div className="mt-3 rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
-                    <p className="text-xs font-bold text-amber-900">The description appears to match a different category.</p>
-                    <p className="text-xs text-amber-700 mt-0.5">Selected: {watchedType} · Classified: {priorityPreview.predicted_category}</p>
-                  </div>
-                )}
-
-                <div className="mt-3">
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5">Matched Dataset Terms</p>
-                  {priorityPreview.matched_keywords.length ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {priorityPreview.matched_keywords.slice(0, 8).map(item => (
-                        <span key={item.id} className="rounded-full bg-white/80 border border-gray-200 px-2 py-1 text-xs font-bold text-gray-700">
-                          {item.term} <span className={Number(item.priority_weight) >= 0 ? 'text-green-700' : 'text-red-600'}>{Number(item.priority_weight) >= 0 ? '+' : ''}{item.priority_weight}</span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-500">No dataset term matched. The selected category is used as fallback.</p>
-                  )}
-                </div>
-              </div>
-            )}
 
             {submitError && <div className="px-5"><ErrorBanner message={submitError} /></div>}
 

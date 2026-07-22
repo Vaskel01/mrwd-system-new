@@ -65,7 +65,7 @@ Run `supabase/dataset-backed-classification.sql`. It adds fields for:
 - human-readable reasons
 - classifier version and method
 
-The Complaint Details screen displays these results to authorized users. The Admin All Complaints screen also includes **Classify Existing**, which reruns the classifier for older records after the migration is installed.
+The complete classifier breakdown is displayed only to administrators. Maintenance personnel receive only the final assigned category and priority needed for field work, while customers receive no classifier output. The Admin All Complaints screen also includes **Classify Existing**, which reruns the classifier for older records after the migration is installed.
 
 ## Evaluation
 

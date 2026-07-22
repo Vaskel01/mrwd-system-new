@@ -72,6 +72,38 @@ export async function fetchShapedComplaintById(supabase, id) {
   return results[0] || null
 }
 
+// Removes classifier internals from non-admin API responses. Customers do
+// not receive any classifier output. Assigned maintenance personnel only
+// receive the final operational category and priority needed to perform work.
+export function presentComplaintForRole(complaint, role) {
+  if (!complaint || role === 'admin') return complaint
+
+  const presented = { ...complaint }
+  const internalFields = [
+    'priority_score',
+    'rule_score',
+    'sentiment_score',
+    'classification_confidence',
+    'classification_sentiment',
+    'classification_mismatch',
+    'classification_basis',
+    'classification_keywords',
+    'classification_negated_keywords',
+    'classification_reasons',
+    'classifier_version',
+    'classification_method',
+  ]
+
+  for (const field of internalFields) delete presented[field]
+
+  if (role === 'customer') {
+    delete presented.priority
+    delete presented.classified_category
+  }
+
+  return presented
+}
+
 function shapeOne(row, categoryMap, profileMap, taskMap) {
   const task = taskMap[row.id]
   return {

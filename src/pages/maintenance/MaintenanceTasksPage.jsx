@@ -1,11 +1,9 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
-import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
-import InlineMap from '../../components/ui/InlineMap'
-import Timeline from '../../components/ui/Timeline'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 
 function timeAgo(iso) {
   const value = iso ? new Date(iso).getTime() : Date.now()
@@ -24,12 +22,6 @@ const PRIORITY_STRIPE = {
   medium: 'border-l-amber-400',
   low: 'border-l-green-400',
 }
-const NEXT_STATUS = {
-  assigned: { value: 'en_route', label: 'On My Way', icon: '🚚' },
-  en_route: { value: 'in_progress', label: 'Start Work', icon: '📍' },
-  in_progress: { value: 'completed', label: 'Complete', icon: '✓' },
-}
-
 function matchesSearch(task, query) {
   if (!query) return true
   return [
@@ -45,21 +37,12 @@ export default function MaintenanceTasksPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const updateStatus = useComplaintStore(s => s.updateStatus)
-  const postComment = useComplaintStore(s => s.postComment)
 
   const [view, setView] = useState('active')
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('priority')
-  const [expandedId, setExpandedId] = useState(null)
-  const [comment, setComment] = useState('')
-  const [postingId, setPostingId] = useState(null)
-  const [updatingId, setUpdatingId] = useState(null)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [toast, setToast] = useState({ message: '', type: 'success' })
-  const [actionError, setActionError] = useState('')
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
@@ -79,70 +62,17 @@ export default function MaintenanceTasksPage() {
       .filter(task => statusFilter === 'all' || task.status === statusFilter)
       .filter(task => matchesSearch(task, query))
       .sort((a, b) => {
-        if (sortBy === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || b.priority_score - a.priority_score
+        if (sortBy === 'priority') {
+          return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+            || new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+        }
         if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at)
         if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
         if (sortBy === 'updated') return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
         if (sortBy === 'type') return a.complaint_type.localeCompare(b.complaint_type)
-        return b.priority_score - a.priority_score
+        return new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
       })
   }, [myTasks, view, priorityFilter, statusFilter, search, sortBy])
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type })
-    window.setTimeout(() => setToast({ message: '', type: 'success' }), 3000)
-  }
-
-  const handleStatus = async (task, status) => {
-    setUpdatingId(task.id)
-    setActionError('')
-    try {
-      await updateStatus(task.id, status)
-      setRefreshKey(key => key + 1)
-      showToast(status === 'completed' ? 'Task marked complete.' : 'Task status updated.')
-    } catch (err) {
-      setActionError(err.message)
-    } finally {
-      setUpdatingId(null)
-    }
-  }
-
-  const handleComment = async taskId => {
-    if (!comment.trim()) return
-    setPostingId(taskId)
-    setActionError('')
-    try {
-      await postComment(taskId, comment.trim())
-      setComment('')
-      setRefreshKey(key => key + 1)
-      showToast('Work update added to the timeline.')
-    } catch (err) {
-      setActionError(err.message)
-    } finally {
-      setPostingId(null)
-    }
-  }
-
-  const toggleExpanded = taskId => {
-    setExpandedId(current => current === taskId ? null : taskId)
-    setComment('')
-  }
-
-  const copyAddress = async task => {
-    try {
-      await navigator.clipboard.writeText(task.address || '')
-      showToast('Address copied.')
-    } catch {
-      showToast('Could not copy the address.', 'error')
-    }
-  }
-
-  const openMap = task => {
-    const target = task.gps
-      ? `https://www.openstreetmap.org/?mlat=${task.gps.lat}&mlon=${task.gps.lng}#map=17/${task.gps.lat}/${task.gps.lng}`
-      : `https://www.openstreetmap.org/search?query=${encodeURIComponent(task.address || '')}`
-    window.open(target, '_blank', 'noopener,noreferrer')
-  }
 
   const resetFilters = () => {
     setSearch('')
@@ -151,64 +81,16 @@ export default function MaintenanceTasksPage() {
     setSortBy('priority')
   }
 
-  const renderActions = task => {
-    const next = NEXT_STATUS[task.status]
-    return (
-      <div className="flex items-center justify-end gap-2 flex-wrap" onClick={event => event.stopPropagation()}>
-        {next && (
-          <button onClick={() => handleStatus(task, next.value)} disabled={updatingId === task.id}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 ${next.value === 'completed' ? 'text-white bg-green-600' : 'text-brand-700 bg-brand-50 border border-brand-200'}`}>
-            {updatingId === task.id ? 'Updating…' : `${next.icon} ${next.label}`}
-          </button>
-        )}
-        <button onClick={() => toggleExpanded(task.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white">
-          {expandedId === task.id ? 'Hide Quick Tools' : 'Quick Tools'}
-        </button>
-        <button onClick={() => navigate(`/complaints/${task.id}`)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800">View</button>
-      </div>
-    )
-  }
-
-  const renderQuickTools = task => (
-    <div className="bg-slate-50 border-t border-gray-200 p-4 sm:p-5" onClick={event => event.stopPropagation()}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="space-y-4">
-          {task.task_notes && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-              <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">Admin Instructions</p>
-              <p className="text-sm text-amber-900 mt-1 leading-relaxed">{task.task_notes}</p>
-            </div>
-          )}
-          <div className="card rounded-xl p-4 shadow-none">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Service Address</p>
-                <p className="text-sm text-gray-700 mt-1">{task.address}</p>
-              </div>
-              <div className="flex gap-2 flex-wrap justify-end">
-                <button onClick={() => copyAddress(task)} className="text-xs font-bold text-navy-700 border border-navy-200 rounded-lg px-3 py-1.5 bg-white">Copy</button>
-                <button onClick={() => openMap(task)} className="text-xs font-bold text-brand-700 border border-brand-200 rounded-lg px-3 py-1.5 bg-brand-50">Open Map ↗</button>
-              </div>
-            </div>
-            {task.gps && <div className="mt-4"><InlineMap lat={task.gps.lat} lng={task.gps.lng} accuracy={task.gps.accuracy} height={220} /></div>}
-          </div>
-        </div>
-        <div className="card rounded-xl p-4 shadow-none">
-          <h3 className="font-display font-bold text-navy-900 mb-3">Activity & Work Update</h3>
-          <Timeline complaintId={task.id} refreshKey={`${task.status}-${refreshKey}`} />
-          {task.status !== 'rejected' && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <textarea value={expandedId === task.id ? comment : ''} onChange={event => setComment(event.target.value)} rows={3}
-                placeholder="Add a work update..." className="input-field rounded-lg resize-none text-sm" />
-              <button onClick={() => handleComment(task.id)} disabled={postingId === task.id || !comment.trim()}
-                className="btn-primary rounded-lg w-full mt-2 disabled:opacity-50">
-                {postingId === task.id ? <><Spinner className="w-4 h-4 border-2 border-white" /> Posting…</> : 'Post Timeline Update'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+  const renderAction = task => (
+    <button
+      onClick={event => {
+        event.stopPropagation()
+        navigate(`/complaints/${task.id}`)
+      }}
+      className="w-full min-w-[96px] px-3 py-2 rounded-lg text-xs font-bold text-white bg-navy-800 hover:bg-navy-900"
+    >
+      Open Task →
+    </button>
   )
 
   const completionRate = counts.active + counts.completed > 0
@@ -224,7 +106,7 @@ export default function MaintenanceTasksPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Portal</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1>
-            <p className="text-navy-300 text-sm mt-1">A complaint-style work list with quick status, map, notes, and timeline tools.</p>
+            <p className="text-navy-300 text-sm mt-1">Open a task to view directions, update its status, and add work notes.</p>
           </div>
           <div className="text-right">
             <p className="font-display font-black text-5xl leading-none text-gold-400">{completionRate}%</p>
@@ -233,12 +115,7 @@ export default function MaintenanceTasksPage() {
         </div>
       </div>
 
-      {(error || actionError) && <ErrorBanner message={actionError || error} onRetry={fetchComplaints} />}
-      {toast.message && (
-        <div className={`p-3 rounded-xl border-l-4 text-sm font-bold ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>
-          {toast.message}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -313,26 +190,21 @@ export default function MaintenanceTasksPage() {
                 {filtered.length === 0 ? (
                   <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
                 ) : filtered.map(task => (
-                  <Fragment key={task.id}>
-                    <tr onClick={() => navigate(`/complaints/${task.id}`)}
-                      className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
-                      <td className="px-4 py-3 max-w-sm">
-                        <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                        <p className="text-xs text-gray-400 truncate">{task.description}</p>
-                        <p className="text-[10px] text-gray-300 font-mono mt-1">{task.id}</p>
-                        {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{task.customer_name}</td>
-                      <td className="px-4 py-3"><PriorityBadge priority={task.priority} /></td>
-                      <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
-                      <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{task.address}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(task.updated_at || task.created_at)}</td>
-                      <td className="px-4 py-3">{renderActions(task)}</td>
-                    </tr>
-                    {expandedId === task.id && (
-                      <tr key={`${task.id}-tools`}><td colSpan={7} className="p-0">{renderQuickTools(task)}</td></tr>
-                    )}
-                  </Fragment>
+                  <tr key={task.id} onClick={() => navigate(`/complaints/${task.id}`)}
+                    className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                    <td className="px-4 py-3 max-w-sm">
+                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
+                      <p className="text-xs text-gray-400 truncate">{task.description}</p>
+                      <p className="text-[10px] text-gray-300 font-mono mt-1">{task.id}</p>
+                      {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{task.customer_name}</td>
+                    <td className="px-4 py-3"><PriorityBadge priority={task.priority} /></td>
+                    <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{task.address}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(task.updated_at || task.created_at)}</td>
+                    <td className="px-4 py-3 w-32">{renderAction(task)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -350,13 +222,12 @@ export default function MaintenanceTasksPage() {
                       <p className="text-xs text-gray-500 mt-1">{task.customer_name} · {timeAgo(task.updated_at || task.created_at)}</p>
                       <p className="text-xs text-gray-400 truncate mt-1">📍 {task.address}</p>
                     </div>
-                    <span className="font-display font-black text-2xl text-navy-800">{task.priority_score}</span>
+                    <StatusBadge status={task.status} />
                   </div>
-                  <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={task.priority} /><StatusBadge status={task.status} /></div>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={task.priority} /></div>
                   {task.task_notes && <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900"><b>Instructions:</b> {task.task_notes}</div>}
-                  <div className="mt-3 pt-3 border-t border-gray-100">{renderActions(task)}</div>
+                  <div className="mt-3 pt-3 border-t border-gray-100">{renderAction(task)}</div>
                 </div>
-                {expandedId === task.id && renderQuickTools(task)}
               </div>
             ))}
           </div>

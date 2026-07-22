@@ -69,12 +69,12 @@ No additional database migration is required for this second UI/QOL update.
 - The Submit Complaint page now uses the same available content width as the other portal tabs.
 - Sidebar navigation items now share a consistent minimum height and non-wrapping label treatment.
 
-## Dataset-backed classifier update
+## Classifier visibility and task UI refinement
 
-- Added `docs/keyword-dataset.xlsx` and CSV/JSON copies of the structured keyword dataset.
-- Added explicit category, confidence, sentiment, and priority classification results.
-- Added longest-phrase-first matching, stemming, negation handling, category mismatch detection, and explanations.
-- Complaint Details now displays the complete stored analysis.
-- Admins can rerun the classifier for older complaints through **Classify Existing**.
-- Run `supabase/dataset-backed-classification.sql` before filing or reclassifying complaints.
-- The included 25-case seed evaluation passes, but it is not a substitute for independent validation using MRWD-labeled complaints.
+- Customer-facing screens no longer display classifier results, scores, predicted categories, confidence, sentiment, matched terms, or classifier wording.
+- Customer complaint API responses are also stripped of classifier fields and the computed priority, so the information is not merely hidden with CSS.
+- Maintenance personnel receive only the final assigned category and Low/Medium/High priority needed for field work. They do not receive the numerical score, confidence, sentiment, matched keywords, or decision explanation.
+- Administrators retain the complete classifier analysis for review, testing, and auditing.
+- The four Submit Complaint phases now use an equal four-column grid with a uniform height.
+- My Tasks now has one `Open Task` action per row/card. Status progression, copy-address, map, timeline, and work-note tools are located on the task details page.
+- No new Supabase migration is required for these UI and API-response changes.

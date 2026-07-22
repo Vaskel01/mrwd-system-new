@@ -149,22 +149,3 @@ vercel.json             SPA rewrite rules for Vercel
 supabase/                seed_categories.sql + rls-patch.sql (run against your existing schema)
 ```
 
-
-## Dataset-backed complaint classification
-
-This version replaces the small hard-coded keyword dictionary with a structured 129-row keyword dataset and an explicit classification stage. The system now stores and displays the predicted complaint category, confidence percentage, sentiment/urgency label, matched dataset terms, decision explanation, and final Low/Medium/High priority class.
-
-Before using this feature, run:
-
-`supabase/dataset-backed-classification.sql`
-
-Admins can then use **All Complaints → Classify Existing** to analyze records created before the migration.
-
-Dataset and evaluation documentation is in `docs/CLASSIFIER_GUIDE.md`. Run the included seed evaluation with:
-
-```bash
-cd server
-npm run evaluate:classifier
-```
-
-The seed test set is for implementation verification only. Validate the dataset and final weights with MRWD personnel and a separate anonymized evaluation set before making real-world accuracy claims.

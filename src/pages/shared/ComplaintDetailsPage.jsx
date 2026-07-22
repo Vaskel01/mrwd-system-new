@@ -15,6 +15,12 @@ const ROLE_HOME = {
   maintenance_personnel: '/maintenance/tasks',
 }
 
+const NEXT_TASK_STATUS = {
+  assigned: { value: 'en_route', label: 'Mark as On My Way', icon: '🚚' },
+  en_route: { value: 'in_progress', label: 'Start Work', icon: '📍' },
+  in_progress: { value: 'completed', label: 'Mark Task Complete', icon: '✓' },
+}
+
 function formatDate(value) {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-PH', {
@@ -131,6 +137,7 @@ export default function ComplaintDetailsPage() {
   const fetchComplaint = useComplaintStore(s => s.fetchComplaint)
   const restoreComplaint = useComplaintStore(s => s.restoreComplaint)
   const postComment = useComplaintStore(s => s.postComment)
+  const updateStatus = useComplaintStore(s => s.updateStatus)
 
   const [complaint, setComplaint] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -142,6 +149,9 @@ export default function ComplaintDetailsPage() {
   const [commentError, setCommentError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [photoError, setPhotoError] = useState(false)
+  const [statusUpdating, setStatusUpdating] = useState(false)
+  const [taskActionError, setTaskActionError] = useState('')
+  const [taskActionMessage, setTaskActionMessage] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -183,11 +193,46 @@ export default function ComplaintDetailsPage() {
     }
   }
 
+  const handleTaskStatus = async nextStatus => {
+    setStatusUpdating(true)
+    setTaskActionError('')
+    setTaskActionMessage('')
+    try {
+      const updated = await updateStatus(id, nextStatus)
+      setComplaint(updated)
+      setRefreshKey(key => key + 1)
+      setTaskActionMessage(nextStatus === 'completed' ? 'Task marked as completed.' : 'Task status updated.')
+    } catch (err) {
+      setTaskActionError(err.message)
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
+
+  const copyAddress = async () => {
+    setTaskActionError('')
+    setTaskActionMessage('')
+    try {
+      await navigator.clipboard.writeText(complaint.address || '')
+      setTaskActionMessage('Address copied.')
+    } catch {
+      setTaskActionError('Could not copy the address.')
+    }
+  }
+
+  const openMap = () => {
+    const target = complaint.gps
+      ? `https://www.openstreetmap.org/?mlat=${complaint.gps.lat}&mlon=${complaint.gps.lng}#map=17/${complaint.gps.lat}/${complaint.gps.lng}`
+      : `https://www.openstreetmap.org/search?query=${encodeURIComponent(complaint.address || '')}`
+    window.open(target, '_blank', 'noopener,noreferrer')
+  }
+
   if (loading) return <PageLoader label="Loading complaint details..." />
   if (!complaint) return <ErrorBanner message={error || 'Complaint not found.'} onRetry={() => navigate(ROLE_HOME[user?.role] || '/')} />
 
   const canComment = ['admin', 'maintenance_personnel'].includes(user?.role) && complaint.assigned_to
   const photo = complaint.photo_url || complaint.photo_urls?.[0]
+  const nextTaskStatus = NEXT_TASK_STATUS[complaint.status]
 
   return (
     <div className="space-y-5">
@@ -204,7 +249,7 @@ export default function ComplaintDetailsPage() {
             <p className="text-navy-300 text-xs font-mono mt-2">Reference: {complaint.id}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <PriorityBadge priority={complaint.priority} />
+            {user?.role !== 'customer' && complaint.priority && <PriorityBadge priority={complaint.priority} />}
             <StatusBadge status={complaint.status} />
           </div>
         </div>
@@ -275,7 +320,15 @@ export default function ComplaintDetailsPage() {
         <div className="space-y-5">
           <div className="card rounded-xl p-5">
             <h2 className="font-display font-bold text-navy-900 mb-2">Task Summary</h2>
-            <DetailRow label="Priority Score"><span className="font-display font-black text-3xl text-navy-900">{complaint.priority_score}</span> / 100</DetailRow>
+            {user?.role === 'admin' && (
+              <DetailRow label="Priority Score"><span className="font-display font-black text-3xl text-navy-900">{complaint.priority_score}</span> / 100</DetailRow>
+            )}
+            {user?.role === 'maintenance_personnel' && (
+              <>
+                <DetailRow label="Assigned Category">{complaint.classified_category || complaint.complaint_type}</DetailRow>
+                <DetailRow label="Assigned Priority"><PriorityBadge priority={complaint.priority} /></DetailRow>
+              </>
+            )}
             <DetailRow label="Assigned Technician">{complaint.assigned_name || 'Not assigned'}</DetailRow>
             <DetailRow label="Filed">{formatDate(complaint.created_at)}</DetailRow>
             <DetailRow label="Last Updated">{formatDate(complaint.updated_at)}</DetailRow>
@@ -283,7 +336,36 @@ export default function ComplaintDetailsPage() {
             <DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow>
           </div>
 
-          <ClassifierAnalysis complaint={complaint} />
+          {user?.role === 'admin' && <ClassifierAnalysis complaint={complaint} />}
+
+          {user?.role === 'maintenance_personnel' && (
+            <div className="card rounded-xl p-5">
+              <h2 className="font-display font-bold text-navy-900">Task Actions</h2>
+              <p className="text-xs text-gray-400 mt-1 mb-4">Status changes, directions, and work updates are managed here.</p>
+
+              {taskActionError && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{taskActionError}</div>}
+              {taskActionMessage && <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-700">{taskActionMessage}</div>}
+
+              {nextTaskStatus ? (
+                <button
+                  onClick={() => handleTaskStatus(nextTaskStatus.value)}
+                  disabled={statusUpdating}
+                  className={`w-full rounded-lg px-4 py-3 text-sm font-bold text-white disabled:opacity-50 ${nextTaskStatus.value === 'completed' ? 'bg-green-600 hover:bg-green-700' : 'bg-navy-800 hover:bg-navy-900'}`}
+                >
+                  {statusUpdating ? 'Updating…' : `${nextTaskStatus.icon} ${nextTaskStatus.label}`}
+                </button>
+              ) : complaint.status === 'completed' ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">✓ This task is completed.</div>
+              ) : complaint.status === 'rejected' ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">This task is closed as rejected.</div>
+              ) : null}
+
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <button onClick={copyAddress} className="rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-xs font-bold text-navy-700 hover:bg-navy-50">Copy Address</button>
+                <button onClick={openMap} className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-700 hover:bg-brand-100">Open Map ↗</button>
+              </div>
+            </div>
+          )}
 
           <div className="card rounded-xl p-5">
             <h2 className="font-display font-bold text-navy-900 mb-3">Complete Timeline</h2>

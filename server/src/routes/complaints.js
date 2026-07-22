@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { scoreComplaint } from '../lib/priorityScoring.js'
-import { fetchShapedComplaints, fetchShapedComplaintById } from '../lib/shapeComplaint.js'
+import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
 
 const router = Router()
 
@@ -37,7 +37,7 @@ async function getTaskForComplaint(supabase, complaintId) {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const complaints = await fetchShapedComplaints(req.supabase)
-    res.json({ complaints })
+    res.json({ complaints: complaints.map(complaint => presentComplaintForRole(complaint, req.user.role)) })
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -111,7 +111,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
     if (!complaint) return res.status(404).json({ error: 'Complaint not found or you do not have access to it.' })
-    res.json({ complaint })
+    res.json({ complaint: presentComplaintForRole(complaint, req.user.role) })
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -193,7 +193,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   if (error) return res.status(400).json({ error: error.message })
 
   const complaint = await fetchShapedComplaintById(req.supabase, inserted.id)
-  res.status(201).json({ complaint, reasons })
+  res.status(201).json({ complaint: presentComplaintForRole(complaint, req.user.role) })
 })
 
 // PATCH /api/complaints/:id/assign — admin only
@@ -229,7 +229,7 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
 
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
-    res.json({ complaint })
+    res.json({ complaint: presentComplaintForRole(complaint, req.user.role) })
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -287,7 +287,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
 
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
-    res.json({ complaint })
+    res.json({ complaint: presentComplaintForRole(complaint, req.user.role) })
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -327,7 +327,7 @@ router.patch('/:id/restore', requireAuth, requireRole('admin'), async (req, res)
 
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
-    res.json({ complaint })
+    res.json({ complaint: presentComplaintForRole(complaint, req.user.role) })
   } catch (err) {
     res.status(400).json({ error: err.message })
   }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
-import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 
 function timeAgo(iso) {
@@ -24,32 +24,21 @@ const STATUS_CONFIG = {
   rejected: { bar: 100, color: '#dc2626', icon: '✗', label: 'Rejected', msg: 'This report was closed by the administrator.' },
 }
 
-const PRIORITY_BORDER = { high: '#fecaca', medium: '#fde68a', low: '#bbf7d0' }
-const PRIORITY_STRIPE = {
-  high: 'linear-gradient(90deg,#dc2626,#f87171)',
-  medium: 'linear-gradient(90deg,#d97706,#fbbf24)',
-  low: 'linear-gradient(90deg,#16a34a,#4ade80)',
-}
-
 function ComplaintCard({ complaint, onView }) {
   const cfg = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
   return (
-    <div className="card rounded-xl overflow-hidden" style={{ borderColor: PRIORITY_BORDER[complaint.priority] }}>
-      <div className="h-1" style={{ background: PRIORITY_STRIPE[complaint.priority] }} />
+    <div className="card rounded-xl overflow-hidden">
+      <div className="h-1 bg-navy-700" />
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="font-display font-bold text-navy-900">{complaint.complaint_type}</h2>
-              <PriorityBadge priority={complaint.priority} />
               <StatusBadge status={complaint.status} />
             </div>
             <p className="text-[10px] text-gray-400 font-mono mt-1 break-all">{complaint.id}</p>
           </div>
-          <div className="rounded-lg px-3 py-2 text-center shrink-0 bg-slate-50 border border-slate-200">
-            <p className="font-display font-black text-2xl text-navy-900 leading-none">{complaint.priority_score}</p>
-            <p className="text-[9px] text-gray-400 uppercase">score</p>
-          </div>
+          <span className="text-xs font-bold text-gray-400 shrink-0">{timeAgo(complaint.updated_at || complaint.created_at)}</span>
         </div>
 
         <div className="mt-4">

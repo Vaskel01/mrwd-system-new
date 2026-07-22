@@ -43,6 +43,18 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
+// GET /api/complaints/:id — one full complaint record visible under the
+// same RLS rules as the complaint list. Used by the shared details page.
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
+    if (!complaint) return res.status(404).json({ error: 'Complaint not found or you do not have access to it.' })
+    res.json({ complaint })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
 // POST /api/complaints — customers only
 router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   const { complaint_type, description, address, gps, photo_url } = req.body || {}
@@ -117,7 +129,7 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
   if (error) return res.status(400).json({ error: error.message })
 
   await req.supabase.from('complaints')
-    .update({ status: 'assigned', updated_at: new Date().toISOString() })
+    .update({ status: 'assigned', rejection_reason: null, rejected_at: null, updated_at: new Date().toISOString() })
     .eq('id', req.params.id)
 
   await logTaskUpdate(
@@ -138,30 +150,90 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
 // complaints row (what customers/admins see as the current status),
 // and logs the transition to the task's timeline.
 router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
-  const { status } = req.body || {}
+  const { status, rejection_reason } = req.body || {}
   if (!STATUS_VALUES.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${STATUS_VALUES.join(', ')}.` })
   }
+  if (status === 'rejected' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only an admin can reject a complaint.' })
+  }
+  if (status === 'rejected' && (!rejection_reason || rejection_reason.trim().length < 3)) {
+    return res.status(400).json({ error: 'A rejection reason of at least 3 characters is required.' })
+  }
 
+  const now = new Date().toISOString()
   const taskUpdate = { status: status === 'rejected' ? 'pending' : status }
-  if (status === 'completed') taskUpdate.completed_at = new Date().toISOString()
+  if (status === 'completed') taskUpdate.completed_at = now
+  if (status !== 'completed') taskUpdate.completed_at = null
 
   let taskQuery = req.supabase.from('maintenance_tasks').update(taskUpdate).eq('complaint_id', req.params.id)
   if (req.user.role === 'maintenance_personnel') taskQuery = taskQuery.eq('assigned_staff_id', req.user.id)
   const { data: updatedTasks, error: taskErr } = await taskQuery.select()
 
   if (taskErr) return res.status(400).json({ error: taskErr.message })
+  if (req.user.role === 'maintenance_personnel' && (!updatedTasks || updatedTasks.length === 0)) {
+    return res.status(403).json({ error: 'This complaint is not assigned to you.' })
+  }
 
+  const complaintUpdate = {
+    status,
+    rejection_reason: status === 'rejected' ? rejection_reason.trim() : null,
+    rejected_at: status === 'rejected' ? now : null,
+    updated_at: now,
+  }
   const { error: complaintErr } = await req.supabase
     .from('complaints')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(complaintUpdate)
     .eq('id', req.params.id)
 
   if (complaintErr) return res.status(400).json({ error: complaintErr.message })
 
   const task = updatedTasks?.[0]
   const STATUS_LABEL = { pending: 'Pending', assigned: 'Assigned', en_route: 'En Route', in_progress: 'On Site', completed: 'Completed', rejected: 'Rejected' }
-  await logTaskUpdate(req.supabase, task?.id, req.user.id, `Status changed to ${STATUS_LABEL[status] || status}.`)
+  const timelineMessage = status === 'rejected'
+    ? `Complaint rejected. Reason: ${rejection_reason.trim()}`
+    : `Status changed to ${STATUS_LABEL[status] || status}.`
+  await logTaskUpdate(req.supabase, task?.id, req.user.id, timelineMessage)
+
+  try {
+    const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
+    res.json({ complaint })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// PATCH /api/complaints/:id/restore — admin-only undo for a rejected complaint.
+// If a crew is still attached, return it to Assigned; otherwise return it to Pending.
+router.patch('/:id/restore', requireAuth, requireRole('admin'), async (req, res) => {
+  const { data: row, error: rowErr } = await req.supabase
+    .from('complaints')
+    .select('id, status')
+    .eq('id', req.params.id)
+    .single()
+
+  if (rowErr || !row) return res.status(404).json({ error: 'Complaint not found.' })
+  if (row.status !== 'rejected') return res.status(400).json({ error: 'Only rejected complaints can be restored.' })
+
+  const task = await getTaskForComplaint(req.supabase, req.params.id)
+  const restoredStatus = task?.assigned_staff_id ? 'assigned' : 'pending'
+  const now = new Date().toISOString()
+
+  if (task) {
+    const { error: taskErr } = await req.supabase
+      .from('maintenance_tasks')
+      .update({ status: 'assigned', completed_at: null })
+      .eq('id', task.id)
+    if (taskErr) return res.status(400).json({ error: taskErr.message })
+  }
+
+  const { error } = await req.supabase
+    .from('complaints')
+    .update({ status: restoredStatus, rejection_reason: null, rejected_at: null, updated_at: now })
+    .eq('id', req.params.id)
+
+  if (error) return res.status(400).json({ error: error.message })
+  await logTaskUpdate(req.supabase, task?.id, req.user.id, `Rejection undone. Complaint restored to ${restoredStatus === 'assigned' ? 'Assigned' : 'Pending'}.`)
 
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
@@ -286,7 +358,7 @@ router.post('/bulk-assign', requireAuth, requireRole('admin'), async (req, res) 
 
     if (error) { results.push({ id, ok: false, error: error.message }); continue }
 
-    await req.supabase.from('complaints').update({ status: 'assigned', updated_at: new Date().toISOString() }).eq('id', id)
+    await req.supabase.from('complaints').update({ status: 'assigned', rejection_reason: null, rejected_at: null, updated_at: new Date().toISOString() }).eq('id', id)
     await logTaskUpdate(req.supabase, task.id, req.user.id, notes ? `Assigned to crew. Note: ${notes}` : 'Assigned to crew.')
     results.push({ id, ok: true })
   }
@@ -296,14 +368,23 @@ router.post('/bulk-assign', requireAuth, requireRole('admin'), async (req, res) 
 
 // POST /api/complaints/bulk-status — admin only (e.g. bulk-reject)
 router.post('/bulk-status', requireAuth, requireRole('admin'), async (req, res) => {
-  const { complaint_ids, status } = req.body || {}
+  const { complaint_ids, status, rejection_reason } = req.body || {}
   if (!Array.isArray(complaint_ids) || complaint_ids.length === 0 || !STATUS_VALUES.includes(status)) {
     return res.status(400).json({ error: `complaint_ids (array) and a valid status are required.` })
   }
+  if (status === 'rejected' && (!rejection_reason || rejection_reason.trim().length < 3)) {
+    return res.status(400).json({ error: 'A rejection reason of at least 3 characters is required.' })
+  }
 
+  const now = new Date().toISOString()
   const { error } = await req.supabase
     .from('complaints')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({
+      status,
+      rejection_reason: status === 'rejected' ? rejection_reason.trim() : null,
+      rejected_at: status === 'rejected' ? now : null,
+      updated_at: now,
+    })
     .in('id', complaint_ids)
 
   if (error) return res.status(400).json({ error: error.message })

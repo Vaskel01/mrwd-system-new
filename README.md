@@ -10,7 +10,7 @@ Storage) as the database layer.
 Your Supabase project already has the real schema (`profiles`,
 `complaints`, `complaint_categories`, `maintenance_tasks`,
 `task_updates`, `feedback`) — you built that yourself, not from a file
-in this repo. Two things still need to be run against it, in order,
+in this repo. Run the included migrations against it, in order,
 from **Supabase Dashboard → SQL Editor → New Query**:
 
 1. `supabase/seed_categories.sql` — creates the complaint categories
@@ -35,6 +35,14 @@ from **Supabase Dashboard → SQL Editor → New Query**:
    timeline for their own complaints, and adds data-integrity
    constraints for feedback (rating 1-5, one submission per
    complaint). Safe to re-run.
+6. `supabase/fix-table-grants.sql` — tables created via raw SQL
+   (announcements, bills) were missing baseline database grants,
+   causing "permission denied for table X" regardless of RLS
+   policies. This fixes it. Safe to re-run.
+7. `supabase/rejection-reason-and-restore.sql` — adds the saved rejection
+   reason and rejection timestamp used by the customer-facing explanation
+   and the admin Undo Rejection action. Safe to re-run. **Run this before
+   deploying this version of the app.**
 
 With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't

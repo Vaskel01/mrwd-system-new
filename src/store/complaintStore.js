@@ -77,15 +77,39 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   // Update complaint status (admin or assigned maintenance staff).
-  // Valid values: pending, assigned, en_route, in_progress, completed, rejected.
-  updateStatus: async (complaintId, status) => {
+  // Rejections require an admin-provided reason that is shown to the customer.
+  updateStatus: async (complaintId, status, rejectionReason = '') => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, rejection_reason: rejectionReason || undefined }),
     })
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
+    return complaint
+  },
+
+  // Fetch a single complaint for the shared details screen.
+  fetchComplaint: async (complaintId) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}`)
+    set(s => {
+      const exists = s.complaints.some(c => c.id === complaintId)
+      return { complaints: exists
+        ? s.complaints.map(c => (c.id === complaintId ? complaint : c))
+        : [complaint, ...s.complaints] }
+    })
+    return complaint
+  },
+
+  // Admin-only undo for a rejected complaint.
+  restoreComplaint: async (complaintId) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/restore`, {
+      method: 'PATCH',
+    })
+    set(s => ({
+      complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
+    }))
+    return complaint
   },
 
   // Bulk-assign several complaints to one crew member at once (admin only)
@@ -100,10 +124,10 @@ export const useComplaintStore = create((set, get) => ({
 
   // Bulk status change across several complaints at once (admin only,
   // e.g. bulk-reject a batch of duplicate/invalid reports)
-  bulkStatus: async (complaintIds, status) => {
+  bulkStatus: async (complaintIds, status, rejectionReason = '') => {
     const result = await apiFetch('/complaints/bulk-status', {
       method: 'POST',
-      body: JSON.stringify({ complaint_ids: complaintIds, status }),
+      body: JSON.stringify({ complaint_ids: complaintIds, status, rejection_reason: rejectionReason || undefined }),
     })
     await get().fetchComplaints()
     return result

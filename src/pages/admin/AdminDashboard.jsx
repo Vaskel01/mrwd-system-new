@@ -155,7 +155,7 @@ export default function AdminDashboard() {
             <tbody>
               {recent.map((c, i) => (
                 <tr key={c.id} style={{ borderBottom: i < recent.length - 1 ? '1px solid #f8f9fb' : 'none' }}
-                    className="hover:bg-navy-50/40 transition-colors">
+                    onClick={() => navigate(`/complaints/${c.id}`)} className="hover:bg-navy-50/40 transition-colors cursor-pointer">
                   <td className="px-5 py-3.5 font-semibold text-gray-900">{c.complaint_type}</td>
                   <td className="px-5 py-3.5 text-gray-500">{c.customer_name}</td>
                   <td className="px-5 py-3.5"><PriorityBadge priority={c.priority}/></td>
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
         {/* Mobile */}
         <div className="sm:hidden divide-y divide-gray-50">
           {recent.map(c => (
-            <div key={c.id} className="p-4 flex items-center gap-3">
+            <div key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className="p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50">
               <div className={`w-1 self-stretch rounded-full shrink-0 ${c.priority === 'high' ? 'bg-red-500' : c.priority === 'medium' ? 'bg-amber-400' : 'bg-green-400'}`} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 text-sm">{c.complaint_type}</p>

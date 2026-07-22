@@ -59,6 +59,15 @@ create policy "bills_admin_write" on public.bills
   with check (public.current_user_role() = 'admin');
 
 -- ─────────────────────────────────────────────
+-- Baseline grants — RLS policies alone aren't enough. Without this,
+-- every request fails with "permission denied for table X" regardless
+-- of the RLS policies above, because RLS only restricts which rows
+-- you can see once you already have permission to touch the table.
+-- ─────────────────────────────────────────────
+grant select, insert, update, delete on public.announcements to authenticated;
+grant select, insert, update, delete on public.bills to authenticated;
+
+-- ─────────────────────────────────────────────
 -- Optional: seed a sample bill so the Billing page isn't empty when
 -- you first test it. Replace the email with your actual demo
 -- customer account, then uncomment and run just this block.

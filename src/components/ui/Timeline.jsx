@@ -17,7 +17,7 @@ function timeAgo(iso) {
 // a free-text crew comment gets a speech-bubble icon, so the two are
 // visually distinguishable in the feed at a glance.
 function isStatusChange(message) {
-  return message.startsWith('Status changed to') || message.startsWith('Assigned to crew')
+  return message.startsWith('Status changed to') || message.startsWith('Assigned to crew') || message.startsWith('Complaint rejected') || message.startsWith('Rejection undone')
 }
 
 /**

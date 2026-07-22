@@ -23,6 +23,7 @@ import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
 
 // Shared
 import AnnouncementsPage from './pages/shared/AnnouncementsPage'
+import ComplaintDetailsPage from './pages/shared/ComplaintDetailsPage'
 
 export default function App() {
   return (
@@ -33,6 +34,13 @@ export default function App() {
         <Route path="/"         element={<Navigate to="/login" replace />} />
         <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* ── Shared complaint details ── */}
+        <Route path="/complaints/:id" element={
+          <ProtectedRoute allowedRoles={['customer', 'admin', 'maintenance_personnel']}>
+            <AppLayout><ComplaintDetailsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
 
         {/* ── Customer ── */}
         <Route path="/customer/submit" element={

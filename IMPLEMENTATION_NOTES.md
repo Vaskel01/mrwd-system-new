@@ -123,3 +123,20 @@ Run `supabase/complete-workflow-features.sql` after every earlier migration.
 - Direct status forcing is restricted: admins use assignment, rejection/restoration, and completion workflows; maintenance follows the valid task sequence.
 - Notification badges now count all unread notifications, not only the first page.
 - Supabase background token refreshes are synchronized with the Express API bearer token.
+
+## Audit Log readability fix
+
+- Replaced raw `JSON.stringify(details)` output with labeled, human-readable detail rows.
+- Null or empty detail fields are hidden instead of displaying `null`.
+- Assignment-related profile IDs are resolved to staff names and email addresses through the audit API.
+- UUIDs that cannot be resolved are shortened visually while preserving the full value in a tooltip.
+- Bulk complaint IDs are summarized as a complaint count with compact identifiers.
+- No database migration is required for this update.
+
+## Staff Accounts action layout update
+
+- Replaced the stacked Tasks, Reset Password, and Activate/Deactivate row buttons with one **Manage** button.
+- Added a responsive staff-management dialog containing the available actions.
+- Maintenance accounts show workload statistics and a link to their filtered task list inside the dialog.
+- Current administrators cannot deactivate their own account.
+- No database migration is required for this interface-only change.

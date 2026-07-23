@@ -71,6 +71,7 @@ export default function StaffAccountsPage() {
   const [sortBy, setSortBy] = useState('name')
   const [createdCredentials, setCreatedCredentials] = useState(null)
   const [actionId, setActionId] = useState(null)
+  const [manageAccountId, setManageAccountId] = useState(null)
 
   useEffect(() => {
     fetchStaff()
@@ -206,21 +207,20 @@ export default function StaffAccountsPage() {
     setSortBy('name')
   }
 
+  const managedAccount = staff.find(account => account.id === manageAccountId) || null
+  const managedStats = managedAccount
+    ? workload[managedAccount.id] || { total: 0, active: 0, completed: 0, rejected: 0, rate: 0 }
+    : null
+
   const accountActions = account => (
-    <div className="flex items-center justify-end gap-2 flex-wrap">
-      {account.role === 'maintenance_personnel' && (
-        <button onClick={() => navigate(`/admin/assign?staff=${account.id}`)}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800">Tasks</button>
-      )}
-      <button onClick={() => handlePasswordReset(account)} disabled={actionId === account.id || account.is_active === false}
-        className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white disabled:opacity-40">Reset Password</button>
-      {account.id !== currentUser?.id && (
-        <button onClick={() => handleAccountStatus(account)} disabled={actionId === account.id}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold border disabled:opacity-40 ${account.is_active === false ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
-          {account.is_active === false ? 'Activate' : 'Deactivate'}
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={() => setManageAccountId(account.id)}
+      className="inline-flex items-center justify-center gap-1.5 min-w-[88px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
+    >
+      Manage
+      <span aria-hidden="true">→</span>
+    </button>
   )
 
 
@@ -455,6 +455,124 @@ export default function StaffAccountsPage() {
           </div>
         </>
       )}
+
+      {managedAccount && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/55 backdrop-blur-sm"
+          onMouseDown={event => {
+            if (event.target === event.currentTarget) setManageAccountId(null)
+          }}
+          role="presentation"
+        >
+          <section
+            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-manage-title"
+          >
+            <div className="bg-navy-900 px-5 py-4 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[.16em] text-gold-400">Staff Account</p>
+                <h2 id="staff-manage-title" className="font-display font-black text-xl text-white mt-1 truncate">{managedAccount.full_name}</h2>
+                <p className="text-xs text-navy-200 mt-1 truncate">{managedAccount.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManageAccountId(null)}
+                className="w-9 h-9 shrink-0 rounded-lg border border-white/20 text-white hover:bg-white/10"
+                aria-label="Close staff account actions"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[managedAccount.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                  {ROLE_LABEL[managedAccount.role] || managedAccount.role}
+                </span>
+                <span className={`inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase ${managedAccount.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                  {managedAccount.is_active === false ? 'Inactive' : 'Active'}
+                </span>
+                {managedAccount.id === currentUser?.id && (
+                  <span className="inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase bg-brand-50 text-brand-700 border-brand-200">Your Account</span>
+                )}
+              </div>
+
+              {managedAccount.role === 'maintenance_personnel' && managedStats && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-brand-50 p-3 text-center">
+                    <p className="font-display font-black text-xl text-brand-700">{managedStats.active}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Active</p>
+                  </div>
+                  <div className="rounded-xl bg-green-50 p-3 text-center">
+                    <p className="font-display font-black text-xl text-green-700">{managedStats.completed}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Completed</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3 text-center">
+                    <p className="font-display font-black text-xl text-navy-800">{managedStats.rate}%</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase">Rate</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {managedAccount.role === 'maintenance_personnel' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManageAccountId(null)
+                      navigate(`/admin/assign?staff=${managedAccount.id}`)
+                    }}
+                    className="w-full flex items-center justify-between gap-4 rounded-xl border border-navy-200 bg-navy-50 px-4 py-3 text-left hover:bg-navy-100 transition-colors"
+                  >
+                    <span>
+                      <span className="block text-sm font-black text-navy-900">View assigned tasks</span>
+                      <span className="block text-xs text-gray-500 mt-0.5">Open this technician's filtered task list.</span>
+                    </span>
+                    <span className="text-navy-700 font-black">→</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handlePasswordReset(managedAccount)}
+                  disabled={actionId === managedAccount.id || managedAccount.is_active === false}
+                  className="w-full flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:bg-gray-50 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+                >
+                  <span>
+                    <span className="block text-sm font-black text-navy-900">Send password reset</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">Email a secure password-reset link to this staff member.</span>
+                  </span>
+                  <span className="text-navy-600 font-black">↗</span>
+                </button>
+
+                {managedAccount.id !== currentUser?.id && (
+                  <button
+                    type="button"
+                    onClick={() => handleAccountStatus(managedAccount)}
+                    disabled={actionId === managedAccount.id}
+                    className={`w-full flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${managedAccount.is_active === false ? 'border-green-200 bg-green-50 hover:bg-green-100' : 'border-red-200 bg-red-50 hover:bg-red-100'}`}
+                  >
+                    <span>
+                      <span className={`block text-sm font-black ${managedAccount.is_active === false ? 'text-green-800' : 'text-red-800'}`}>
+                        {managedAccount.is_active === false ? 'Activate account' : 'Deactivate account'}
+                      </span>
+                      <span className="block text-xs text-gray-500 mt-0.5">
+                        {managedAccount.is_active === false ? 'Restore this staff member\'s access to the system.' : 'Prevent this staff member from signing in.'}
+                      </span>
+                    </span>
+                    <span className={`font-black ${managedAccount.is_active === false ? 'text-green-700' : 'text-red-700'}`}>
+                      {managedAccount.is_active === false ? '✓' : '!' }
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
     </div>
   )
 }

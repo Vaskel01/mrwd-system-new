@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
+import Pagination from '../../components/ui/Pagination'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -38,6 +39,8 @@ export default function AllComplaintsPage() {
   const [actionError, setActionError] = useState('')
   const [reclassifying, setReclassifying] = useState(false)
   const [reclassifyMessage, setReclassifyMessage] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 12
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
@@ -60,6 +63,9 @@ export default function AllComplaintsPage() {
               ? new Date(a.created_at) - new Date(b.created_at)
               : new Date(b.created_at) - new Date(a.created_at))
   }, [complaints, filterStatus, filterPriority, search, sortBy])
+
+  useEffect(() => { setPage(1) }, [filterStatus, filterPriority, search, sortBy])
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const handleRestore = async (event, complaint) => {
     event.stopPropagation()
@@ -116,7 +122,7 @@ export default function AllComplaintsPage() {
         </div>
         <div className="flex flex-wrap gap-2 items-center justify-between">
           <div className="flex gap-1 flex-wrap">
-            {[['all','All'], ['pending','Pending'], ['assigned','Assigned'], ['en_route','En Route'], ['in_progress','On Site'], ['completed','Done'], ['rejected','Rejected']].map(([v, l]) => (
+            {[['all','All'], ['pending','Pending'], ['assigned','Assigned'], ['en_route','En Route'], ['in_progress','On Site'], ['blocked','Needs Attention'], ['completed','Done'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, l]) => (
               <button key={v} onClick={() => setFilterStatus(v)}
                 className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                 style={filterStatus === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>{l}</button>
@@ -143,7 +149,7 @@ export default function AllComplaintsPage() {
             {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', ''].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : filtered.map(c => (
+            {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (
               <tr key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]}`}>
                 <td className="px-4 py-3">
                   <p className="font-bold text-gray-900">{c.complaint_type}</p>
@@ -171,7 +177,7 @@ export default function AllComplaintsPage() {
       </div>
 
       <div className="md:hidden space-y-3">
-        {filtered.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-400">No complaints match your search and filters.</div> : filtered.map(c => (
+        {filtered.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-400">No complaints match your search and filters.</div> : paged.map(c => (
           <div key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]} cursor-pointer`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -192,6 +198,8 @@ export default function AllComplaintsPage() {
           </div>
         ))}
       </div>
+
+      <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
     </div>
   )
 }

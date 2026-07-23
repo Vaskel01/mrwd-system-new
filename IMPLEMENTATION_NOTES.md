@@ -78,3 +78,48 @@ No additional database migration is required for this second UI/QOL update.
 - The four Submit Complaint phases now use an equal four-column grid with a uniform height.
 - My Tasks now has one `Open Task` action per row/card. Status progression, copy-address, map, timeline, and work-note tools are located on the task details page.
 - No new Supabase migration is required for these UI and API-response changes.
+
+## Complete workflow and table-layout update
+
+This revision completes the previously identified customer, admin, and maintenance workflow gaps.
+
+### Customer
+- Forgot/reset password pages and email flow.
+- Editable and cancellable pending complaints.
+- Reopen completed complaints that were not resolved.
+- Printable/save-as-PDF complaint receipt.
+- Search and pagination for report history.
+- Profile editing and in-app notifications.
+
+### Admin
+- Public signup is forced to the customer role at the database trigger level.
+- Staff activation/deactivation and password-reset email actions.
+- Deactivation is blocked until a technician's active tasks are reassigned.
+- Transactional reassignment keeps historical task records but permits only one current assignment.
+- Reports, CSV export, print/PDF reporting, technician workload, and customer satisfaction summaries.
+- Insert-only audit history and role-aware notifications.
+
+### Maintenance personnel
+- Assignment acknowledgement.
+- ETA/work plan and materials recording.
+- Required completion notes and proof photo.
+- Cannot-complete, reassignment, and assistance requests.
+- Availability/leave status in My Profile.
+- Role-appropriate notifications and feedback viewing.
+
+### Layout fixes
+- Assign Tasks and My Tasks use fixed, responsive column widths inside horizontal scroll containers.
+- Their action columns are sticky on the right, so buttons remain fully visible instead of being clipped.
+- Both screens use one primary row action and pagination.
+
+### Required migration
+Run `supabase/complete-workflow-features.sql` after every earlier migration.
+
+### Final hardening and display fixes
+- Increased the sticky action-column width in **Assign Tasks** and **My Tasks**, removed nested fixed-width overflow, and kept one full-width primary row action.
+- Added a restricted `visible_profile_names` database RPC so assigned maintenance personnel can see the real customer name without exposing unrelated customer profiles or email addresses.
+- Inactive historical assignments are no longer treated as current after a complaint is reopened.
+- Public/self-registration cannot request staff roles; duplicate staff email creation is rejected clearly.
+- Direct status forcing is restricted: admins use assignment, rejection/restoration, and completion workflows; maintenance follows the valid task sequence.
+- Notification badges now count all unread notifications, not only the first page.
+- Supabase background token refreshes are synchronized with the Express API bearer token.

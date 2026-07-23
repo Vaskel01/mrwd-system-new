@@ -13,36 +13,18 @@ Your Supabase project already has the real schema (`profiles`,
 in this repo. Run the included migrations against it, in order,
 from **Supabase Dashboard → SQL Editor → New Query**:
 
-1. `supabase/seed_categories.sql` — creates the complaint categories
-   the frontend's dropdown expects (names matter — the backend looks
-   categories up by exact name).
-2. `supabase/rls-patch.sql` — Row Level Security policies written
-   against your actual column names (`resident_id`, `category_id`,
-   etc.). Safe to re-run.
-3. `supabase/enable-signup.sql` — lets people actually create accounts:
-   a policy allowing a new user to insert their own `profiles` row, plus
-   a trigger that does it automatically (covers the case where your
-   Supabase project requires email confirmation, so there's no session
-   yet to act with at signup time). Safe to re-run.
-4. `supabase/create-announcements-and-bills.sql` — creates the
-   `announcements` and `bills` tables, which never existed in your
-   original schema (only the tables in your ERD did). Without this,
-   the Announcements and Billing pages fail with a
-   "Could not find the table" error. Safe to re-run.
-5. `supabase/qol-status-and-feedback.sql` — expands the status
-   vocabulary (pending → assigned → en_route → in_progress →
-   completed, plus rejected), lets residents see the progress
-   timeline for their own complaints, and adds data-integrity
-   constraints for feedback (rating 1-5, one submission per
-   complaint). Safe to re-run.
-6. `supabase/fix-table-grants.sql` — tables created via raw SQL
-   (announcements, bills) were missing baseline database grants,
-   causing "permission denied for table X" regardless of RLS
-   policies. This fixes it. Safe to re-run.
-7. `supabase/rejection-reason-and-restore.sql` — adds the saved rejection
-   reason and rejection timestamp used by the customer-facing explanation
-   and the admin Undo Rejection action. Safe to re-run. **Run this before
-   deploying this version of the app.**
+1. `supabase/seed_categories.sql` — creates the complaint categories expected by the frontend and classifier.
+2. `supabase/rls-patch.sql` — baseline Row Level Security policies for the original schema.
+3. `supabase/enable-signup.sql` — creates customer profiles during Auth signup.
+4. `supabase/create-announcements-and-bills.sql` — creates announcements and billing tables.
+5. `supabase/qol-status-and-feedback.sql` — expands complaint/task statuses, timeline access, and feedback constraints.
+6. `supabase/fix-table-grants.sql` — adds the baseline grants needed by tables created through SQL.
+7. `supabase/rejection-reason-and-restore.sql` — stores rejection reasons and supports Undo Rejection.
+8. `supabase/feedback-staff-visibility.sql` — lets assigned maintenance personnel view feedback for completed work.
+9. `supabase/dataset-backed-classification.sql` — stores classifier output and supports dataset-backed category/priority analysis.
+10. `supabase/complete-workflow-features.sql` — **run last**. It adds secure customer-only signup, profile/availability controls, one-current-assignment enforcement, complaint cancellation/reopening, maintenance completion reports, notifications, audit logs, and storage policies for complaint/completion photos.
+
+The final migration is safe to re-run and is required by the newest pages and API routes.
 
 With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't
@@ -77,8 +59,13 @@ npm run dev                 # http://localhost:4000
 
 ### 3. Frontend
 
-The frontend already has a `.env` with the Supabase URL/key and
-`VITE_API_URL=http://localhost:4000/api`. From the project root:
+Copy the frontend example file and provide the public Supabase values:
+
+```bash
+cp .env.example .env
+```
+
+Then, from the project root:
 
 ```bash
 npm install
@@ -86,6 +73,28 @@ npm run dev                 # http://localhost:5173
 ```
 
 Both servers need to be running at the same time for the app to work.
+
+
+## Complete workflow features
+
+- **Customers:** edit or cancel pending complaints, reopen unresolved completed complaints, print/save complaint receipts, search and paginate reports, edit their profile, receive in-app notifications, reset forgotten passwords, and submit feedback.
+- **Administrators:** secure staff creation, activation/deactivation, staff password-reset emails, correct transactional reassignment, workload/availability visibility, reports with CSV and print/PDF export, audit history, and notifications for new complaints and technician requests.
+- **Maintenance personnel:** acknowledge assignments, update status, save ETA/work plans, record materials, submit required resolution notes and completion proof photos, request help/reassignment, report tasks that cannot be completed, set work availability, and review customer feedback.
+- **Privacy:** customers receive no classifier fields; maintenance receives only the operational category and priority; administrators retain the complete classifier evidence.
+
+## Verification
+
+After installing dependencies:
+
+```bash
+cd server
+npm test
+npm run evaluate:classifier
+cd ..
+npm run build
+```
+
+The automated tests cover classifier behavior and role-based classifier privacy. `docs/UAT_TEST_PLAN.md` contains a manual end-to-end acceptance checklist for all three roles.
 
 ## Deploying (Vercel)
 
@@ -106,6 +115,7 @@ between frontend and backend since they end up on the same domain.
    | `VITE_API_URL` | `/api` *(relative — same origin now, not `localhost:4000`)* |
    | `SUPABASE_URL` | same value as `VITE_SUPABASE_URL`, **without** the `VITE_` prefix (this one is read by the serverless function, server-side) |
    | `SUPABASE_ANON_KEY` | same value as `VITE_SUPABASE_ANON_KEY`, without the `VITE_` prefix |
+   | `PASSWORD_RESET_REDIRECT_URL` | deployed URL ending in `/reset-password` |
 
 4. Deploy. Any time you change an env var, trigger a redeploy —
    `VITE_*` vars are baked into the build at build time, not read at
@@ -130,8 +140,7 @@ or the two non-`VITE_` server vars missing.
     no `.listen()` needed
   It never uses a Supabase service-role key; every request is made
   with the caller's own access token forwarded to Supabase, so
-  Postgres Row Level Security is what actually enforces who can see
-  or change what — not the Express routes themselves.
+  Postgres Row Level Security enforces record visibility, while the Express routes enforce workflow rules such as allowed status transitions, required completion proof, and role-specific actions.
 - **Database (Supabase)** — your actual schema (built independently of
   this repo), with `supabase/seed_categories.sql` and
   `supabase/rls-patch.sql` layered on top. Row Level Security is the

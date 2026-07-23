@@ -86,6 +86,27 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  requestPasswordReset: async email => {
+    return apiFetch('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        redirect_to: `${window.location.origin}/reset-password`,
+      }),
+    })
+  },
+
+  updatePassword: async password => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw new Error(error.message)
+    return true
+  },
+
+  updateStoredUser: user => {
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+    set({ user })
+  },
+
   signOut: () => {
     supabase.auth.signOut()
     setToken(null)
@@ -95,3 +116,21 @@ export const useAuthStore = create((set) => ({
   },
 }))
 
+
+
+// Keep the API bearer token synchronized when Supabase refreshes an
+// authenticated session in the background. Without this, API calls would
+// begin failing after the original access token expires.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.access_token) {
+    setToken(session.access_token)
+    if (session.refresh_token) localStorage.setItem(REFRESH_KEY, session.refresh_token)
+    return
+  }
+  if (event === 'SIGNED_OUT') {
+    setToken(null)
+    localStorage.removeItem(REFRESH_KEY)
+    localStorage.removeItem(USER_KEY)
+    useAuthStore.setState({ user: null, loading: false })
+  }
+})

@@ -17,7 +17,7 @@
 // Statuses still considered "active work" for duplicate-detection
 // purposes — no point flagging two reports as duplicates of each
 // other if one's already closed out.
-const ACTIVE_STATUSES = new Set(['pending', 'assigned', 'en_route', 'in_progress'])
+const ACTIVE_STATUSES = new Set(['pending', 'assigned', 'en_route', 'in_progress', 'blocked'])
 const DUPLICATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
@@ -48,20 +48,36 @@ export async function fetchShapedComplaints(supabase, { filter } = {}) {
 
   const categoryMap = Object.fromEntries((categories || []).map(c => [c.id, c.name]))
 
-  // Most recent task per complaint (tasks already ordered newest-first)
+  // Current assignment per complaint. Once the workflow migration has
+  // introduced is_active, inactive historical rows must never look assigned.
+  // The fallback to the newest row is only for a genuinely pre-migration DB.
+  const taskRows = tasks || []
+  const hasAssignmentState = taskRows.some(task => typeof task.is_active === 'boolean')
   const taskMap = {}
-  for (const t of tasks || []) {
-    if (!taskMap[t.complaint_id]) taskMap[t.complaint_id] = t
+  for (const task of taskRows) {
+    if (hasAssignmentState) {
+      if (task.is_active === true && !taskMap[task.complaint_id]) taskMap[task.complaint_id] = task
+    } else if (!taskMap[task.complaint_id]) {
+      taskMap[task.complaint_id] = task
+    }
   }
 
   // Need names for both residents (customer_name) and whoever's
   // assigned (assigned_name) — fetch both sets of profiles together.
   const assignedStaffIds = Object.values(taskMap).map(t => t.assigned_staff_id).filter(Boolean)
   const profileIds = [...new Set([...residentIds, ...assignedStaffIds])]
-  const { data: profiles } = profileIds.length
-    ? await supabase.from('profiles').select('id, full_name').in('id', profileIds)
-    : { data: [] }
-  const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p.full_name]))
+  let profiles = []
+  if (profileIds.length) {
+    const visibleResult = await supabase.rpc('visible_profile_names', { p_ids: profileIds })
+    if (!visibleResult.error) {
+      profiles = visibleResult.data || []
+    } else {
+      // Compatibility fallback while the final migration has not been run yet.
+      const fallback = await supabase.from('profiles').select('id, full_name').in('id', profileIds)
+      profiles = fallback.data || []
+    }
+  }
+  const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]))
 
   const shaped = rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap))
   return flagPossibleDuplicates(shaped)
@@ -109,7 +125,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
   return {
     id: row.id,
     customer_id: row.resident_id,
-    customer_name: profileMap[row.resident_id] || 'Unknown',
+    customer_name: profileMap[row.resident_id] || 'Customer profile unavailable',
     complaint_type: categoryMap[row.category_id] || 'Unknown',
     description: row.description,
     address: row.address_text,
@@ -140,7 +156,22 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     task_notes: task ? task.notes : null,
     task_created_at: task ? task.created_at : null,
     task_updated_at: task ? task.updated_at : null,
+    task_is_active: task ? task.is_active !== false : false,
+    acknowledged_at: task ? task.acknowledged_at : null,
+    estimated_completion_at: task ? task.estimated_completion_at : null,
+    completion_notes: task ? task.completion_notes : null,
+    completion_photo_url: task ? task.completion_photo_url : null,
+    materials_used: task ? task.materials_used : null,
+    unable_reason: task ? task.unable_reason : null,
+    reassignment_requested_at: task ? task.reassignment_requested_at : null,
+    reassignment_reason: task ? task.reassignment_reason : null,
+    assistance_requested_at: task ? task.assistance_requested_at : null,
+    assistance_reason: task ? task.assistance_reason : null,
     completed_at: task ? task.completed_at : null,
+    cancelled_at: row.cancelled_at || null,
+    cancellation_reason: row.cancellation_reason || null,
+    reopened_at: row.reopened_at || null,
+    reopen_reason: row.reopen_reason || null,
     created_at: row.submitted_at,
     updated_at: row.updated_at,
   }

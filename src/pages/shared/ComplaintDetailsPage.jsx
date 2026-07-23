@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
+import { apiFetch } from '../../lib/api'
+import { COMPLAINT_TYPES } from '../../config/staticData'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import RejectionDialog from '../../components/ui/RejectionDialog'
 import InlineMap from '../../components/ui/InlineMap'
 import Timeline from '../../components/ui/Timeline'
 import FeedbackBox from '../../components/ui/FeedbackBox'
@@ -18,392 +21,150 @@ const ROLE_HOME = {
 const NEXT_TASK_STATUS = {
   assigned: { value: 'en_route', label: 'Mark as On My Way', icon: '🚚' },
   en_route: { value: 'in_progress', label: 'Start Work', icon: '📍' },
-  in_progress: { value: 'completed', label: 'Mark Task Complete', icon: '✓' },
 }
 
 function formatDate(value) {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-PH', {
-    year: 'numeric', month: 'long', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
+    year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
   })
 }
 
 function DetailRow({ label, children }) {
-  return (
-    <div className="py-3 border-b border-gray-100 last:border-0">
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      <div className="text-sm text-gray-700 break-words">{children}</div>
-    </div>
-  )
+  return <div className="py-3 border-b border-gray-100 last:border-0"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p><div className="text-sm text-gray-700 break-words">{children}</div></div>
+}
+
+function Modal({ open, title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
+  if (!open) return null
+  return <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={onClose}><div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[92vh] overflow-y-auto`} onMouseDown={event => event.stopPropagation()}><div className="page-band wave-header px-6 py-5"><h2 className="font-display font-black text-white text-xl">{title}</h2>{subtitle && <p className="text-navy-300 text-xs mt-1">{subtitle}</p>}</div><div className="p-6">{children}</div></div></div>
 }
 
 function ClassifierAnalysis({ complaint }) {
   const hasStoredAnalysis = Boolean(complaint.classifier_version || complaint.classification_keywords?.length)
-  const confidence = complaint.classification_confidence == null
-    ? null
-    : Math.round(Number(complaint.classification_confidence))
-  const sentimentStyles = {
-    urgent: 'bg-red-100 text-red-800 border-red-200',
-    negative: 'bg-amber-100 text-amber-800 border-amber-200',
-    neutral: 'bg-green-100 text-green-800 border-green-200',
-  }
-
-  return (
-    <div className="card rounded-xl p-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <h2 className="font-display font-bold text-navy-900">Automated Classification</h2>
-          <p className="text-xs text-gray-400 mt-1">Dataset-backed analysis of the complaint description</p>
-        </div>
-        {complaint.classifier_version && (
-          <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded">{complaint.classifier_version}</span>
-        )}
-      </div>
-
-      {!hasStoredAnalysis ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center">
-          <p className="text-sm font-bold text-gray-700">No stored classification analysis</p>
-          <p className="text-xs text-gray-400 mt-1">This is an older complaint created before the dataset classifier was added.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Predicted Category</p>
-              <p className="text-sm font-bold text-navy-900 mt-1">{complaint.classified_category || complaint.complaint_type}</p>
-            </div>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Confidence</p>
-              <p className="text-2xl font-black text-navy-900 mt-0.5">{confidence ?? '—'}{confidence != null && <span className="text-xs font-normal text-gray-400">%</span>}</p>
-            </div>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Text Sentiment</p>
-              <span className={`inline-flex mt-1.5 px-2 py-1 rounded border text-xs font-black uppercase ${sentimentStyles[complaint.classification_sentiment] || sentimentStyles.neutral}`}>
-                {complaint.classification_sentiment || 'neutral'}
-              </span>
-            </div>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Priority Class</p>
-              <div className="mt-1.5"><PriorityBadge priority={complaint.priority} /></div>
-            </div>
-          </div>
-
-          {complaint.classification_mismatch && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-              <p className="text-xs font-bold text-amber-900">Category mismatch detected</p>
-              <p className="text-xs text-amber-700 mt-0.5">Customer selected “{complaint.complaint_type},” but the description was classified as “{complaint.classified_category}.”</p>
-            </div>
-          )}
-
-          <div className="mt-4">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Matched Dataset Terms</p>
-            {complaint.classification_keywords?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {complaint.classification_keywords.map((item, index) => (
-                  <span key={`${item.id || item.term}-${index}`} className="inline-flex items-center gap-1 rounded-full border border-navy-100 bg-navy-50 px-2.5 py-1 text-xs font-bold text-navy-700">
-                    {item.term}
-                    <span className={Number(item.priority_weight) >= 0 ? 'text-green-700' : 'text-red-600'}>
-                      {Number(item.priority_weight) >= 0 ? '+' : ''}{item.priority_weight}
-                    </span>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-400">No keyword matched; the selected complaint type was used as the fallback category.</p>
-            )}
-          </div>
-
-          {complaint.classification_reasons?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Decision Explanation</p>
-              <ul className="space-y-1.5">
-                {complaint.classification_reasons.map((reason, index) => (
-                  <li key={index} className="text-xs text-gray-600 flex gap-2"><span className="text-gold-500">•</span><span>{reason}</span></li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
+  const confidence = complaint.classification_confidence == null ? null : Math.round(Number(complaint.classification_confidence))
+  const sentimentStyles = { urgent: 'bg-red-100 text-red-800 border-red-200', negative: 'bg-amber-100 text-amber-800 border-amber-200', neutral: 'bg-green-100 text-green-800 border-green-200' }
+  return <div className="card rounded-xl p-5"><div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="font-display font-bold text-navy-900">Automated Classification</h2><p className="text-xs text-gray-400 mt-1">Dataset-backed analysis visible only to administrators</p></div>{complaint.classifier_version && <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded">{complaint.classifier_version}</span>}</div>{!hasStoredAnalysis ? <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center"><p className="text-sm font-bold text-gray-700">No stored classification analysis</p><p className="text-xs text-gray-400 mt-1">This is an older complaint.</p></div> : <><div className="grid grid-cols-2 gap-3"><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Predicted Category</p><p className="text-sm font-bold text-navy-900 mt-1">{complaint.classified_category || complaint.complaint_type}</p></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Confidence</p><p className="text-2xl font-black text-navy-900">{confidence ?? '—'}{confidence != null && <span className="text-xs font-normal text-gray-400">%</span>}</p></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Text Sentiment</p><span className={`inline-flex mt-1.5 px-2 py-1 rounded border text-xs font-black uppercase ${sentimentStyles[complaint.classification_sentiment] || sentimentStyles.neutral}`}>{complaint.classification_sentiment || 'neutral'}</span></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Priority Class</p><div className="mt-1.5"><PriorityBadge priority={complaint.priority} /></div></div></div>{complaint.classification_mismatch && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"><p className="text-xs font-bold text-amber-900">Category mismatch detected</p><p className="text-xs text-amber-700 mt-0.5">Selected “{complaint.complaint_type},” classified as “{complaint.classified_category}.”</p></div>}<div className="mt-4"><p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Matched Dataset Terms</p>{complaint.classification_keywords?.length ? <div className="flex flex-wrap gap-2">{complaint.classification_keywords.map((item, index) => <span key={`${item.id || item.term}-${index}`} className="inline-flex items-center gap-1 rounded-full border border-navy-100 bg-navy-50 px-2.5 py-1 text-xs font-bold text-navy-700">{item.term}<span className={Number(item.priority_weight) >= 0 ? 'text-green-700' : 'text-red-600'}>{Number(item.priority_weight) >= 0 ? '+' : ''}{item.priority_weight}</span></span>)}</div> : <p className="text-xs text-gray-400">No keyword matched.</p>}</div>{complaint.classification_reasons?.length > 0 && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Decision Explanation</p><ul className="space-y-1.5">{complaint.classification_reasons.map((reason, index) => <li key={index} className="text-xs text-gray-600 flex gap-2"><span className="text-gold-500">•</span><span>{reason}</span></li>)}</ul></div>}</>}</div>
 }
 
 export default function ComplaintDetailsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const user = useAuthStore(s => s.user)
-  const fetchComplaint = useComplaintStore(s => s.fetchComplaint)
-  const restoreComplaint = useComplaintStore(s => s.restoreComplaint)
-  const postComment = useComplaintStore(s => s.postComment)
-  const updateStatus = useComplaintStore(s => s.updateStatus)
+  const user = useAuthStore(state => state.user)
+  const store = useComplaintStore()
 
   const [complaint, setComplaint] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [restoreOpen, setRestoreOpen] = useState(false)
-  const [restoring, setRestoring] = useState(false)
-  const [comment, setComment] = useState('')
-  const [posting, setPosting] = useState(false)
-  const [commentError, setCommentError] = useState('')
+  const [message, setMessage] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [photoError, setPhotoError] = useState(false)
-  const [statusUpdating, setStatusUpdating] = useState(false)
-  const [taskActionError, setTaskActionError] = useState('')
-  const [taskActionMessage, setTaskActionMessage] = useState('')
+  const [completionPhotoError, setCompletionPhotoError] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [comment, setComment] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [staffList, setStaffList] = useState([])
 
+  const [restoreOpen, setRestoreOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignStaff, setAssignStaff] = useState('')
+  const [assignNotes, setAssignNotes] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ complaint_type: '', description: '', address: '' })
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [reopenOpen, setReopenOpen] = useState(false)
+  const [reopenReason, setReopenReason] = useState('')
+  const [planOpen, setPlanOpen] = useState(false)
+  const [plan, setPlan] = useState({ estimated_completion_at: '', materials_used: '' })
+  const [completeOpen, setCompleteOpen] = useState(false)
+  const [completion, setCompletion] = useState({ completion_notes: '', materials_used: '', photo: null })
+  const [issueOpen, setIssueOpen] = useState(false)
+  const [issue, setIssue] = useState({ kind: 'assistance', reason: '' })
+
+  const load = async () => {
+    setLoading(true); setError('')
+    try { setComplaint(await store.fetchComplaint(id)) } catch (err) { setError(err.message) } finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [id])
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    fetchComplaint(id)
-      .then(data => { if (!cancelled) setComplaint(data) })
-      .catch(err => { if (!cancelled) setError(err.message) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [id, fetchComplaint])
+    if (user?.role === 'admin') apiFetch('/users/maintenance-staff').then(result => setStaffList(result.staff || [])).catch(() => {})
+  }, [user?.role])
 
-  const handleRestore = async () => {
-    setRestoring(true)
-    setError('')
-    try {
-      const updated = await restoreComplaint(id)
-      setComplaint(updated)
-      setRefreshKey(k => k + 1)
-      setRestoreOpen(false)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setRestoring(false)
-    }
-  }
+  const apply = (updated, success) => { setComplaint(updated); setMessage(success || 'Changes saved.'); setError(''); setRefreshKey(key => key + 1); window.setTimeout(() => setMessage(''), 3500) }
+  const run = async (action, success) => { setBusy(true); setError(''); setMessage(''); try { apply(await action(), success); return true } catch (err) { setError(err.message); return false } finally { setBusy(false) } }
 
-  const handleComment = async () => {
-    if (!comment.trim()) return
-    setPosting(true)
-    setCommentError('')
-    try {
-      await postComment(id, comment.trim())
-      setComment('')
-      setRefreshKey(k => k + 1)
-    } catch (err) {
-      setCommentError(err.message)
-    } finally {
-      setPosting(false)
-    }
-  }
+  const handleRestore = async () => { if (await run(() => store.restoreComplaint(id), 'Complaint restored.')) setRestoreOpen(false) }
+  const handleReject = async reason => { if (await run(() => store.updateStatus(id, 'rejected', reason), 'Complaint rejected and the reason was sent to the customer.')) setRejectOpen(false) }
+  const handleAssign = async () => { if (!assignStaff) return; if (await run(async () => { await store.assignComplaint(id, assignStaff, assignNotes); return store.fetchComplaint(id) }, complaint?.assigned_to ? 'Complaint reassigned.' : 'Technician assigned.')) setAssignOpen(false) }
+  const openEdit = () => { setEditForm({ complaint_type: complaint.complaint_type, description: complaint.description, address: complaint.address }); setEditOpen(true) }
+  const handleEdit = async event => { event.preventDefault(); if (await run(() => store.editComplaint(id, editForm), 'Pending complaint updated.')) setEditOpen(false) }
+  const handleCancel = async () => { if (await run(() => store.cancelComplaint(id, cancelReason), 'Complaint cancelled.')) setCancelOpen(false) }
+  const handleReopen = async () => { if (await run(() => store.reopenComplaint(id, reopenReason), 'Complaint reopened and returned for admin review.')) setReopenOpen(false) }
+  const handleAcknowledge = () => run(() => store.acknowledgeTask(id), 'Assignment acknowledged.')
+  const handleTaskStatus = status => run(() => store.updateStatus(id, status), 'Task status updated.')
+  const handlePlan = async event => { event.preventDefault(); if (await run(() => store.updateTaskPlan(id, { estimated_completion_at: plan.estimated_completion_at ? new Date(plan.estimated_completion_at).toISOString() : null, materials_used: plan.materials_used }), 'Work plan updated.')) setPlanOpen(false) }
+  const handleComplete = async event => { event.preventDefault(); if (await run(() => store.completeTask(id, completion, user.id), 'Completion report submitted.')) setCompleteOpen(false) }
+  const handleIssue = async event => { event.preventDefault(); if (await run(() => store.reportTaskIssue(id, issue.kind, issue.reason), 'Request sent to administrators.')) setIssueOpen(false) }
+  const handleComment = async () => { if (!comment.trim()) return; setPosting(true); setError(''); try { await store.postComment(id, comment.trim()); setComment(''); setRefreshKey(key => key + 1); setMessage('Timeline update posted.') } catch (err) { setError(err.message) } finally { setPosting(false) } }
 
-  const handleTaskStatus = async nextStatus => {
-    setStatusUpdating(true)
-    setTaskActionError('')
-    setTaskActionMessage('')
-    try {
-      const updated = await updateStatus(id, nextStatus)
-      setComplaint(updated)
-      setRefreshKey(key => key + 1)
-      setTaskActionMessage(nextStatus === 'completed' ? 'Task marked as completed.' : 'Task status updated.')
-    } catch (err) {
-      setTaskActionError(err.message)
-    } finally {
-      setStatusUpdating(false)
-    }
-  }
-
-  const copyAddress = async () => {
-    setTaskActionError('')
-    setTaskActionMessage('')
-    try {
-      await navigator.clipboard.writeText(complaint.address || '')
-      setTaskActionMessage('Address copied.')
-    } catch {
-      setTaskActionError('Could not copy the address.')
-    }
-  }
-
-  const openMap = () => {
-    const target = complaint.gps
-      ? `https://www.openstreetmap.org/?mlat=${complaint.gps.lat}&mlon=${complaint.gps.lng}#map=17/${complaint.gps.lat}/${complaint.gps.lng}`
-      : `https://www.openstreetmap.org/search?query=${encodeURIComponent(complaint.address || '')}`
-    window.open(target, '_blank', 'noopener,noreferrer')
-  }
+  const copyAddress = async () => { try { await navigator.clipboard.writeText(complaint.address || ''); setMessage('Address copied.') } catch { setError('Could not copy the address.') } }
+  const openMap = () => { const target = complaint.gps ? `https://www.openstreetmap.org/?mlat=${complaint.gps.lat}&mlon=${complaint.gps.lng}#map=17/${complaint.gps.lat}/${complaint.gps.lng}` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(complaint.address || '')}`; window.open(target, '_blank', 'noopener,noreferrer') }
 
   if (loading) return <PageLoader label="Loading complaint details..." />
   if (!complaint) return <ErrorBanner message={error || 'Complaint not found.'} onRetry={() => navigate(ROLE_HOME[user?.role] || '/')} />
 
-  const canComment = ['admin', 'maintenance_personnel'].includes(user?.role) && complaint.assigned_to
   const photo = complaint.photo_url || complaint.photo_urls?.[0]
   const nextTaskStatus = NEXT_TASK_STATUS[complaint.status]
+  const canComment = ['admin', 'maintenance_personnel'].includes(user?.role) && complaint.assigned_to
+  const isCustomer = user?.role === 'customer'
+  const isAdmin = user?.role === 'admin'
+  const isMaintenance = user?.role === 'maintenance_personnel'
 
-  return (
-    <div className="space-y-5">
-      <button onClick={() => navigate(ROLE_HOME[user?.role] || -1)}
-        className="text-sm font-bold text-navy-600 hover:text-navy-900 flex items-center gap-2">
-        ← Back to {user?.role === 'maintenance_personnel' ? 'My Tasks' : user?.role === 'admin' ? 'All Complaints' : 'My Reports'}
-      </button>
+  return <div className="space-y-5 complaint-receipt">
+    <div className="flex items-center justify-between gap-3 no-print"><button onClick={() => navigate(ROLE_HOME[user?.role] || -1)} className="text-sm font-bold text-navy-600 hover:text-navy-900">← Back to {isMaintenance ? 'My Tasks' : isAdmin ? 'All Complaints' : 'My Reports'}</button><button onClick={() => window.print()} className="btn-secondary rounded-lg text-xs">Print / Save Receipt</button></div>
 
-      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
-        <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Complaint Details</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">{complaint.complaint_type}</h1>
-            <p className="text-navy-300 text-xs font-mono mt-2">Reference: {complaint.id}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {user?.role !== 'customer' && complaint.priority && <PriorityBadge priority={complaint.priority} />}
-            <StatusBadge status={complaint.status} />
-          </div>
-        </div>
-      </div>
+    <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden"><div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Complaint Details</p><h1 className="font-display font-black text-white text-2xl sm:text-3xl">{complaint.complaint_type}</h1><p className="text-navy-300 text-xs font-mono mt-2">Reference: {complaint.id}</p></div><div className="flex items-center gap-2 flex-wrap">{!isCustomer && complaint.priority && <PriorityBadge priority={complaint.priority} />}<StatusBadge status={complaint.status} /></div></div></div>
+    {error && <ErrorBanner message={error} />}{message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800 no-print">{message}</div>}
 
-      {error && <ErrorBanner message={error} />}
+    {complaint.status === 'rejected' && <div className="rounded-xl p-5 bg-red-50 border border-red-200"><p className="font-display font-bold text-red-900">Complaint rejected</p><p className="text-sm text-red-800 mt-1">{complaint.rejection_reason || 'No rejection reason was recorded.'}</p>{complaint.rejected_at && <p className="text-xs text-red-500 mt-2">Rejected {formatDate(complaint.rejected_at)}</p>}{isAdmin && <button onClick={() => setRestoreOpen(true)} className="btn-primary rounded-lg text-xs mt-3 no-print">↶ Undo Rejection</button>}</div>}
+    {complaint.status === 'cancelled' && <div className="rounded-xl p-5 bg-gray-50 border border-gray-200"><p className="font-display font-bold text-gray-800">Complaint cancelled</p><p className="text-sm text-gray-600 mt-1">{complaint.cancellation_reason || 'The customer cancelled this report before assignment.'}</p></div>}
+    {complaint.status === 'blocked' && <div className="rounded-xl p-5 bg-orange-50 border border-orange-200"><p className="font-display font-bold text-orange-900">Administrative attention requested</p><p className="text-sm text-orange-800 mt-1">{complaint.reassignment_reason || complaint.unable_reason || 'The technician reported an issue that needs review.'}</p></div>}
+    {complaint.assistance_reason && <div className="rounded-xl p-5 bg-blue-50 border border-blue-200"><p className="font-display font-bold text-blue-900">Additional assistance requested</p><p className="text-sm text-blue-800 mt-1">{complaint.assistance_reason}</p></div>}
+    {complaint.reopen_reason && complaint.reopened_at && <div className="rounded-xl p-4 bg-amber-50 border border-amber-200"><p className="text-xs font-black text-amber-700 uppercase">Reopened by customer</p><p className="text-sm text-amber-900 mt-1">{complaint.reopen_reason}</p></div>}
 
-      {complaint.status === 'rejected' && (
-        <div className="rounded-xl p-5 bg-red-50 border border-red-200">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <p className="font-display font-bold text-red-900">Complaint rejected</p>
-              <p className="text-sm text-red-800 mt-1 leading-relaxed">{complaint.rejection_reason || 'No rejection reason was recorded.'}</p>
-              {complaint.rejected_at && <p className="text-xs text-red-500 mt-2">Rejected {formatDate(complaint.rejected_at)}</p>}
-            </div>
-            {user?.role === 'admin' && (
-              <button onClick={() => setRestoreOpen(true)}
-                className="shrink-0 px-4 py-2 rounded-lg text-sm font-bold text-white bg-navy-800 hover:bg-navy-900">
-                ↶ Undo Rejection
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5"><div className="lg:col-span-2 space-y-5">
+      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Report Information</h2><DetailRow label="Description">{complaint.description}</DetailRow><DetailRow label="Address">{complaint.address}</DetailRow><DetailRow label="Customer">{complaint.customer_name}</DetailRow>{complaint.task_notes && <DetailRow label="Admin Instructions">{complaint.task_notes}</DetailRow>}</div>
+      {complaint.gps && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-2">Location</h2><p className="text-xs font-mono text-brand-700 mb-3">{complaint.gps.lat.toFixed(5)}, {complaint.gps.lng.toFixed(5)}</p><InlineMap lat={complaint.gps.lat} lng={complaint.gps.lng} accuracy={complaint.gps.accuracy} height={280} /></div>}
+      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>{photo && !photoError ? <a href={photo} target="_blank" rel="noreferrer"><img src={photo} alt="Complaint attachment" onError={() => setPhotoError(true)} className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border" /><p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p></a> : <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center"><div className="text-3xl mb-2">📷</div><p className="font-bold text-gray-700">No photo attached</p><p className="text-sm text-gray-400 mt-1">{photoError ? 'The attached photo could not be loaded.' : 'This complaint was submitted without a photo.'}</p></div>}</div>
+      {(complaint.completion_notes || complaint.completion_photo_url || complaint.materials_used) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Completion Report</h2><DetailRow label="Resolution Performed">{complaint.completion_notes || 'No resolution notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials Used">{complaint.materials_used}</DetailRow>}<DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.completion_photo_url && !completionPhotoError ? <a href={complaint.completion_photo_url} target="_blank" rel="noreferrer"><img src={complaint.completion_photo_url} alt="Completion proof" onError={() => setCompletionPhotoError(true)} className="w-full max-h-[420px] object-contain rounded-lg border mt-3" /><p className="text-xs text-brand-700 font-bold mt-2">Open proof photo ↗</p></a> : !complaint.completion_photo_url ? <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-500 mt-3">No completion photo attached.</div> : null}</div>}
+    </div><div className="space-y-5">
+      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-2">Task Summary</h2>{isAdmin && <DetailRow label="Priority Score"><span className="font-display font-black text-3xl text-navy-900">{complaint.priority_score}</span> / 100</DetailRow>}{isMaintenance && <><DetailRow label="Assigned Category">{complaint.classified_category || complaint.complaint_type}</DetailRow><DetailRow label="Assigned Priority"><PriorityBadge priority={complaint.priority} /></DetailRow></>}<DetailRow label="Assigned Technician">{complaint.assigned_name || 'Not assigned'}</DetailRow><DetailRow label="Acknowledged">{formatDate(complaint.acknowledged_at)}</DetailRow><DetailRow label="Estimated Completion">{formatDate(complaint.estimated_completion_at)}</DetailRow><DetailRow label="Filed">{formatDate(complaint.created_at)}</DetailRow><DetailRow label="Last Updated">{formatDate(complaint.updated_at)}</DetailRow><DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 space-y-5">
-          <div className="card rounded-xl p-5">
-            <h2 className="font-display font-bold text-navy-900 mb-3">Report Information</h2>
-            <DetailRow label="Description">{complaint.description}</DetailRow>
-            <DetailRow label="Address">{complaint.address}</DetailRow>
-            <DetailRow label="Customer">{complaint.customer_name}</DetailRow>
-            {complaint.task_notes && <DetailRow label="Admin Instructions">{complaint.task_notes}</DetailRow>}
-          </div>
+      {isCustomer && <div className="card rounded-xl p-5 no-print"><h2 className="font-display font-bold text-navy-900">Customer Actions</h2><p className="text-xs text-gray-400 mt-1 mb-4">Changes are limited after dispatch begins.</p><div className="space-y-2">{complaint.status === 'pending' && <><button onClick={openEdit} className="btn-secondary rounded-lg w-full">Edit Pending Complaint</button><button onClick={() => setCancelOpen(true)} className="w-full rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold text-sm px-4 py-2.5">Cancel Complaint</button></>}{complaint.status === 'completed' && <button onClick={() => setReopenOpen(true)} className="w-full rounded-lg border border-amber-200 bg-amber-50 text-amber-800 font-bold text-sm px-4 py-2.5">Issue Not Resolved? Reopen</button>}<button onClick={() => window.print()} className="btn-primary rounded-lg w-full">Print Complaint Receipt</button></div></div>}
 
-          {complaint.gps && (
-            <div className="card rounded-xl p-5">
-              <h2 className="font-display font-bold text-navy-900 mb-2">Location</h2>
-              <p className="text-xs font-mono text-brand-700 mb-3">{complaint.gps.lat.toFixed(5)}, {complaint.gps.lng.toFixed(5)}</p>
-              <InlineMap lat={complaint.gps.lat} lng={complaint.gps.lng} accuracy={complaint.gps.accuracy} height={280} />
-            </div>
-          )}
+      {isAdmin && <><ClassifierAnalysis complaint={complaint} /><div className="card rounded-xl p-5 no-print"><h2 className="font-display font-bold text-navy-900">Admin Management</h2><p className="text-xs text-gray-400 mt-1 mb-4">Assign, reassign, or close this record.</p><div className="space-y-2">{!['completed','cancelled','rejected'].includes(complaint.status) && <button onClick={() => { setAssignStaff(complaint.assigned_to || ''); setAssignNotes(complaint.task_notes || ''); setAssignOpen(true) }} className="btn-primary rounded-lg w-full">{complaint.assigned_to ? 'Manage / Reassign Technician' : 'Assign Technician'}</button>}{!['completed','cancelled','rejected'].includes(complaint.status) && <button onClick={() => setRejectOpen(true)} className="w-full rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold text-sm px-4 py-2.5">Reject Complaint</button>}{complaint.status === 'rejected' && <button onClick={() => setRestoreOpen(true)} className="btn-primary rounded-lg w-full">Undo Rejection</button>}</div></div></>}
 
-          <div className="card rounded-xl p-5">
-            <h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>
-            {photo && !photoError ? (
-              <a href={photo} target="_blank" rel="noreferrer" className="block">
-                <img
-                  src={photo}
-                  alt="Complaint attachment"
-                  onError={() => setPhotoError(true)}
-                  className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border border-gray-100"
-                />
-                <p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p>
-              </a>
-            ) : (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center">
-                <div className="text-3xl mb-2">📷</div>
-                <p className="font-bold text-gray-700">No photo attached</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  {photoError ? 'The attached photo could not be loaded.' : 'The customer submitted this complaint without a photo.'}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      {isMaintenance && <div className="card rounded-xl p-5 no-print"><h2 className="font-display font-bold text-navy-900">Task Actions</h2><p className="text-xs text-gray-400 mt-1 mb-4">A focused set of actions for this assignment.</p><div className="space-y-2">{!complaint.acknowledged_at && ['assigned','en_route','in_progress'].includes(complaint.status) && <button onClick={handleAcknowledge} disabled={busy} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-brand-600 disabled:opacity-50">Acknowledge Assignment</button>}{nextTaskStatus && <button onClick={() => handleTaskStatus(nextTaskStatus.value)} disabled={busy} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-navy-800 disabled:opacity-50">{nextTaskStatus.icon} {nextTaskStatus.label}</button>}{complaint.status === 'in_progress' && <button onClick={() => { setCompletion({ completion_notes: '', materials_used: complaint.materials_used || '', photo: null }); setCompleteOpen(true) }} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-green-600">✓ Complete With Report</button>}{['assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => { setPlan({ estimated_completion_at: complaint.estimated_completion_at ? new Date(complaint.estimated_completion_at).toISOString().slice(0,16) : '', materials_used: complaint.materials_used || '' }); setPlanOpen(true) }} className="btn-secondary rounded-lg w-full">Update Work Plan / ETA</button>}{['assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => setIssueOpen(true)} className="w-full rounded-lg border border-orange-200 bg-orange-50 text-orange-800 font-bold text-sm px-4 py-2.5">Request Help / Reassignment</button>}<div className="grid grid-cols-2 gap-2"><button onClick={copyAddress} className="rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-xs font-bold text-navy-700">Copy Address</button><button onClick={openMap} className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-700">Open Map ↗</button></div>{complaint.status === 'completed' && <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">✓ Completion report submitted.</div>}</div></div>}
 
-        <div className="space-y-5">
-          <div className="card rounded-xl p-5">
-            <h2 className="font-display font-bold text-navy-900 mb-2">Task Summary</h2>
-            {user?.role === 'admin' && (
-              <DetailRow label="Priority Score"><span className="font-display font-black text-3xl text-navy-900">{complaint.priority_score}</span> / 100</DetailRow>
-            )}
-            {user?.role === 'maintenance_personnel' && (
-              <>
-                <DetailRow label="Assigned Category">{complaint.classified_category || complaint.complaint_type}</DetailRow>
-                <DetailRow label="Assigned Priority"><PriorityBadge priority={complaint.priority} /></DetailRow>
-              </>
-            )}
-            <DetailRow label="Assigned Technician">{complaint.assigned_name || 'Not assigned'}</DetailRow>
-            <DetailRow label="Filed">{formatDate(complaint.created_at)}</DetailRow>
-            <DetailRow label="Last Updated">{formatDate(complaint.updated_at)}</DetailRow>
-            <DetailRow label="Task Assigned">{formatDate(complaint.task_created_at)}</DetailRow>
-            <DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow>
-          </div>
+      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Complete Timeline</h2><Timeline complaintId={complaint.id} refreshKey={`${complaint.status}-${refreshKey}`} />{canComment && !['rejected','cancelled'].includes(complaint.status) && <div className="mt-4 pt-4 border-t no-print"><textarea value={comment} onChange={event => setComment(event.target.value)} rows={3} placeholder="Add a task update..." className="input-field resize-none text-sm" /><button onClick={handleComment} disabled={posting || !comment.trim()} className="btn-primary mt-2 w-full rounded-lg disabled:opacity-50">{posting ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Post Timeline Update'}</button></div>}</div>
+      {complaint.status === 'completed' && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">{isCustomer ? 'Resolution Feedback' : 'Customer Feedback'}</h2><FeedbackBox complaintId={complaint.id} /></div>}
+    </div></div>
 
-          {user?.role === 'admin' && <ClassifierAnalysis complaint={complaint} />}
+    <ConfirmDialog open={restoreOpen} title="Undo this rejection?" message="The rejection reason will be cleared and the complaint will return to the correct queue." confirmLabel="Undo Rejection" loading={busy} onConfirm={handleRestore} onCancel={() => setRestoreOpen(false)} />
+    <Modal open={cancelOpen} title="Cancel Complaint" subtitle="This is available only before assignment. The record will remain in your history." onClose={() => !busy && setCancelOpen(false)}><div className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Reason (optional)</label><textarea rows={4} value={cancelReason} onChange={event => setCancelReason(event.target.value)} className="input-field rounded-lg resize-none" placeholder="Duplicate report, issue resolved before dispatch, entered by mistake…" /></div><div className="flex justify-end gap-2"><button onClick={() => setCancelOpen(false)} className="btn-secondary rounded-lg">Keep Complaint</button><button onClick={handleCancel} disabled={busy} className="rounded-lg px-5 py-2.5 bg-red-600 text-white font-bold text-sm disabled:opacity-50">{busy ? 'Cancelling…' : 'Cancel Complaint'}</button></div></div></Modal>
+    <RejectionDialog open={rejectOpen} title="Reject this complaint?" description="Enter a clear reason that will be shown to the customer." loading={busy} onConfirm={handleReject} onCancel={() => setRejectOpen(false)} />
 
-          {user?.role === 'maintenance_personnel' && (
-            <div className="card rounded-xl p-5">
-              <h2 className="font-display font-bold text-navy-900">Task Actions</h2>
-              <p className="text-xs text-gray-400 mt-1 mb-4">Status changes, directions, and work updates are managed here.</p>
+    <Modal open={assignOpen} title={complaint.assigned_to ? 'Reassign Technician' : 'Assign Technician'} subtitle={complaint.complaint_type} onClose={() => !busy && setAssignOpen(false)}><div className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Technician</label><select value={assignStaff} onChange={event => setAssignStaff(event.target.value)} className="input-field rounded-lg"><option value="">Select technician…</option>{staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status !== 'available' ? ` — ${String(staff.availability_status).replace('_',' ')}` : ''}</option>)}</select></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Instructions</label><textarea rows={4} value={assignNotes} onChange={event => setAssignNotes(event.target.value)} className="input-field rounded-lg resize-none" /></div><div className="flex justify-end gap-2"><button onClick={() => setAssignOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button onClick={handleAssign} disabled={!assignStaff || busy} className="btn-primary rounded-lg disabled:opacity-50">{busy ? 'Saving…' : complaint.assigned_to ? 'Confirm Reassignment' : 'Confirm Assignment'}</button></div></div></Modal>
 
-              {taskActionError && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{taskActionError}</div>}
-              {taskActionMessage && <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-700">{taskActionMessage}</div>}
+    <Modal open={editOpen} title="Edit Pending Complaint" onClose={() => !busy && setEditOpen(false)}><form onSubmit={handleEdit} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Type</label><select value={editForm.complaint_type} onChange={event => setEditForm(form => ({...form, complaint_type:event.target.value}))} className="input-field rounded-lg">{COMPLAINT_TYPES.map(type => <option key={type}>{type}</option>)}</select></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Description</label><textarea rows={5} required value={editForm.description} onChange={event => setEditForm(form => ({...form, description:event.target.value}))} className="input-field rounded-lg resize-none" /></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Address</label><input required value={editForm.address} onChange={event => setEditForm(form => ({...form, address:event.target.value}))} className="input-field rounded-lg" /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setEditOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy} className="btn-primary rounded-lg">Save Changes</button></div></form></Modal>
 
-              {nextTaskStatus ? (
-                <button
-                  onClick={() => handleTaskStatus(nextTaskStatus.value)}
-                  disabled={statusUpdating}
-                  className={`w-full rounded-lg px-4 py-3 text-sm font-bold text-white disabled:opacity-50 ${nextTaskStatus.value === 'completed' ? 'bg-green-600 hover:bg-green-700' : 'bg-navy-800 hover:bg-navy-900'}`}
-                >
-                  {statusUpdating ? 'Updating…' : `${nextTaskStatus.icon} ${nextTaskStatus.label}`}
-                </button>
-              ) : complaint.status === 'completed' ? (
-                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">✓ This task is completed.</div>
-              ) : complaint.status === 'rejected' ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">This task is closed as rejected.</div>
-              ) : null}
+    <Modal open={reopenOpen} title="Reopen Complaint" subtitle="Explain what remains unresolved." onClose={() => !busy && setReopenOpen(false)}><div className="space-y-4"><textarea rows={5} value={reopenReason} onChange={event => setReopenReason(event.target.value)} className="input-field rounded-lg resize-none" placeholder="The issue returned / was not fully resolved because…" /><div className="flex justify-end gap-2"><button onClick={() => setReopenOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button onClick={handleReopen} disabled={busy || reopenReason.trim().length < 5} className="btn-primary rounded-lg disabled:opacity-50">Reopen for Review</button></div></div></Modal>
 
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <button onClick={copyAddress} className="rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-xs font-bold text-navy-700 hover:bg-navy-50">Copy Address</button>
-                <button onClick={openMap} className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-700 hover:bg-brand-100">Open Map ↗</button>
-              </div>
-            </div>
-          )}
+    <Modal open={planOpen} title="Update Work Plan" subtitle="Set an ETA and record expected or used materials." onClose={() => !busy && setPlanOpen(false)}><form onSubmit={handlePlan} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Estimated Completion</label><input type="datetime-local" value={plan.estimated_completion_at} onChange={event => setPlan(value => ({...value, estimated_completion_at:event.target.value}))} className="input-field rounded-lg" /></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials / Equipment</label><textarea rows={4} value={plan.materials_used} onChange={event => setPlan(value => ({...value, materials_used:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="Replacement valve, pipe clamp, meter seal…" /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setPlanOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy} className="btn-primary rounded-lg">Save Work Plan</button></div></form></Modal>
 
-          <div className="card rounded-xl p-5">
-            <h2 className="font-display font-bold text-navy-900 mb-3">Complete Timeline</h2>
-            <Timeline complaintId={complaint.id} refreshKey={`${complaint.status}-${refreshKey}`} />
+    <Modal open={completeOpen} title="Submit Completion Report" subtitle="Resolution notes and a proof photo are required." onClose={() => !busy && setCompleteOpen(false)}><form onSubmit={handleComplete} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Resolution Performed *</label><textarea rows={5} required minLength={5} value={completion.completion_notes} onChange={event => setCompletion(value => ({...value, completion_notes:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="Describe exactly what was inspected, repaired, replaced, or restored." /></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials Used</label><textarea rows={3} value={completion.materials_used} onChange={event => setCompletion(value => ({...value, materials_used:event.target.value}))} className="input-field rounded-lg resize-none" /></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Completion Photo *</label><input type="file" accept="image/*" required onChange={event => setCompletion(value => ({...value, photo:event.target.files?.[0] || null}))} className="input-field rounded-lg" /><p className="text-xs text-gray-400 mt-1">Required as proof that the field work was completed.</p></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setCompleteOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || completion.completion_notes.trim().length < 5 || !completion.photo} className="rounded-lg px-5 py-2.5 bg-green-600 text-white font-bold text-sm disabled:opacity-50">{busy ? 'Submitting…' : 'Complete Task'}</button></div></form></Modal>
 
-            {canComment && complaint.status !== 'rejected' && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                {commentError && <p className="text-xs text-red-600 mb-2">{commentError}</p>}
-                <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3}
-                  placeholder="Add a task update..." className="input-field resize-none text-sm" />
-                <button onClick={handleComment} disabled={posting || !comment.trim()}
-                  className="btn-primary mt-2 w-full rounded-lg text-sm flex justify-center items-center gap-2 disabled:opacity-50">
-                  {posting ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Post Timeline Update'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {complaint.status === 'completed' && (
-            <div className="card rounded-xl p-5">
-              <h2 className="font-display font-bold text-navy-900 mb-3">
-                {user?.role === 'customer' ? 'Resolution Feedback' : 'Customer Feedback'}
-              </h2>
-              <FeedbackBox complaintId={complaint.id} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ConfirmDialog
-        open={restoreOpen}
-        title="Undo this rejection?"
-        message="The rejection reason will be cleared. If a technician is already attached, the complaint returns to Assigned; otherwise it returns to Pending."
-        confirmLabel="Undo Rejection"
-        loading={restoring}
-        onConfirm={handleRestore}
-        onCancel={() => setRestoreOpen(false)}
-      />
-    </div>
-  )
+    <Modal open={issueOpen} title="Request Administrative Help" onClose={() => !busy && setIssueOpen(false)}><form onSubmit={handleIssue} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Request Type</label><select value={issue.kind} onChange={event => setIssue(value => ({...value, kind:event.target.value}))} className="input-field rounded-lg"><option value="assistance">Additional Assistance / Crew</option><option value="reassignment">Request Reassignment</option><option value="cannot_complete">Cannot Complete Task</option></select></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Reason *</label><textarea rows={5} required minLength={5} value={issue.reason} onChange={event => setIssue(value => ({...value, reason:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="Explain the access problem, missing equipment, safety issue, or reason for reassignment." /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setIssueOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || issue.reason.trim().length < 5} className="btn-primary rounded-lg disabled:opacity-50">Send Request</button></div></form></Modal>
+  </div>
 }

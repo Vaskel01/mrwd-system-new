@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import Pagination from '../../components/ui/Pagination'
 
 function timeAgo(iso) {
   const value = iso ? new Date(iso).getTime() : Date.now()
@@ -43,13 +44,15 @@ export default function MaintenanceTasksPage() {
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('priority')
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const myTasks = useMemo(() => complaints.filter(c => c.assigned_to === user?.id), [complaints, user?.id])
   const counts = useMemo(() => ({
     all: myTasks.length,
-    active: myTasks.filter(t => ['assigned', 'en_route', 'in_progress'].includes(t.status)).length,
+    active: myTasks.filter(t => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(t.status)).length,
     completed: myTasks.filter(t => t.status === 'completed').length,
     rejected: myTasks.filter(t => t.status === 'rejected').length,
   }), [myTasks])
@@ -57,7 +60,7 @@ export default function MaintenanceTasksPage() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     return myTasks
-      .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress'].includes(task.status) : task.status === view))
+      .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(task.status) : task.status === view))
       .filter(task => priorityFilter === 'all' || task.priority === priorityFilter)
       .filter(task => statusFilter === 'all' || task.status === statusFilter)
       .filter(task => matchesSearch(task, query))
@@ -74,6 +77,9 @@ export default function MaintenanceTasksPage() {
       })
   }, [myTasks, view, priorityFilter, statusFilter, search, sortBy])
 
+  useEffect(() => { setPage(1) }, [view, search, priorityFilter, statusFilter, sortBy])
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+
   const resetFilters = () => {
     setSearch('')
     setPriorityFilter('all')
@@ -87,7 +93,7 @@ export default function MaintenanceTasksPage() {
         event.stopPropagation()
         navigate(`/complaints/${task.id}`)
       }}
-      className="w-full min-w-[96px] px-3 py-2 rounded-lg text-xs font-bold text-white bg-navy-800 hover:bg-navy-900"
+      className="w-full px-3 py-2 rounded-lg text-xs font-bold text-white bg-navy-800 hover:bg-navy-900 whitespace-nowrap"
     >
       Open Task →
     </button>
@@ -155,6 +161,7 @@ export default function MaintenanceTasksPage() {
               <option value="en_route">En Route</option>
               <option value="in_progress">On Site</option>
               <option value="completed">Completed</option>
+              <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
             </select>
             <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
@@ -177,43 +184,51 @@ export default function MaintenanceTasksPage() {
         </div>
       ) : (
         <>
-          <div className="hidden md:block card rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="hidden lg:block card rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[1000px] table-fixed text-sm">
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-                  {['Task', 'Customer', 'Priority', 'Status', 'Location', 'Updated', 'Actions'].map(header => (
-                    <th key={header} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{header}</th>
-                  ))}
+                  <th className="px-4 py-3 w-[275px] text-xs font-black text-gray-400 uppercase tracking-wider">Task</th>
+                  <th className="px-4 py-3 w-[120px] text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 w-[90px] text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
+                  <th className="px-4 py-3 w-[110px] text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 w-[165px] text-xs font-black text-gray-400 uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 w-[70px] text-xs font-black text-gray-400 uppercase tracking-wider">Updated</th>
+                  <th className="px-4 py-3 w-[136px] min-w-[136px] sticky right-0 z-10 bg-gray-50 border-l border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 ? (
                   <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
-                ) : filtered.map(task => (
+                ) : paged.map(task => (
                   <tr key={task.id} onClick={() => navigate(`/complaints/${task.id}`)}
-                    className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                    className={`group cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                     <td className="px-4 py-3 max-w-sm">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
                       <p className="text-xs text-gray-400 truncate">{task.description}</p>
                       <p className="text-[10px] text-gray-300 font-mono mt-1">{task.id}</p>
                       {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
+                      {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="text-[10px] font-bold text-brand-700 mt-1">Needs acknowledgement</p>}
+                      {task.status === 'blocked' && <p className="text-xs font-bold text-orange-700 mt-1 truncate">Admin attention requested</p>}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{task.customer_name}</td>
                     <td className="px-4 py-3"><PriorityBadge priority={task.priority} /></td>
                     <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
                     <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{task.address}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(task.updated_at || task.created_at)}</td>
-                    <td className="px-4 py-3 w-32">{renderAction(task)}</td>
+                    <td className="px-3 py-3 w-[136px] min-w-[136px] sticky right-0 z-[5] bg-white group-hover:bg-gray-50 border-l border-gray-100">{renderAction(task)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div className="lg:hidden space-y-3">
             {filtered.length === 0 ? (
               <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
-            ) : filtered.map(task => (
+            ) : paged.map(task => (
               <div key={task.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                 <div onClick={() => navigate(`/complaints/${task.id}`)} className="p-4 cursor-pointer">
                   <div className="flex items-start justify-between gap-3">
@@ -231,6 +246,7 @@ export default function MaintenanceTasksPage() {
               </div>
             ))}
           </div>
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="tasks" />
         </>
       )}
     </div>

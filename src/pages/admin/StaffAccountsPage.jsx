@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useStaffStore } from '../../store/staffStore'
 import { useComplaintStore } from '../../store/complaintStore'
+import { useAuthStore } from '../../store/authStore'
 import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 
 const ROLE_BADGE = {
@@ -41,17 +42,20 @@ function createPassword(length = 12) {
 const schema = z.object({
   full_name: z.string().min(2, 'Enter a full name'),
   email: z.string().email('Enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select a role' }) }),
 })
 
 export default function StaffAccountsPage() {
   const navigate = useNavigate()
+  const currentUser = useAuthStore(state => state.user)
   const staff = useStaffStore(s => s.staff)
   const loading = useStaffStore(s => s.loading)
   const fetchError = useStaffStore(s => s.error)
   const fetchStaff = useStaffStore(s => s.fetchStaff)
   const createStaff = useStaffStore(s => s.createStaff)
+  const setStaffActive = useStaffStore(s => s.setStaffActive)
+  const sendPasswordReset = useStaffStore(s => s.sendPasswordReset)
   const complaints = useComplaintStore(s => s.complaints)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
 
@@ -63,8 +67,10 @@ export default function StaffAccountsPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [accountFilter, setAccountFilter] = useState('all')
   const [sortBy, setSortBy] = useState('name')
   const [createdCredentials, setCreatedCredentials] = useState(null)
+  const [actionId, setActionId] = useState(null)
 
   useEffect(() => {
     fetchStaff()
@@ -98,6 +104,7 @@ export default function StaffAccountsPage() {
     const query = search.trim().toLowerCase()
     return staff
       .filter(account => roleFilter === 'all' || account.role === roleFilter)
+      .filter(account => accountFilter === 'all' || (accountFilter === 'active' ? account.is_active !== false : account.is_active === false))
       .filter(account => !query || [account.full_name, account.email, ROLE_LABEL[account.role], account.role]
         .some(value => String(value || '').toLowerCase().includes(query)))
       .sort((a, b) => {
@@ -108,13 +115,13 @@ export default function StaffAccountsPage() {
         if (sortBy === 'completed') return (workload[b.id]?.completed || 0) - (workload[a.id]?.completed || 0)
         return 0
       })
-  }, [staff, roleFilter, search, sortBy, workload])
+  }, [staff, roleFilter, accountFilter, search, sortBy, workload])
 
   const counts = {
     all: staff.length,
     admins: staff.filter(account => account.role === 'admin').length,
     maintenance: staff.filter(account => account.role === 'maintenance_personnel').length,
-    activeTasks: complaints.filter(c => c.assigned_to && ['assigned', 'en_route', 'in_progress'].includes(c.status)).length,
+    activeTasks: complaints.filter(c => c.assigned_to && ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status)).length,
   }
 
   const showToast = (message, type = 'success') => {
@@ -174,22 +181,48 @@ export default function StaffAccountsPage() {
     setShowPassword(true)
   }
 
+  const handleAccountStatus = async account => {
+    const nextActive = account.is_active === false
+    if (!nextActive && !window.confirm(`Deactivate ${account.full_name}? They will no longer be able to sign in.`)) return
+    setActionId(account.id); setError('')
+    try {
+      await setStaffActive(account.id, nextActive)
+      showToast(`${account.full_name} ${nextActive ? 'activated' : 'deactivated'}.`)
+    } catch (err) { setError(err.message) } finally { setActionId(null) }
+  }
+
+  const handlePasswordReset = async account => {
+    setActionId(account.id); setError('')
+    try {
+      const result = await sendPasswordReset(account.id)
+      showToast(result.message || 'Password reset email sent.')
+    } catch (err) { setError(err.message) } finally { setActionId(null) }
+  }
+
   const resetFilters = () => {
     setSearch('')
     setRoleFilter('all')
+    setAccountFilter('all')
     setSortBy('name')
   }
 
   const accountActions = account => (
     <div className="flex items-center justify-end gap-2 flex-wrap">
-      <button onClick={() => copyText(account.email, 'Email address copied.')}
-        className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white">Copy Email</button>
       {account.role === 'maintenance_personnel' && (
         <button onClick={() => navigate(`/admin/assign?staff=${account.id}`)}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800">View Tasks</button>
+          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-navy-800">Tasks</button>
+      )}
+      <button onClick={() => handlePasswordReset(account)} disabled={actionId === account.id || account.is_active === false}
+        className="px-3 py-1.5 rounded-lg text-xs font-bold text-navy-700 border border-navy-200 bg-white disabled:opacity-40">Reset Password</button>
+      {account.id !== currentUser?.id && (
+        <button onClick={() => handleAccountStatus(account)} disabled={actionId === account.id}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold border disabled:opacity-40 ${account.is_active === false ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
+          {account.is_active === false ? 'Activate' : 'Deactivate'}
+        </button>
       )}
     </div>
   )
+
 
   return (
     <div className="space-y-5">
@@ -198,7 +231,7 @@ export default function StaffAccountsPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin · Access</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl tracking-tight">Staff Accounts</h1>
-            <p className="text-navy-300 text-sm mt-1">Search accounts, check technician workload, and create logins faster.</p>
+            <p className="text-navy-300 text-sm mt-1">Manage access, password resets, availability, and technician workload.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={handleRefresh} disabled={refreshing}
@@ -281,7 +314,7 @@ export default function StaffAccountsPage() {
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Temporary Password <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
-                  <input type={showPassword ? 'text' : 'password'} placeholder="At least 6 characters" {...register('password')}
+                  <input type={showPassword ? 'text' : 'password'} placeholder="At least 8 characters" {...register('password')}
                     className={`input-field rounded-lg ${errors.password ? 'input-error' : ''}`} />
                   <button type="button" onClick={() => setShowPassword(value => !value)} className="btn-secondary rounded-lg px-3 shrink-0">
                     {showPassword ? 'Hide' : 'Show'}
@@ -308,11 +341,16 @@ export default function StaffAccountsPage() {
             </svg>
             <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or role..." className="input-field pl-9 rounded-lg" />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
             <select value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Role</option>
               <option value="admin">Admins</option>
               <option value="maintenance_personnel">Maintenance</option>
+            </select>
+            <select value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="all">Any Account Status</option>
+              <option value="active">Active Accounts</option>
+              <option value="inactive">Deactivated Accounts</option>
             </select>
             <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="name">Name A–Z</option>
@@ -338,7 +376,7 @@ export default function StaffAccountsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                  {['Staff Member', 'Role', 'Workload', 'Completion', 'Created', 'Actions'].map(header => (
+                  {['Staff Member', 'Role', 'Account', 'Availability', 'Workload', 'Completion', 'Created', 'Actions'].map(header => (
                     <th key={header} className="px-5 py-3 font-black text-gray-400 uppercase tracking-wider text-xs">{header}</th>
                   ))}
                 </tr>
@@ -347,7 +385,7 @@ export default function StaffAccountsPage() {
                 {filteredStaff.map(account => {
                   const stats = workload[account.id] || { total: 0, active: 0, completed: 0, rejected: 0, rate: 0 }
                   return (
-                    <tr key={account.id} className="hover:bg-gray-50">
+                    <tr key={account.id} className={`hover:bg-gray-50 ${account.is_active === false ? 'bg-gray-50 opacity-75' : ''}`}>
                       <td className="px-5 py-4">
                         <p className="font-bold text-gray-900">{account.full_name}</p>
                         <p className="text-xs text-gray-400 mt-1">{account.email}</p>
@@ -357,6 +395,8 @@ export default function StaffAccountsPage() {
                           {ROLE_LABEL[account.role] || account.role}
                         </span>
                       </td>
+                      <td className="px-5 py-4"><span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span></td>
+                      <td className="px-5 py-4">{account.role === 'maintenance_personnel' ? <div><p className="text-xs font-bold text-gray-700 capitalize">{String(account.availability_status || 'available').replace('_', ' ')}</p>{account.availability_note && <p className="text-[10px] text-gray-400 mt-1 max-w-[160px] truncate">{account.availability_note}</p>}</div> : <span className="text-gray-300">—</span>}</td>
                       <td className="px-5 py-4">
                         {account.role === 'maintenance_personnel' ? (
                           <div className="flex gap-3 text-xs">
@@ -397,6 +437,7 @@ export default function StaffAccountsPage() {
                       {ROLE_LABEL[account.role] || account.role}
                     </span>
                   </div>
+                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
                   {account.role === 'maintenance_personnel' && (
                     <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                       <div className="rounded-lg bg-brand-50 p-2"><p className="font-black text-brand-700">{stats.active}</p><p className="text-[10px] text-gray-500">Active</p></div>

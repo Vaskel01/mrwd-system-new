@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import Pagination from '../../components/ui/Pagination'
 
 function timeAgo(iso) {
   const d = Date.now() - new Date(iso).getTime()
@@ -22,6 +23,8 @@ const STATUS_CONFIG = {
   in_progress: { bar: 80, color: '#3463b0', icon: '🔧', label: 'On Site', msg: 'A technician is working on this.' },
   completed: { bar: 100, color: '#16a34a', icon: '✓', label: 'Resolved', msg: 'This issue has been resolved.' },
   rejected: { bar: 100, color: '#dc2626', icon: '✗', label: 'Rejected', msg: 'This report was closed by the administrator.' },
+  cancelled: { bar: 100, color: '#64748b', icon: '—', label: 'Cancelled', msg: 'You cancelled this report before assignment.' },
+  blocked: { bar: 75, color: '#ea580c', icon: '!', label: 'Needs Attention', msg: 'The technician requested administrative assistance.' },
 }
 
 function ComplaintCard({ complaint, onView }) {
@@ -80,27 +83,33 @@ export default function MyComplaintsPage() {
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 8
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
 
   const counts = {
     all: complaints.length,
     pending: complaints.filter(c => c.status === 'pending').length,
-    active: complaints.filter(c => ['assigned', 'en_route', 'in_progress'].includes(c.status)).length,
+    active: complaints.filter(c => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status)).length,
     completed: complaints.filter(c => c.status === 'completed').length,
     rejected: complaints.filter(c => c.status === 'rejected').length,
+    cancelled: complaints.filter(c => c.status === 'cancelled').length,
   }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return complaints.filter(c => {
       const matchesStatus = filter === 'all' ||
-        (filter === 'active' ? ['assigned', 'en_route', 'in_progress'].includes(c.status) : c.status === filter)
+        (filter === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status) : c.status === filter)
       const matchesSearch = !q || [c.id, c.complaint_type, c.description, c.address, c.status, c.assigned_name, c.rejection_reason]
         .some(value => String(value || '').toLowerCase().includes(q))
       return matchesStatus && matchesSearch
     })
   }, [complaints, filter, search])
+
+  useEffect(() => { setPage(1) }, [filter, search])
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   if (loading && complaints.length === 0) return <PageLoader label="Loading your reports..." />
 
@@ -128,7 +137,7 @@ export default function MyComplaintsPage() {
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {[['all','All'], ['pending','Pending'], ['active','Active'], ['completed','Done'], ['rejected','Rejected']].map(([v, label]) => (
+            {[['all','All'], ['pending','Pending'], ['active','Active'], ['completed','Done'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, label]) => (
               <button key={v} onClick={() => setFilter(v)} className="px-4 py-2 rounded-full text-sm font-semibold"
                 style={filter === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
                 {label} <span className="ml-1 font-bold">{counts[v]}</span>
@@ -143,7 +152,7 @@ export default function MyComplaintsPage() {
       ) : filtered.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-400">No reports match your search.</div>
       ) : (
-        <div className="space-y-4">{filtered.map(c => <ComplaintCard key={c.id} complaint={c} onView={id => navigate(`/complaints/${id}`)} />)}</div>
+        <><div className="space-y-4">{paged.map(c => <ComplaintCard key={c.id} complaint={c} onView={id => navigate(`/complaints/${id}`)} />)}</div><Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="reports" /></>
       )}
     </div>
   )

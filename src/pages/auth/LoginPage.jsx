@@ -53,15 +53,7 @@ export default function LoginPage() {
     }
   }
 
-  const fillDemo = (role) => {
-    const map = {
-      customer:    { email: 'customer@demo.com',   password: 'demo1234' },
-      admin:       { email: 'admin@demo.com',       password: 'demo1234' },
-      maintenance_personnel: { email: 'maintenance@demo.com', password: 'demo1234' },
-    }
-    setValue('email', map[role].email)
-    setValue('password', map[role].password)
-  }
+
 
   return (
     <div className="min-h-screen flex font-sans">
@@ -102,7 +94,7 @@ export default function LoginPage() {
           <div className="mt-8 space-y-3">
             {[
               { icon: '📝', text: 'Submit complaints in minutes' },
-              { icon: '⚡', text: 'Auto priority scoring system' },
+              { icon: '⚡', text: 'Faster complaint routing and updates' },
               { icon: '📢', text: 'Real-time announcements' },
               { icon: '💧', text: 'View your billing statement' },
             ].map((f, i) => (
@@ -127,7 +119,7 @@ export default function LoginPage() {
 
       {/* ── Right panel (form) ── */}
       <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
-        <div className="w-full w-full max-w-md">
+        <div className="w-full max-w-md">
 
           {/* Mobile logo */}
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
@@ -199,6 +191,7 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.password.message}</p>}
+              <div className="text-right mt-2"><Link to="/forgot-password" className="text-xs font-bold text-brand-700 hover:underline">Forgot password?</Link></div>
             </div>
 
             <button type="submit" disabled={loading}
@@ -209,28 +202,6 @@ export default function LoginPage() {
               }
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-gray-400 text-xs font-medium">Quick demo access</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          {/* Demo role buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { role: 'customer',    label: 'Customer',    icon: '👤', color: 'bg-navy-50 border-navy-200 text-navy-700 hover:bg-navy-100' },
-              { role: 'admin',       label: 'Admin',       icon: '👨‍💼', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
-              { role: 'maintenance_personnel', label: 'Maintenance', icon: '🔧', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
-            ].map(({ role, label, icon, color }) => (
-              <button key={role} onClick={() => fillDemo(role)}
-                className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border text-xs font-semibold transition-colors ${color}`}>
-                <span className="text-xl">{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Need an account? <Link to="/register" className="text-brand-600 font-semibold hover:underline">Sign up</Link>

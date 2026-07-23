@@ -7,11 +7,12 @@ import { supabase } from '../lib/supabase'
 // Storage's Row Level Security policy — which only allows a user to
 // write under a folder named after their own user id — is satisfied.
 // Returns the public URL, or null if no photo was attached.
-async function uploadPhoto(file, userId) {
+export async function uploadComplaintPhoto(file, userId, folder = '') {
   if (!file) return null
 
   const ext = file.name.split('.').pop()
-  const path = `${userId}/${Date.now()}.${ext}`
+  const nested = folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : ''
+  const path = `${userId}/${nested}${Date.now()}.${ext}`
 
   const { error } = await supabase.storage.from('complaint-photos').upload(path, file)
   if (error) throw new Error(`Photo upload failed: ${error.message}`)
@@ -47,7 +48,7 @@ export const useComplaintStore = create((set, get) => ({
   // Storage first, then sends the resulting URL to the backend, which
   // computes the authoritative priority score and stores the record.
   submitComplaint: async (formData, userId) => {
-    const photo_url = await uploadPhoto(formData.photo, userId)
+    const photo_url = await uploadComplaintPhoto(formData.photo, userId)
 
     const { complaint } = await apiFetch('/complaints', {
       method: 'POST',
@@ -61,6 +62,34 @@ export const useComplaintStore = create((set, get) => ({
     })
 
     set(s => ({ complaints: [complaint, ...s.complaints] }))
+    return complaint
+  },
+
+  // Customer: edit a pending complaint before it is assigned.
+  editComplaint: async (complaintId, data) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
+  cancelComplaint: async (complaintId, reason = '') => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
+  reopenComplaint: async (complaintId, reason) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/reopen`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
     return complaint
   },
 
@@ -139,6 +168,44 @@ export const useComplaintStore = create((set, get) => ({
     })
     await get().fetchComplaints()
     return result
+  },
+
+  acknowledgeTask: async complaintId => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/task/acknowledge`, { method: 'PATCH' })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
+  updateTaskPlan: async (complaintId, data) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/task/plan`, {
+      method: 'PATCH', body: JSON.stringify(data),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
+  completeTask: async (complaintId, data, userId) => {
+    const completion_photo_url = data.photo
+      ? await uploadComplaintPhoto(data.photo, userId, 'completion')
+      : null
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        completion_notes: data.completion_notes,
+        materials_used: data.materials_used || undefined,
+        completion_photo_url: completion_photo_url || undefined,
+      }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
+  reportTaskIssue: async (complaintId, kind, reason) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/task/issue`, {
+      method: 'POST', body: JSON.stringify({ kind, reason }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
   },
 
   // Post a free-text note to a task's timeline without changing status

@@ -93,7 +93,7 @@ export default function RegisterPage() {
           <div className="mt-8 space-y-3">
             {[
               { icon: '📝', text: 'Submit complaints in minutes' },
-              { icon: '⚡', text: 'Auto priority scoring system' },
+              { icon: '⚡', text: 'Faster complaint routing and updates' },
               { icon: '📢', text: 'Real-time announcements' },
               { icon: '💧', text: 'View your billing statement' },
             ].map((f, i) => (
@@ -117,7 +117,7 @@ export default function RegisterPage() {
 
       {/* ── Right panel (form) ── */}
       <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
-        <div className="w-full w-full max-w-md">
+        <div className="w-full max-w-md">
 
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg bg-navy-800 flex items-center justify-center">

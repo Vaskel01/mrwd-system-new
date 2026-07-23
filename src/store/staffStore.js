@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { apiFetch } from '../lib/api'
 
-export const useStaffStore = create((set) => ({
+export const useStaffStore = create((set, get) => ({
   staff: [],
   loading: false,
   error: null,
@@ -22,7 +22,23 @@ export const useStaffStore = create((set) => ({
       method: 'POST',
       body: JSON.stringify(data),
     })
-    await useStaffStore.getState().fetchStaff()
+    await get().fetchStaff()
     return result
+  },
+
+  setStaffActive: async (id, isActive) => {
+    const { user } = await apiFetch(`/users/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: isActive }),
+    })
+    set(state => ({ staff: state.staff.map(item => item.id === id ? { ...item, ...user } : item) }))
+    return user
+  },
+
+  sendPasswordReset: async id => {
+    return apiFetch(`/users/${id}/password-reset`, {
+      method: 'POST',
+      body: JSON.stringify({ redirect_to: `${window.location.origin}/reset-password` }),
+    })
   },
 }))

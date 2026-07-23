@@ -171,3 +171,12 @@
   .mobile-scroll-table { overflow-x: auto; }
   .mobile-scroll-table table { min-width: 100%; }
 }
+
+@media print {
+  .no-print, aside, header, footer { display: none !important; }
+  .lg\:ml-60 { margin-left: 0 !important; }
+  main { overflow: visible !important; }
+  body { background: white !important; }
+  .report-print-area { padding: 0 !important; }
+  .card { box-shadow: none !important; break-inside: avoid; }
+}

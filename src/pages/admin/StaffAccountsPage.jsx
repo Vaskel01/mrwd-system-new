@@ -291,13 +291,13 @@ export default function StaffAccountsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Full Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="e.g. Pedro Reyes" {...register('full_name')}
+                <input aria-label="Full name" type="text" placeholder="e.g. Pedro Reyes" {...register('full_name')}
                   className={`input-field rounded-lg ${errors.full_name ? 'input-error' : ''}`} />
                 {errors.full_name && <p className="mt-1 text-xs text-red-600">{errors.full_name.message}</p>}
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Role <span className="text-red-500">*</span></label>
-                <select {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
+                <select aria-label="Role" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
                   <option value="">Select role…</option>
                   <option value="admin">Admin</option>
                   <option value="maintenance_personnel">Maintenance</option>
@@ -306,14 +306,14 @@ export default function StaffAccountsPage() {
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email <span className="text-red-500">*</span></label>
-                <input type="email" placeholder="name@mrwd.gov.ph" {...register('email')}
+                <input aria-label="Email" type="email" placeholder="name@mrwd.gov.ph" {...register('email')}
                   className={`input-field rounded-lg ${errors.email ? 'input-error' : ''}`} />
                 {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Temporary Password <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
-                  <input type={showPassword ? 'text' : 'password'} placeholder="At least 8 characters" {...register('password')}
+                  <input aria-label="Password" type={showPassword ? 'text' : 'password'} placeholder="At least 8 characters" {...register('password')}
                     className={`input-field rounded-lg ${errors.password ? 'input-error' : ''}`} />
                   <button type="button" onClick={() => setShowPassword(value => !value)} className="btn-secondary rounded-lg px-3 shrink-0">
                     {showPassword ? 'Hide' : 'Show'}
@@ -338,20 +338,20 @@ export default function StaffAccountsPage() {
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or role..." className="input-field pl-9 rounded-lg" />
+            <input name="staffaccountspage-search-staff-name-email-or-role-5" aria-label="Search staff name, email, or role..." value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or role..." className="input-field pl-9 rounded-lg" />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            <select value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="staffaccountspage-role-filter-6" aria-label="Role Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Role</option>
               <option value="admin">Admins</option>
               <option value="maintenance_personnel">Maintenance</option>
             </select>
-            <select value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="staffaccountspage-account-filter-7" aria-label="Account Filter" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Account Status</option>
               <option value="active">Active Accounts</option>
               <option value="inactive">Deactivated Accounts</option>
             </select>
-            <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="staffaccountspage-sort-by-8" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="name">Name A–Z</option>
               <option value="newest">Newest Account</option>
               <option value="oldest">Oldest Account</option>

@@ -34,7 +34,7 @@ export default function RejectionDialog({
           <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
             Rejection reason
           </label>
-          <textarea
+          <textarea name="rejectiondialog-example-duplicate-report-incomplete-location-or-issue-is-outside-mrwd-jurisdiction-1" aria-label="Example: Duplicate report, incomplete location, or issue is outside MRWD jurisdiction."
             autoFocus
             rows={4}
             value={reason}

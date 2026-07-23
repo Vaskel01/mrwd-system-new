@@ -152,7 +152,7 @@ export default function FeedbackBox({ complaintId }) {
         ))}
       </div>
 
-      <textarea
+      <textarea name="feedback_comment" aria-label="Feedback comment"
         value={comment}
         onChange={e => setComment(e.target.value)}
         placeholder="Anything else you'd like to share? (optional)"

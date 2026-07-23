@@ -162,7 +162,7 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Full name</label>
-                  <input type="text" placeholder="Juan dela Cruz" autoComplete="name"
+                  <input aria-label="Full name" type="text" placeholder="Juan dela Cruz" autoComplete="name"
                     {...register('full_name')}
                     className={`input-field ${errors.full_name ? 'input-error' : ''}`}
                   />
@@ -171,7 +171,7 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
-                  <input type="email" placeholder="you@example.com" autoComplete="email"
+                  <input aria-label="Email" type="email" placeholder="you@example.com" autoComplete="email"
                     {...register('email')}
                     className={`input-field ${errors.email ? 'input-error' : ''}`}
                   />
@@ -181,7 +181,7 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                   <div className="relative">
-                    <input
+                    <input aria-label="Password"
                       type={showPass ? 'text' : 'password'}
                       placeholder="At least 6 characters"
                       autoComplete="new-password"
@@ -201,7 +201,7 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm password</label>
-                  <input
+                  <input aria-label="Confirm"
                     type={showPass ? 'text' : 'password'}
                     placeholder="Re-enter your password"
                     autoComplete="new-password"

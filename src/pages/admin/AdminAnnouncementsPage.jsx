@@ -146,14 +146,14 @@ export default function AdminAnnouncementsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Title <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="e.g. Scheduled Water Interruption – June 20"
+                <input aria-label="Title" type="text" placeholder="e.g. Scheduled Water Interruption – June 20"
                   {...register('title')}
                   className={`input-field ${errors.title ? 'input-error' : ''}`} />
                 {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Category <span className="text-red-500">*</span></label>
-                <select {...register('category')} className={`input-field ${errors.category ? 'input-error' : ''}`}>
+                <select aria-label="Category" {...register('category')} className={`input-field ${errors.category ? 'input-error' : ''}`}>
                   <option value="">Select...</option>
                   {ANNOUNCEMENT_CATEGORIES.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -167,7 +167,7 @@ export default function AdminAnnouncementsPage() {
             </div>
             <div>
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Content <span className="text-red-500">*</span></label>
-              <textarea rows={4} placeholder="Write the full announcement here..."
+              <textarea aria-label="Content" rows={4} placeholder="Write the full announcement here..."
                 {...register('content')}
                 className={`input-field resize-none ${errors.content ? 'input-error' : ''}`} />
               {errors.content && <p className="mt-1 text-xs text-red-600">{errors.content.message}</p>}

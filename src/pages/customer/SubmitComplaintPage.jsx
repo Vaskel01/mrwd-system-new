@@ -307,7 +307,7 @@ export default function SubmitComplaintPage() {
                   <label key={t} className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                     watchedType === t ? 'border-gold-500 bg-gold-50' : 'border-gray-100 hover:border-gray-300 bg-white'
                   }`}>
-                    <input type="radio" value={t} {...register('complaint_type')} className="sr-only" />
+                    <input aria-label="Complaint type" type="radio" value={t} {...register('complaint_type')} className="sr-only" />
                     <span className="text-xl shrink-0">{TYPE_ICONS[t] || '📝'}</span>
                     <span className={`text-sm font-semibold ${watchedType === t ? 'text-navy-800' : 'text-gray-700'}`}>{t}</span>
                   </label>
@@ -332,7 +332,7 @@ export default function SubmitComplaintPage() {
                   <label className="text-sm font-bold text-gray-700">Details <span className="text-red-500">*</span></label>
                   <span className="text-xs text-gray-400 font-mono">{watchedDesc?.length || 0} / 20 min</span>
                 </div>
-                <textarea rows={5} placeholder="When did it start? How bad is it? Who is affected?"
+                <textarea aria-label="Description" rows={5} placeholder="When did it start? How bad is it? Who is affected?"
                   {...register('description')}
                   className={`input-field resize-none ${errors.description ? 'input-error' : ''}`} />
                 {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
@@ -355,7 +355,7 @@ export default function SubmitComplaintPage() {
                   <label className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 cursor-pointer hover:border-gold-400 transition-colors bg-gray-50">
                     <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span className="text-sm text-gray-500">Attach a photo (optional)</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange}/>
+                    <input name="complaint_photo" aria-label="Complaint photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange}/>
                   </label>
                 )}
               </div>
@@ -476,7 +476,7 @@ export default function SubmitComplaintPage() {
                   Full Address <span className="text-red-500">*</span>
                   {gpsCoords && <span className="ml-2 text-xs font-normal text-gold-600 bg-gold-50 px-2 py-0.5">Auto-filled ✓</span>}
                 </label>
-                <input type="text" placeholder="e.g. 123 Rizal St., Brgy. Baybay, Roxas City, Capiz"
+                <input aria-label="Address" type="text" placeholder="e.g. 123 Rizal St., Brgy. Baybay, Roxas City, Capiz"
                   {...register('address')}
                   className={`input-field ${errors.address ? 'input-error' : ''}`} />
                 {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address.message}</p>}

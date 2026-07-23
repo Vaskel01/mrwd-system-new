@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
         <form onSubmit={submit} className="p-6 space-y-4">
           {error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>}
           {message && <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">{message}</div>}
-          <div><label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="input-field rounded-lg" placeholder="you@example.com" /></div>
+          <div><label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label><input name="email" aria-label="Email address" type="email" required value={email} onChange={e => setEmail(e.target.value)} className="input-field rounded-lg" placeholder="you@example.com" /></div>
           <button disabled={loading || !email.trim()} className="btn-primary rounded-lg w-full disabled:opacity-50">{loading ? 'Sending…' : 'Send Reset Link'}</button>
           <p className="text-center text-sm text-gray-500"><Link to="/login" className="font-bold text-brand-700">← Back to sign in</Link></p>
         </form>

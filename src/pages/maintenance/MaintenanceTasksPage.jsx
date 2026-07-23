@@ -146,18 +146,18 @@ export default function MaintenanceTasksPage() {
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input value={search} onChange={event => setSearch(event.target.value)}
+            <input name="maintenancetaskspage-search-task-id-complaint-customer-address-notes-or-status-1" aria-label="Search task ID, complaint, customer, address, notes or status..." value={search} onChange={event => setSearch(event.target.value)}
               placeholder="Search task ID, complaint, customer, address, notes or status..."
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            <select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Priority</option>
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
               <option value="low">Low Priority</option>
             </select>
-            <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Status</option>
               <option value="assigned">Assigned</option>
               <option value="en_route">En Route</option>
@@ -166,7 +166,7 @@ export default function MaintenanceTasksPage() {
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="priority">Priority</option>
               <option value="updated">Recently Updated</option>
               <option value="newest">Newest Filed</option>

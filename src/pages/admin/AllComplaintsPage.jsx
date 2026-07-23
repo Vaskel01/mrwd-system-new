@@ -119,7 +119,7 @@ export default function AllComplaintsPage() {
       <div className="card rounded-xl p-4 space-y-3">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="text" placeholder="Search ID, complaint, customer, address, status or technician..."
+          <input name="allcomplaintspage-search-id-complaint-customer-address-status-or-technician-1" aria-label="Search ID, complaint, customer, address, status or technician..." type="text" placeholder="Search ID, complaint, customer, address, status or technician..."
             value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-9 rounded-lg" />
         </div>
         <div className="flex flex-wrap gap-2 items-center justify-between">
@@ -135,10 +135,10 @@ export default function AllComplaintsPage() {
               className="inline-flex items-center gap-2 text-xs border border-navy-200 px-3 py-1.5 text-navy-700 bg-navy-50 font-bold rounded-full hover:bg-navy-100 disabled:opacity-50">
               {reclassifying ? <><Spinner className="w-3.5 h-3.5 border-2 border-navy-700" /> Classifying...</> : '↻ Classify Existing'}
             </button>
-            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
+            <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="all">Any Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
             </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
+            <select name="allcomplaintspage-sort-by-3" aria-label="Sort By" value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="score">Score</option><option value="priority">Priority</option><option value="type">Type A–Z</option><option value="date">Newest</option><option value="oldest">Oldest</option>
             </select>
           </div>

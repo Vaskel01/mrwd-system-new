@@ -267,7 +267,7 @@ export default function AuditLogPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="card rounded-xl p-4">
-        <input
+        <input name="auditlogpage-search-actor-action-complaint-id-staff-member-or-details-1" aria-label="Search actor, action, complaint ID, staff member, or details..."
           value={search}
           onChange={event => setSearch(event.target.value)}
           className="input-field rounded-lg"

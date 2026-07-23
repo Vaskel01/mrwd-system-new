@@ -294,18 +294,18 @@ export default function AssignTaskPage() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input value={search} onChange={event => setSearch(event.target.value)}
+          <input name="assigntaskpage-search-id-complaint-customer-address-status-or-technician-1" aria-label="Search ID, complaint, customer, address, status or technician..." value={search} onChange={event => setSearch(event.target.value)}
             placeholder="Search ID, complaint, customer, address, status or technician..."
             className="input-field pl-9 rounded-lg" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-          <select value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
             <option value="high">High Priority</option>
             <option value="medium">Medium Priority</option>
             <option value="low">Low Priority</option>
           </select>
-          <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
             <option value="all">Any Status</option>
             <option value="pending">Pending</option>
             <option value="assigned">Assigned</option>
@@ -316,11 +316,11 @@ export default function AssignTaskPage() {
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <select value={staffFilter} onChange={event => changeStaffFilter(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-staff-filter-4" aria-label="Staff Filter" value={staffFilter} onChange={event => changeStaffFilter(event.target.value)} className="input-field rounded-lg text-sm">
             <option value="all">Any Technician</option>
             {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
           </select>
-          <select value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-sort-by-5" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
             <option value="priority">Priority</option>
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -341,11 +341,11 @@ export default function AssignTaskPage() {
             <button onClick={() => setChecked(new Set())} className="text-xs font-bold text-gray-500">Clear selection</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
-            <select value={bulkStaff} onChange={event => setBulkStaff(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="assigntaskpage-bulk-staff-6" aria-label="Bulk Staff" value={bulkStaff} onChange={event => setBulkStaff(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="">Assign selected to…</option>
               {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
             </select>
-            <input value={bulkNotes} onChange={event => setBulkNotes(event.target.value)} placeholder="Shared instructions (optional)" className="input-field rounded-lg text-sm" />
+            <input name="assigntaskpage-shared-instructions-optional-7" aria-label="Shared instructions (optional)" value={bulkNotes} onChange={event => setBulkNotes(event.target.value)} placeholder="Shared instructions (optional)" className="input-field rounded-lg text-sm" />
             <button onClick={handleBulkAssign} disabled={!bulkStaff || bulkAssigning} className="btn-primary rounded-lg disabled:opacity-50">
               {bulkAssigning ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Assign Selected'}
             </button>
@@ -369,7 +369,7 @@ export default function AssignTaskPage() {
           <thead>
             <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
               <th className="px-3 py-3">
-                {selectableRows.length > 0 && <input type="checkbox" checked={allSelectableChecked} onChange={toggleAllShown} className="accent-brand-600" aria-label="Select all shown unassigned complaints" />}
+                {selectableRows.length > 0 && <input name="assigntaskpage-checkbox-field-8" type="checkbox" checked={allSelectableChecked} onChange={toggleAllShown} className="accent-brand-600" aria-label="Select all shown unassigned complaints" />}
               </th>
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Complaint</th>
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
@@ -389,7 +389,7 @@ export default function AssignTaskPage() {
                 <tr key={complaint.id} onClick={() => navigate(`/complaints/${complaint.id}`)}
                   className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[complaint.priority]}`}>
                   <td className="px-3 py-3 align-top" onClick={event => event.stopPropagation()}>
-                    {selectable && <input type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)} className="accent-brand-600" aria-label={`Select ${complaint.complaint_type}`} />}
+                    {selectable && <input name="assigntaskpage-checkbox-field-9" type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)} className="accent-brand-600" aria-label={`Select ${complaint.complaint_type}`} />}
                   </td>
                   <td className="px-3 py-3 align-top">
                     <p className="font-bold text-gray-900 truncate">{complaint.complaint_type}</p>
@@ -420,7 +420,7 @@ export default function AssignTaskPage() {
               className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[complaint.priority]} cursor-pointer`}>
               <div className="flex items-start gap-3">
                 {selectable && (
-                  <input type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)}
+                  <input name="assigntaskpage-checkbox-field-10" type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)}
                     onClick={event => event.stopPropagation()} className="accent-brand-600 mt-1" aria-label={`Select ${complaint.complaint_type}`} />
                 )}
                 <div className="min-w-0 flex-1">
@@ -458,14 +458,14 @@ export default function AssignTaskPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Maintenance Staff</label>
-                <select value={selectedStaff} onChange={event => setSelectedStaff(event.target.value)} className="input-field rounded-lg">
+                <select name="assigntaskpage-selected-staff-11" aria-label="Selected Staff" value={selectedStaff} onChange={event => setSelectedStaff(event.target.value)} className="input-field rounded-lg">
                   <option value="">Select technician…</option>
                   {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Instructions</label>
-                <textarea value={assignNotes} onChange={event => setAssignNotes(event.target.value)} rows={4}
+                <textarea name="assigntaskpage-optional-instructions-for-the-technician-12" aria-label="Optional instructions for the technician" value={assignNotes} onChange={event => setAssignNotes(event.target.value)} rows={4}
                   placeholder="Optional instructions for the technician" className="input-field rounded-lg resize-none" />
               </div>
               <div className="flex justify-end gap-2">

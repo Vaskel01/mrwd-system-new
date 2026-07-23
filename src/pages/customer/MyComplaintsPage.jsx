@@ -132,7 +132,7 @@ export default function MyComplaintsPage() {
         <div className="card rounded-xl p-4 space-y-3">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input name="mycomplaintspage-search-reference-id-type-description-address-or-status-1" aria-label="Search reference ID, type, description, address or status..." value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search reference ID, type, description, address or status..."
               className="input-field pl-9 rounded-lg" />
           </div>

@@ -23,6 +23,8 @@ const PRIORITY_STRIPE = {
   medium: 'border-l-amber-400',
   low: 'border-l-green-400',
 }
+
+const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
 function matchesSearch(task, query) {
   if (!query) return true
   return [
@@ -93,9 +95,9 @@ export default function MaintenanceTasksPage() {
         event.stopPropagation()
         navigate(`/complaints/${task.id}`)
       }}
-      className="w-full px-3 py-2 rounded-lg text-xs font-bold text-white bg-navy-800 hover:bg-navy-900 whitespace-nowrap"
+      className={TABLE_ACTION_CLASS}
     >
-      Open Task →
+      Open
     </button>
   )
 
@@ -185,17 +187,25 @@ export default function MaintenanceTasksPage() {
       ) : (
         <>
           <div className="hidden lg:block card rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] table-fixed text-sm">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[36%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[17%]" />
+                <col className="w-[11%]" />
+                <col className="w-[112px]" />
+              </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-                  <th className="px-4 py-3 w-[275px] text-xs font-black text-gray-400 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 w-[120px] text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 w-[90px] text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 w-[110px] text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 w-[165px] text-xs font-black text-gray-400 uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 w-[70px] text-xs font-black text-gray-400 uppercase tracking-wider">Updated</th>
-                  <th className="px-4 py-3 w-[136px] min-w-[136px] sticky right-0 z-10 bg-gray-50 border-l border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Task</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Updated</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -203,26 +213,25 @@ export default function MaintenanceTasksPage() {
                   <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
                 ) : paged.map(task => (
                   <tr key={task.id} onClick={() => navigate(`/complaints/${task.id}`)}
-                    className={`group cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
-                    <td className="px-4 py-3 max-w-sm">
-                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
+                    className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                    <td className="px-4 py-3 align-top">
+                      <p className="font-bold text-gray-900 truncate">{task.complaint_type}</p>
                       <p className="text-xs text-gray-400 truncate">{task.description}</p>
-                      <p className="text-[10px] text-gray-300 font-mono mt-1">{task.id}</p>
+                      <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{task.id}</p>
                       {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
                       {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="text-[10px] font-bold text-brand-700 mt-1">Needs acknowledgement</p>}
                       {task.status === 'blocked' && <p className="text-xs font-bold text-orange-700 mt-1 truncate">Admin attention requested</p>}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{task.customer_name}</td>
-                    <td className="px-4 py-3"><PriorityBadge priority={task.priority} /></td>
-                    <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{task.address}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(task.updated_at || task.created_at)}</td>
-                    <td className="px-3 py-3 w-[136px] min-w-[136px] sticky right-0 z-[5] bg-white group-hover:bg-gray-50 border-l border-gray-100">{renderAction(task)}</td>
+                    <td className="px-4 py-3 text-gray-700 align-top truncate">{task.customer_name}</td>
+                    <td className="px-4 py-3 align-top"><PriorityBadge priority={task.priority} /></td>
+                    <td className="px-4 py-3 align-top"><StatusBadge status={task.status} /></td>
+                    <td className="px-4 py-3 text-gray-500 align-top truncate">{task.address}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(task.updated_at || task.created_at)}</td>
+                    <td className="px-4 py-3 align-top">{renderAction(task)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            </div>
           </div>
 
           <div className="lg:hidden space-y-3">

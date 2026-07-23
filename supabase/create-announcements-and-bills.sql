@@ -68,10 +68,9 @@ grant select, insert, update, delete on public.announcements to authenticated;
 grant select, insert, update, delete on public.bills to authenticated;
 
 -- ─────────────────────────────────────────────
--- Optional: seed a sample bill so the Billing page isn't empty when
--- you first test it. Replace the email with your actual demo
--- customer account, then uncomment and run just this block.
+-- Optional demo data
 -- ─────────────────────────────────────────────
--- insert into public.bills (customer_id, billing_period, previous_reading, current_reading, consumption, amount_due, due_date, status)
--- select id, 'July 2026', 120, 138, 18, 486.50, '2026-08-05', 'unpaid'
--- from public.profiles where email = 'customer@demo.com';
+-- After customer accounts exist, run `seed_mock_billing.sql` to add
+-- six realistic monthly records to every active customer account.
+-- That separate script is safe to re-run and avoids hard-coding an
+-- email address in this table-creation migration.

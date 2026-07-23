@@ -13,3 +13,11 @@ etc.). Use these two files instead, in order:
                               your actual column names
 
 Run both in the Supabase SQL Editor. Safe to re-run either one.
+
+Optional demo data (run only after customer accounts exist):
+
+  seed_mock_billing.sql — adds six realistic monthly billing records to
+                          every active customer for demonstrations and
+                          screenshots. Safe to re-run without duplicating
+                          the same customer/billing-period combination.
+

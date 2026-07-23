@@ -22,6 +22,8 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
+const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+
 export default function AllComplaintsPage() {
   const navigate = useNavigate()
   const complaints = useComplaintStore(s => s.complaints)
@@ -144,31 +146,43 @@ export default function AllComplaintsPage() {
       </div>
 
       <div className="hidden md:block card rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[42%]" />
+            <col className="w-[14%]" />
+            <col className="w-[10%]" />
+            <col className="w-[13%]" />
+            <col className="w-[12%]" />
+            <col className="w-[9%]" />
+            <col className="w-[110px]" />
+          </colgroup>
           <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', ''].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
+            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (
               <tr key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]}`}>
                 <td className="px-4 py-3">
-                  <p className="font-bold text-gray-900">{c.complaint_type}</p>
-                  <p className="text-xs text-gray-400 max-w-sm truncate">{c.description}</p>
-                  <p className="text-[10px] text-gray-300 font-mono mt-1">{c.id}</p>
-                  {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 max-w-md"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
+                  <p className="font-bold text-gray-900 truncate">{c.complaint_type}</p>
+                  <p className="text-xs text-gray-400 truncate">{c.description}</p>
+                  <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{c.id}</p>
+                  {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{c.customer_name}</td>
+                <td className="px-4 py-3 text-gray-700 truncate">{c.customer_name}</td>
                 <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
                 <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                <td className="px-4 py-3 text-gray-500">{c.assigned_name || '—'}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(c.created_at)}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-gray-500 truncate">{c.assigned_name || '—'}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{timeAgo(c.created_at)}</td>
+                <td className="px-4 py-3">
                   {c.status === 'rejected' ? (
-                    <button onClick={e => handleRestore(e, c)} disabled={restoringId === c.id}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-navy-800 hover:bg-navy-900 disabled:opacity-50">
-                      {restoringId === c.id ? <Spinner className="w-3.5 h-3.5 border-2 border-white" /> : '↶ Undo'}
+                    <button onClick={e => handleRestore(e, c)} disabled={restoringId === c.id} className={TABLE_ACTION_CLASS}>
+                      {restoringId === c.id ? <Spinner className="w-3.5 h-3.5 border-2 border-white" /> : 'Restore'}
                     </button>
-                  ) : <span className="text-navy-500 font-bold">View →</span>}
+                  ) : (
+                    <button onClick={e => { e.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
+                      Open
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

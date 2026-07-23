@@ -26,6 +26,10 @@ from **Supabase Dashboard → SQL Editor → New Query**:
 
 The final migration is safe to re-run and is required by the newest pages and API routes.
 
+### Optional demo billing records
+
+After at least one customer account exists, run `supabase/seed_mock_billing.sql` to add six realistic monthly billing records to every active customer. The script is idempotent for each customer and billing period, so re-running it will not duplicate the same demo months. It is intended for pre-oral demonstrations, screenshots, and testing rather than production data.
+
 With that in place, customers can create their own accounts from
 **Sign up** on the login page. Admin and maintenance accounts aren't
 open to public self-registration (anyone could otherwise pick "admin"
@@ -173,3 +177,11 @@ Final Priority Score = Base Severity + Keyword Severity + Sentiment Adjustment +
 - Attached complaint photo: `+10`
 
 The complete score breakdown is available only to administrators. Maintenance personnel receive the final operational category and priority, while customers receive no classifier internals. After upgrading, use **Admin > All Complaints > Classify Existing** to recalculate older complaints.
+
+## Resetting complaints and loading complete demo data
+
+For a clean pre-oral demonstration, run `supabase/reset_and_seed_mock_complaints.sql` in the Supabase SQL Editor after the final migrations and demo user accounts are ready.
+
+**Warning:** the script permanently deletes every existing complaint and the complaint-related maintenance tasks, updates, feedback, notifications, and audit entries. It does not delete profiles, billing records, complaint categories, or announcements.
+
+The script requires at least one active account for each role: `customer`, `admin`, and `maintenance_personnel`. It creates ten mock complaints for every active customer, covering all eight categories and the Pending, Assigned, En Route, In Progress, Blocked, Completed, Rejected, and Cancelled states. It also adds a reopened complaint, reassignment history, task updates, completion evidence, feedback, notifications, and readable audit records.

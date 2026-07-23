@@ -24,6 +24,8 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
+const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+
 function matchesSearch(complaint, query) {
   if (!query) return true
   return [
@@ -228,22 +230,18 @@ export default function AssignTaskPage() {
 
   const renderActions = complaint => {
     const queue = queueFor(complaint)
-    const common = 'w-full px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50 whitespace-nowrap'
     return (
       <div className="w-full" onClick={event => event.stopPropagation()}>
         {complaint.status === 'rejected' ? (
-          <button onClick={() => handleRestore(complaint)} disabled={restoringId === complaint.id}
-            className={`${common} text-white bg-navy-800`}>
-            {restoringId === complaint.id ? 'Restoring…' : 'Restore'}
+          <button onClick={() => handleRestore(complaint)} disabled={restoringId === complaint.id} className={TABLE_ACTION_CLASS}>
+            {restoringId === complaint.id ? 'Working…' : 'Restore'}
           </button>
         ) : queue === 'unassigned' ? (
-          <button onClick={() => openAssignment(complaint)} className={`${common} text-white bg-navy-800 hover:bg-navy-900`}>Assign</button>
+          <button onClick={() => openAssignment(complaint)} className={TABLE_ACTION_CLASS}>Assign</button>
         ) : queue === 'active' ? (
-          <button onClick={() => openAssignment(complaint)} className={`${common} text-navy-700 bg-navy-50 border border-navy-200 hover:bg-navy-100`}>
-            Reassign
-          </button>
+          <button onClick={() => openAssignment(complaint)} className={TABLE_ACTION_CLASS}>Reassign</button>
         ) : (
-          <button onClick={() => navigate(`/complaints/${complaint.id}`)} className={`${common} text-navy-700 border border-navy-200 bg-white`}>View</button>
+          <button onClick={() => navigate(`/complaints/${complaint.id}`)} className={TABLE_ACTION_CLASS}>Open</button>
         )}
       </div>
     )
@@ -357,20 +355,29 @@ export default function AssignTaskPage() {
       )}
 
       <div className="hidden lg:block card rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] table-fixed text-sm">
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[44px]" />
+            <col className="w-[32%]" />
+            <col className="w-[14%]" />
+            <col className="w-[10%]" />
+            <col className="w-[12%]" />
+            <col className="w-[14%]" />
+            <col className="w-[8%]" />
+            <col className="w-[112px]" />
+          </colgroup>
           <thead>
             <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-              <th className="px-3 py-3 w-10">
+              <th className="px-3 py-3">
                 {selectableRows.length > 0 && <input type="checkbox" checked={allSelectableChecked} onChange={toggleAllShown} className="accent-brand-600" aria-label="Select all shown unassigned complaints" />}
               </th>
-              <th className="px-3 py-3 w-[300px] text-xs font-black text-gray-400 uppercase tracking-wider">Complaint</th>
-              <th className="px-3 py-3 w-[120px] text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
-              <th className="px-3 py-3 w-[90px] text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
-              <th className="px-3 py-3 w-[105px] text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-3 py-3 w-[120px] text-xs font-black text-gray-400 uppercase tracking-wider">Assigned</th>
-              <th className="px-3 py-3 w-[70px] text-xs font-black text-gray-400 uppercase tracking-wider">Filed</th>
-              <th className="px-3 py-3 w-[136px] min-w-[136px] sticky right-0 z-10 bg-gray-50 border-l border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Complaint</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assigned</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Filed</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -380,28 +387,27 @@ export default function AssignTaskPage() {
               const selectable = queueFor(complaint) === 'unassigned'
               return (
                 <tr key={complaint.id} onClick={() => navigate(`/complaints/${complaint.id}`)}
-                  className={`group cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[complaint.priority]}`}>
-                  <td className="px-4 py-3" onClick={event => event.stopPropagation()}>
+                  className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[complaint.priority]}`}>
+                  <td className="px-3 py-3 align-top" onClick={event => event.stopPropagation()}>
                     {selectable && <input type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)} className="accent-brand-600" aria-label={`Select ${complaint.complaint_type}`} />}
                   </td>
-                  <td className="px-4 py-3 max-w-sm">
-                    <p className="font-bold text-gray-900">{complaint.complaint_type}</p>
+                  <td className="px-3 py-3 align-top">
+                    <p className="font-bold text-gray-900 truncate">{complaint.complaint_type}</p>
                     <p className="text-xs text-gray-400 truncate">{complaint.description}</p>
-                    <p className="text-[10px] text-gray-300 font-mono mt-1">{complaint.id}</p>
-                    {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
+                    <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{complaint.id}</p>
+                    {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{complaint.customer_name}</td>
-                  <td className="px-4 py-3"><PriorityBadge priority={complaint.priority} /></td>
-                  <td className="px-4 py-3"><StatusBadge status={complaint.status} /></td>
-                  <td className="px-4 py-3 text-gray-500">{complaint.assigned_name || 'Unassigned'}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{timeAgo(complaint.created_at)}</td>
-                  <td className="px-3 py-3 w-[136px] min-w-[136px] sticky right-0 z-[5] bg-white group-hover:bg-gray-50 border-l border-gray-100">{renderActions(complaint)}</td>
+                  <td className="px-3 py-3 text-gray-700 align-top truncate">{complaint.customer_name}</td>
+                  <td className="px-3 py-3 align-top"><PriorityBadge priority={complaint.priority} /></td>
+                  <td className="px-3 py-3 align-top"><StatusBadge status={complaint.status} /></td>
+                  <td className="px-3 py-3 text-gray-500 align-top truncate">{complaint.assigned_name || 'Unassigned'}</td>
+                  <td className="px-3 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(complaint.created_at)}</td>
+                  <td className="px-3 py-3 align-top">{renderActions(complaint)}</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-        </div>
       </div>
 
       <div className="lg:hidden space-y-3">

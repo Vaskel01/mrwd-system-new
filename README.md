@@ -158,3 +158,18 @@ vercel.json             SPA rewrite rules for Vercel
 supabase/                seed_categories.sql + rls-patch.sql (run against your existing schema)
 ```
 
+
+## Hybrid Sentiment-Aware Priority Scoring Algorithm
+
+Classifier version `hybrid-sentiment-v1.1.0` uses four explicit components:
+
+```
+Final Priority Score = Base Severity + Keyword Severity + Sentiment Adjustment + Photo Evidence
+```
+
+- Neutral sentiment: `+0`
+- Negative sentiment: `+5`
+- Urgent sentiment: `+10`
+- Attached complaint photo: `+10`
+
+The complete score breakdown is available only to administrators. Maintenance personnel receive the final operational category and priority, while customers receive no classifier internals. After upgrading, use **Admin > All Complaints > Classify Existing** to recalculate older complaints.

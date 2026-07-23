@@ -1,6 +1,6 @@
 {
-  "classifierVersion": "dataset-rule-v1.0.0",
-  "classificationMethod": "Dataset-backed rule-based text classification",
+  "classifierVersion": "hybrid-sentiment-v1.1.0",
+  "classificationMethod": "Hybrid sentiment-aware dataset-backed priority scoring algorithm",
   "typeScores": {
     "Water Interruption": 40,
     "Water Leak": 35,
@@ -27,5 +27,10 @@
   "sentimentThresholds": {
     "urgent": 12,
     "negative": 4
+  },
+  "sentimentAdjustments": {
+    "neutral": 0,
+    "negative": 5,
+    "urgent": 10
   }
 }

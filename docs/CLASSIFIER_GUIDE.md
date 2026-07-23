@@ -85,3 +85,14 @@ Recommended final evaluation:
 3. Keep evaluation complaints separate from keyword/weight development.
 4. Report category accuracy, priority accuracy, confusion matrices, precision, recall, and F1-score.
 5. Document disagreements and revise the dataset only after recording the initial results.
+
+## Hybrid sentiment-aware formula (v1.1.0)
+
+The final score has four independently visible components:
+
+1. Rule-based category severity
+2. Dataset keyword severity
+3. Explicit sentiment adjustment (Neutral +0, Negative +5, Urgent +10)
+4. Supporting photo evidence (+10 when attached)
+
+This makes the sentiment classification directly affect the final Low, Medium, or High priority result rather than functioning only as a descriptive label.

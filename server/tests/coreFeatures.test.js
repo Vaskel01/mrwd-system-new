@@ -66,3 +66,36 @@ test('admin response retains complete classifier evidence', () => {
   const source = { priority: 'high', priority_score: 90, classification_keywords: [{ term: 'flooding' }] }
   assert.deepEqual(presentComplaintForRole(source, 'admin'), source)
 })
+
+
+test('hybrid score applies an explicit sentiment adjustment', () => {
+  const negative = scoreComplaint({
+    complaint_type: 'Billing Concern',
+    description: 'I received an incorrect bill and an unexpected overcharge.',
+    has_photo: false,
+    base_severity_score: 5,
+  })
+  assert.equal(negative.classification_sentiment, 'negative')
+  assert.equal(negative.sentiment_adjustment, 5)
+  assert.equal(negative.sentiment_score, 5)
+  assert.equal(negative.priority_score, Math.min(100, negative.rule_score + negative.keyword_adjustment + negative.sentiment_adjustment + negative.photo_adjustment))
+})
+
+test('urgent sentiment receives a larger adjustment than neutral sentiment', () => {
+  const urgent = scoreComplaint({
+    complaint_type: 'Water Leak',
+    description: 'Emergency! A pipe burst is flooding the road near the hospital.',
+    has_photo: false,
+    base_severity_score: 35,
+  })
+  const neutral = scoreComplaint({
+    complaint_type: 'New Connection Request',
+    description: 'I would like to ask about the requirements for a new connection.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(urgent.classification_sentiment, 'urgent')
+  assert.equal(urgent.sentiment_adjustment, 10)
+  assert.equal(neutral.classification_sentiment, 'neutral')
+  assert.equal(neutral.sentiment_adjustment, 0)
+})

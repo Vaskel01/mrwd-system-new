@@ -148,10 +148,17 @@ export function classifyComplaint({ complaint_type, description, has_photo, base
     cfg.keywordAdjustmentLimits?.minimum ?? -10,
     Math.min(rawKeywordAdjustment, cfg.keywordAdjustmentLimits?.maximum ?? 50)
   )
-  const photoAdjustment = has_photo ? (cfg.photoBonus ?? 10) : 0
-  const sentiment_score = keywordAdjustment + photoAdjustment
-  const priority_score = Math.max(0, Math.min(rule_score + sentiment_score, cfg.scoreCap ?? 100))
   const classification_sentiment = classifySentiment(matched)
+  const sentimentAdjustment = Number(cfg.sentimentAdjustments?.[classification_sentiment] ?? 0)
+  const photoAdjustment = has_photo ? (cfg.photoBonus ?? 10) : 0
+
+  // Hybrid score: rule-based category severity + dataset keyword severity
+  // + an explicit sentiment adjustment + supporting photo evidence.
+  const sentiment_score = sentimentAdjustment
+  const priority_score = Math.max(
+    0,
+    Math.min(rule_score + keywordAdjustment + sentimentAdjustment + photoAdjustment, cfg.scoreCap ?? 100)
+  )
 
   if (matched.length) {
     const visibleTerms = matched.slice(0, 6).map(entry => entry.term).join(', ')
@@ -163,7 +170,9 @@ export function classifyComplaint({ complaint_type, description, has_photo, base
   reasons.push(`Text classified as ${categoryResult.predicted_category} (${categoryResult.category_confidence}% confidence)`)
   if (classification_mismatch) reasons.push(`Selected type differs from the text classification (${complaint_type})`)
   if (negated.length) reasons.push(`Negated terms ignored: "${negated.slice(0, 4).join(', ')}"`)
+  reasons.push(`Sentiment adjustment (${classification_sentiment}, +${sentimentAdjustment})`)
   if (has_photo) reasons.push(`Photo evidence (+${photoAdjustment})`)
+  else reasons.push('No photo evidence (+0)')
 
   let priority
   if (priority_score >= cfg.priorityThresholds.high) priority = 'high'
@@ -189,7 +198,9 @@ export function classifyComplaint({ complaint_type, description, has_photo, base
     sentiment_score,
     priority_score,
     keyword_adjustment: keywordAdjustment,
+    sentiment_adjustment: sentimentAdjustment,
     photo_adjustment: photoAdjustment,
+    evidence_adjustment: photoAdjustment,
     predicted_category: categoryResult.predicted_category,
     category_confidence: categoryResult.category_confidence,
     category_scores: categoryResult.category_scores,

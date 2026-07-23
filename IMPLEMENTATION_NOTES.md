@@ -140,3 +140,18 @@ Run `supabase/complete-workflow-features.sql` after every earlier migration.
 - Maintenance accounts show workload statistics and a link to their filtered task list inside the dialog.
 - Current administrators cannot deactivate their own account.
 - No database migration is required for this interface-only change.
+
+## Explicit hybrid sentiment-aware scoring (v1.1.0)
+
+The classifier now applies sentiment as a separate numerical component instead of only embedding sentiment inside keyword weights.
+
+```
+Final Priority Score = Base Severity + Keyword Severity + Sentiment Adjustment + Photo Evidence
+```
+
+Sentiment adjustments:
+- Neutral: +0
+- Negative: +5
+- Urgent: +10
+
+Existing complaints should be recalculated from **Admin > All Complaints > Classify Existing** so their stored `sentiment_score` uses the new explicit meaning.

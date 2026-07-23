@@ -186,7 +186,7 @@ function DetailsCell({ details, profileDirectory }) {
   return (
     <dl className="space-y-2 min-w-[230px]">
       {entries.map(([key, value]) => (
-        <div key={key} className="grid grid-cols-[112px_minmax(0,1fr)] gap-2 items-start">
+        <div key={key} className="grid grid-cols-1 sm:grid-cols-[112px_minmax(0,1fr)] gap-1 sm:gap-2 items-start">
           <dt className="font-bold text-gray-500 leading-5">{detailLabel(key)}</dt>
           <dd className="min-w-0 leading-5 break-words">
             <DetailValue detailKey={key} value={value} profileDirectory={profileDirectory} />
@@ -253,14 +253,14 @@ export default function AuditLogPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-6 py-6">
-        <div className="flex items-end justify-between">
+      <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Admin · Accountability</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Audit Log</h1>
             <p className="text-navy-300 text-sm mt-1">Who performed each important complaint, task, and staff action.</p>
           </div>
-          <p className="font-display font-black text-5xl text-gold-400">{filtered.length}</p>
+          <p className="font-display font-black text-4xl sm:text-5xl text-gold-400 shrink-0">{filtered.length}</p>
         </div>
       </div>
 
@@ -275,44 +275,61 @@ export default function AuditLogPage() {
         />
       </div>
 
-      <div className="card rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                {['Date', 'Actor', 'Action', 'Record', 'Details'].map(header => (
-                  <th key={header} className="px-4 py-3 text-xs font-black text-gray-400 uppercase">{header}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {shown.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center text-gray-400">No audit entries match.</td>
-                </tr>
-              ) : shown.map(item => (
-                <tr key={item.id} className="align-top hover:bg-gray-50/70 transition-colors">
-                  <td className="px-4 py-4 text-xs text-gray-500 whitespace-nowrap">{formatDate(item.created_at)}</td>
-                  <td className="px-4 py-4 font-bold text-gray-900">{item.actor_name || 'System'}</td>
-                  <td className="px-4 py-4">
-                    <span className="inline-flex rounded-full bg-navy-50 text-navy-700 px-2.5 py-1 text-xs font-bold">
-                      {label(item.action)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-xs">
-                    <p className="font-bold text-gray-700 capitalize">{item.entity_type}</p>
-                    <p className="font-mono text-gray-400 mt-1" title={item.entity_id || ''}>
-                      {item.entity_id ? shortId(item.entity_id) : 'Multiple records'}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 text-xs max-w-lg">
-                    <DetailsCell details={item.details} profileDirectory={profileDirectory} />
-                  </td>
-                </tr>
+      <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[36%]" />
+          </colgroup>
+          <thead>
+            <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
+              {['Date', 'Actor', 'Action', 'Record', 'Details'].map(header => (
+                <th key={header} className="px-3 py-3 text-xs font-black text-gray-400 uppercase">{header}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {shown.length === 0 ? (
+              <tr><td colSpan={5} className="p-12 text-center text-gray-400">No audit entries match.</td></tr>
+            ) : shown.map(item => (
+              <tr key={item.id} className="align-top hover:bg-gray-50/70 transition-colors">
+                <td className="px-3 py-4 text-xs text-gray-500">{formatDate(item.created_at)}</td>
+                <td className="px-3 py-4 font-bold text-gray-900 break-words">{item.actor_name || 'System'}</td>
+                <td className="px-3 py-4"><span className="inline-flex rounded-full bg-navy-50 text-navy-700 px-2.5 py-1 text-xs font-bold">{label(item.action)}</span></td>
+                <td className="px-3 py-4 text-xs"><p className="font-bold text-gray-700 capitalize break-words">{item.entity_type}</p><p className="font-mono text-gray-400 mt-1" title={item.entity_id || ''}>{item.entity_id ? shortId(item.entity_id) : 'Multiple records'}</p></td>
+                <td className="px-3 py-4 pr-5 text-xs"><DetailsCell details={item.details} profileDirectory={profileDirectory} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="lg:hidden space-y-3">
+        {shown.length === 0 ? (
+          <div className="card rounded-xl p-10 text-center text-gray-400">No audit entries match.</div>
+        ) : shown.map(item => (
+          <article key={item.id} className="card rounded-xl p-4 space-y-3">
+            <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 break-words">{item.actor_name || 'System'}</p>
+                <p className="text-xs text-gray-400 mt-1">{formatDate(item.created_at)}</p>
+              </div>
+              <span className="self-start shrink-0 inline-flex rounded-full bg-navy-50 text-navy-700 px-2.5 py-1 text-xs font-bold">{label(item.action)}</span>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Record</p>
+              <p className="font-bold text-gray-700 capitalize mt-1 break-words">{item.entity_type}</p>
+              <p className="font-mono text-[11px] text-gray-400 mt-1 break-all">{item.entity_id ? item.entity_id : 'Multiple records'}</p>
+            </div>
+            <div className="text-xs overflow-hidden">
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Details</p>
+              <DetailsCell details={item.details} profileDirectory={profileDirectory} />
+            </div>
+          </article>
+        ))}
       </div>
 
       <Pagination

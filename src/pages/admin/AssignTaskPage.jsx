@@ -354,7 +354,7 @@ export default function AssignTaskPage() {
         </div>
       )}
 
-      <div className="hidden lg:block card rounded-xl overflow-hidden">
+      <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
             <col className="w-[44px]" />
@@ -364,7 +364,7 @@ export default function AssignTaskPage() {
             <col className="w-[12%]" />
             <col className="w-[14%]" />
             <col className="w-[8%]" />
-            <col className="w-[112px]" />
+            <col className="w-[136px]" />
           </colgroup>
           <thead>
             <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
@@ -402,7 +402,7 @@ export default function AssignTaskPage() {
                   <td className="px-3 py-3 align-top"><StatusBadge status={complaint.status} /></td>
                   <td className="px-3 py-3 text-gray-500 align-top truncate">{complaint.assigned_name || 'Unassigned'}</td>
                   <td className="px-3 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(complaint.created_at)}</td>
-                  <td className="px-3 py-3 align-top">{renderActions(complaint)}</td>
+                  <td className="px-3 py-3 pr-5 align-top">{renderActions(complaint)}</td>
                 </tr>
               )
             })}

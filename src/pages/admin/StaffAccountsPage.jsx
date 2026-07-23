@@ -216,10 +216,9 @@ export default function StaffAccountsPage() {
     <button
       type="button"
       onClick={() => setManageAccountId(account.id)}
-      className="inline-flex items-center justify-center gap-1.5 min-w-[88px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
+      className="inline-flex items-center justify-center min-w-[92px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
     >
       Manage
-      <span aria-hidden="true">→</span>
     </button>
   )
 
@@ -372,11 +371,11 @@ export default function StaffAccountsPage() {
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
         <>
-          <div className="hidden md:block card rounded-xl overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block card rounded-xl overflow-hidden p-2">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                  {['Staff Member', 'Role', 'Account', 'Availability', 'Workload', 'Completion', 'Created', 'Actions'].map(header => (
+                  {['Staff Member', 'Role', 'Account', 'Availability', 'Workload', 'Completion', 'Created', 'Action'].map(header => (
                     <th key={header} className="px-5 py-3 font-black text-gray-400 uppercase tracking-wider text-xs">{header}</th>
                   ))}
                 </tr>
@@ -415,7 +414,7 @@ export default function StaffAccountsPage() {
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-5 py-4 text-gray-400 whitespace-nowrap">{timeAgo(account.created_at)}</td>
-                      <td className="px-5 py-4">{accountActions(account)}</td>
+                      <td className="px-5 py-4 pr-7">{accountActions(account)}</td>
                     </tr>
                   )
                 })}

@@ -186,7 +186,7 @@ export default function MaintenanceTasksPage() {
         </div>
       ) : (
         <>
-          <div className="hidden lg:block card rounded-xl overflow-hidden">
+          <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
             <table className="w-full table-fixed text-sm">
               <colgroup>
                 <col className="w-[36%]" />
@@ -195,7 +195,7 @@ export default function MaintenanceTasksPage() {
                 <col className="w-[12%]" />
                 <col className="w-[17%]" />
                 <col className="w-[11%]" />
-                <col className="w-[112px]" />
+                <col className="w-[136px]" />
               </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
@@ -227,7 +227,7 @@ export default function MaintenanceTasksPage() {
                     <td className="px-4 py-3 align-top"><StatusBadge status={task.status} /></td>
                     <td className="px-4 py-3 text-gray-500 align-top truncate">{task.address}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(task.updated_at || task.created_at)}</td>
-                    <td className="px-4 py-3 align-top">{renderAction(task)}</td>
+                    <td className="px-4 py-3 pr-6 align-top">{renderAction(task)}</td>
                   </tr>
                 ))}
               </tbody>

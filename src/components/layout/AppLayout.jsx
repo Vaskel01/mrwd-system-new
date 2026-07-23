@@ -34,7 +34,7 @@ const NAV = {
 const ROLE_CONFIG = {
   customer:    { tag: 'Consumer',   gradient: 'from-blue-500 to-blue-600',   dot: '#60a5fa' },
   admin:       { tag: 'Admin',      gradient: 'from-navy-700 to-navy-900',   dot: '#e6b020' },
-  maintenance_personnel: { tag: 'Technician', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
+  maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
 // ── SVG Icons ──
@@ -190,7 +190,7 @@ export default function AppLayout({ children }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-white text-[13px] font-semibold truncate leading-tight">{user?.full_name}</p>
-            <p className="text-navy-300 text-[10px] uppercase tracking-wider capitalize">{role}</p>
+            <p className="text-navy-300 text-[10px] uppercase tracking-wider">{config.tag}</p>
           </div>
         </div>
         <button onClick={handleSignOut}

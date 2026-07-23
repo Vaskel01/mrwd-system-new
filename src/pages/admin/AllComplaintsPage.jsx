@@ -145,7 +145,7 @@ export default function AllComplaintsPage() {
         </div>
       </div>
 
-      <div className="hidden md:block card rounded-xl overflow-hidden">
+      <div className="hidden md:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
             <col className="w-[42%]" />
@@ -154,7 +154,7 @@ export default function AllComplaintsPage() {
             <col className="w-[13%]" />
             <col className="w-[12%]" />
             <col className="w-[9%]" />
-            <col className="w-[110px]" />
+            <col className="w-[136px]" />
           </colgroup>
           <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
             {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
@@ -173,7 +173,7 @@ export default function AllComplaintsPage() {
                 <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                 <td className="px-4 py-3 text-gray-500 truncate">{c.assigned_name || '—'}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{timeAgo(c.created_at)}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 pr-5">
                   {c.status === 'rejected' ? (
                     <button onClick={e => handleRestore(e, c)} disabled={restoringId === c.id} className={TABLE_ACTION_CLASS}>
                       {restoringId === c.id ? <Spinner className="w-3.5 h-3.5 border-2 border-white" /> : 'Restore'}

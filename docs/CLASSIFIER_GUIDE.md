@@ -1,22 +1,35 @@
 # MRWD Dataset-Backed Complaint Classifier
 
-## What changed
+The Hybrid Sentiment-Aware Priority Scoring Algorithm is an explainable, server-side decision-support component. It does not use a trained machine-learning language model.
 
-The previous implementation used a small keyword dictionary mainly to adjust a priority score. This version adds a structured keyword dataset and an explicit classification stage.
+## Outputs
 
-After the complaint description is analyzed, the classifier now returns:
+For every submitted complaint, the backend can generate:
 
-1. **Predicted complaint category** — for example, Water Leak or Billing Concern.
-2. **Category confidence** — a transparent rule-based percentage based on the strongest and second-strongest category evidence.
+1. **Predicted complaint category** — such as Water Leak or Billing Concern.
+2. **Category confidence indicator** — a transparent rule-based percentage derived from the strongest category evidence.
 3. **Sentiment/urgency label** — Neutral, Negative, or Urgent.
-4. **Priority class** — Low, Medium, or High, based on the final score.
+4. **Priority score and class** — Low, Medium, or High.
 
-## Dataset
+The confidence value is a rule-based indicator, not a calibrated statistical probability.
 
-The dataset contains 129 initial keyword and phrase rows. Each row includes:
+## Canonical files
 
-- keyword or phrase
-- word/phrase matching type
+- `server/src/data/complaintKeywordDataset.json` — runtime keyword and phrase dataset
+- `server/src/config/scoringConfig.json` — base scores, adjustments, caps, and thresholds
+- `server/src/lib/priorityScoring.js` — authoritative classifier implementation
+- `server/src/lib/textPreprocessor.js` — normalization, tokenization, stemming, and matching support
+- `docs/keyword-dataset.xlsx` — formatted review copy
+- `docs/keyword-dataset.csv` — editable review copy
+
+The frontend does not contain a duplicate classifier. It submits the complaint to the API, and the backend calculates and stores the authoritative result.
+
+## Dataset contents
+
+The dataset contains 129 initial words and phrases. Each entry may include:
+
+- word or multi-word phrase
+- matching type
 - related complaint category
 - category classification weight
 - priority adjustment weight
@@ -25,74 +38,73 @@ The dataset contains 129 initial keyword and phrase rows. Each row includes:
 - context, source, and rationale
 - negation behavior
 
-Files:
-
-- `docs/keyword-dataset.xlsx` — formatted workbook for review and thesis documentation
-- `docs/keyword-dataset.csv` — editable CSV copy
-- `server/src/data/complaintKeywordDataset.json` — canonical backend dataset
-- `src/data/complaintKeywordDataset.json` — frontend preview copy
-
-The dataset includes English and selected commonly used Filipino complaint phrases. It is an **initial domain-informed seed dataset**, not a final validated MRWD dataset. Before final deployment or accuracy claims, MRWD personnel should review the terms, categories, and weights using anonymized historical complaints.
+The dataset includes English and selected commonly used Filipino complaint phrases. It is an **initial domain-informed dataset**, not a final MRWD-validated dataset. Formal review should use anonymized historical or staff-written complaints.
 
 ## Classification flow
 
 1. Normalize the complaint text.
 2. Match longer phrases before individual words.
-3. Stem remaining words so variants such as `leak`, `leaks`, and `leaking` share one root.
-4. Ignore negated terms such as “not dangerous” or “no flooding.”
-5. Add category evidence from the matched dataset rows.
-6. Select the category with the strongest evidence and calculate confidence.
-7. Use the classified category's base severity when the description strongly contradicts the customer-selected type.
-8. Add or subtract dataset priority weights and the photo-evidence bonus.
-9. Classify the final score as Low, Medium, or High.
+3. Normalize common word variants through deterministic stemming.
+4. Ignore configured negated issues, such as “there is no leak.”
+5. Preserve domain phrases in which “no” expresses the issue, such as “no water.”
+6. Sum category evidence and select the strongest category.
+7. Use the predicted category base severity when the mismatch threshold is reached.
+8. Add the configured dataset, sentiment, and photo-evidence adjustments.
+9. Bound the final score from 0 to 100.
+10. Classify the result as Low, Medium, or High Priority.
 
-Priority thresholds remain:
+## Formula and thresholds
 
-- **Low:** below 30
-- **Medium:** 30–59
-- **High:** 60–100
+```text
+Final Priority Score = Base Severity
+                     + Dataset Match Adjustment
+                     + Sentiment Adjustment
+                     + Photo-Evidence Bonus
+```
+
+- Neutral sentiment: `+0`
+- Negative sentiment: `+5`
+- Urgent sentiment: `+10`
+- Attached complaint photo: `+10`
+- Low Priority: `0–29`
+- Medium Priority: `30–59`
+- High Priority: `60–100`
 
 ## Stored database fields
 
-Run `supabase/dataset-backed-classification.sql`. It adds fields for:
+Run `supabase/dataset-backed-classification.sql` before using stored classifier analysis. It adds fields for:
 
-- classified category
-- confidence
+- predicted category
+- confidence indicator
 - sentiment
 - mismatch flag
 - classification basis
-- matched and negated keywords
+- matched and negated terms
 - human-readable reasons
 - classifier version and method
 
-The complete classifier breakdown is displayed only to administrators. Maintenance personnel receive only the final assigned category and priority needed for field work, while customers receive no classifier output. The Admin All Complaints screen also includes **Classify Existing**, which reruns the classifier for older records after the migration is installed.
+## Role visibility
 
-## Evaluation
+- **Customer:** no classifier fields are returned.
+- **Maintenance Personnel:** only the operational category and priority are returned.
+- **Administrator:** complete classifier analysis is available for review.
 
-The project contains 25 labeled seed test cases and a repeatable evaluation command:
+Administrators may correct the complaint information and rerun the classifier. They do not have an unrestricted control for directly overwriting the numerical score.
+
+## Development evaluation
+
+Run:
 
 ```bash
-cd server
-npm run evaluate:classifier
+npm run test:classifier
 ```
 
-The included seed tests currently score 100% for both category and priority. This only confirms that the implementation behaves as expected on the designed test set. It must not be presented as real-world model accuracy. A proper thesis evaluation should use a separate set of anonymized complaints labeled independently by MRWD staff.
+The command evaluates the 25 labeled development cases and regenerates `docs/classifier-evaluation-results.json`.
 
-Recommended final evaluation:
+The current development cases confirm deterministic behavior on the designed examples. They must not be presented as real-world classifier accuracy. Formal evaluation should:
 
-1. Collect anonymized historical or staff-written complaint samples.
-2. Ask at least one qualified MRWD evaluator to label category and priority without seeing the system result.
-3. Keep evaluation complaints separate from keyword/weight development.
-4. Report category accuracy, priority accuracy, confusion matrices, precision, recall, and F1-score.
-5. Document disagreements and revise the dataset only after recording the initial results.
-
-## Hybrid sentiment-aware formula (v1.1.0)
-
-The final score has four independently visible components:
-
-1. Rule-based category severity
-2. Dataset keyword severity
-3. Explicit sentiment adjustment (Neutral +0, Negative +5, Urgent +10)
-4. Supporting photo evidence (+10 when attached)
-
-This makes the sentiment classification directly affect the final Low, Medium, or High priority result rather than functioning only as a descriptive label.
+1. Use a separate set of anonymized complaints.
+2. Obtain independent category and priority labels from qualified MRWD reviewers.
+3. Keep the evaluation set separate from dataset refinement.
+4. Report category and priority results honestly.
+5. Record disagreements before revising terms or weights.

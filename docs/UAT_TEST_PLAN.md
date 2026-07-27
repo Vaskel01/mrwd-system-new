@@ -4,7 +4,7 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 
 ## Prerequisites
 
-1. Run every migration listed in `README.md`, ending with `complete-workflow-features.sql`.
+1. Run every required migration listed in `supabase/README.md`, ending with `complete-workflow-features.sql`.
 2. Create one customer, two maintenance accounts, and one admin.
 3. Give one technician `Available` status and the other `On Leave`.
 4. Keep browser developer tools open to record unexpected API errors.

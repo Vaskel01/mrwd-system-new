@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Spinner } from './Feedback'
 
 export default function RejectionDialog({
@@ -11,6 +11,7 @@ export default function RejectionDialog({
   onCancel,
 }) {
   const [reason, setReason] = useState('')
+  const titleId = useId()
 
   if (!open) return null
 
@@ -27,10 +28,10 @@ export default function RejectionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={loading ? undefined : cancel} />
-      <div className="relative bg-white w-full max-w-md shadow-2xl rounded-xl overflow-hidden">
+      <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={loading ? undefined : cancel} aria-hidden="true" />
+      <div className="relative bg-white w-full max-w-md shadow-2xl rounded-xl overflow-hidden" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="p-6">
-          <h3 className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
+          <h3 id={titleId} className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
           <p className="text-sm text-gray-500 leading-relaxed mb-4">{description}</p>
           <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
             Rejection reason

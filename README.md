@@ -9,6 +9,7 @@ A web-based complaint management and maintenance task assignment system for Metr
 - **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress and materials, request assistance or reassignment, submit completion reports, and view customer feedback.
 - **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
 - **Privacy:** Customers receive no classifier internals. Maintenance Personnel receive only the operational category and priority. Administrators can review the complete classifier breakdown.
+- **Interface:** the original MRWD navy, blue, gold, wave-header, and role-based visual design is retained, with keyboard focus, reduced-motion, dialog, navigation, and status-label accessibility support.
 
 ## Project structure
 

@@ -89,6 +89,18 @@ where status = 'completed'
   and (completion_notes is null or completion_photo_url is null);
 ```
 
+## Accessibility and interface checks
+
+| ID | Test | Expected result |
+|---|---|---|
+| UI-01 | Navigate the login page and each role portal using only the keyboard | Every interactive control receives a visible focus indicator and can be activated without a mouse. |
+| UI-02 | Focus the first link after entering a role portal | “Skip to main content” becomes visible and moves focus to the page content. |
+| UI-03 | Open confirmation and rejection dialogs | Assistive technology identifies each as a modal dialog and announces its title. |
+| UI-04 | Trigger loading, empty, and error states | Loading and error messages are announced; decorative icons are ignored by assistive technology. |
+| UI-05 | Enable reduced motion in the operating system | Decorative animation and transitions are minimized without hiding content. |
+| UI-06 | Open any Leaflet map, then open a dialog | The map and marker stay below the dialog and backdrop. |
+| UI-07 | Inspect pages at mobile, tablet, and desktop widths | The original MRWD palette, wave headers, typography, and navigation remain consistent and readable. |
+
 ## Classifier evaluation
 
 The included 25 cases are development checks. Final research results should use a separate, blinded set of 50–100 anonymized complaints labeled by MRWD personnel. Do not tune the dataset using the final test set.

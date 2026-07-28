@@ -147,7 +147,7 @@ export default function AppLayout({ children }) {
       <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(230,176,32,.4), transparent)' }} />
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5" aria-label={`${config.tag} navigation`}>
         {navItems.map(item => {
           const Icon = item.icon
           return (
@@ -200,14 +200,15 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="min-h-screen flex font-sans" style={{ background: '#f4f7fb' }}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
 
       {/* ── Mobile overlay ── */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-30 bg-navy-950/60 backdrop-blur-sm" onClick={closeSidebar} />
+        <div className="lg:hidden fixed inset-0 z-30 bg-navy-950/60 backdrop-blur-sm" onClick={closeSidebar} aria-hidden="true" />
       )}
 
       {/* ── Sidebar ── */}
-      <aside className={`
+      <aside id="primary-navigation" aria-label="Primary navigation" className={`
         fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
         lg:translate-x-0 transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -226,7 +227,8 @@ export default function AppLayout({ children }) {
             {/* Left: hamburger + breadcrumb */}
             <div className="flex items-center gap-3">
               <button onClick={() => setSidebarOpen(v => !v)}
-                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-200 transition-colors">
+                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                aria-label="Toggle navigation" aria-expanded={sidebarOpen} aria-controls="primary-navigation">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7"/>
                 </svg>
@@ -253,7 +255,8 @@ export default function AppLayout({ children }) {
               <span className="hidden sm:block text-xs text-gray-400">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <button onClick={() => navigate('/notifications')} className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Notifications">
+              <button onClick={() => navigate('/notifications')} className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white"
+                aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
                 <BellIcon className="w-4 h-4" />
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
@@ -265,7 +268,7 @@ export default function AppLayout({ children }) {
           </header>
 
           {/* ── Page content ── */}
-          <main className="flex-1 overflow-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
               {children}
             </div>

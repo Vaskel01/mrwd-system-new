@@ -4,7 +4,7 @@ export function PriorityBadge({ priority }) {
     medium: 'badge-medium',
     low:    'badge-low',
   }
-  return <span className={map[priority] || 'badge-low'}>{priority}</span>
+  return <span className={map[priority] || 'badge-low'} aria-label={`Priority: ${priority || 'not set'}`}>{priority}</span>
 }
 
 export function StatusBadge({ status }) {
@@ -28,5 +28,5 @@ export function StatusBadge({ status }) {
     cancelled:   'Cancelled',
     blocked:     'Needs Attention',
   }
-  return <span className={map[status] || 'badge-pending'}>{labels[status] || status}</span>
+  return <span className={map[status] || 'badge-pending'} aria-label={`Status: ${labels[status] || status}`}>{labels[status] || status}</span>
 }

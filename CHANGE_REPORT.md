@@ -17,6 +17,15 @@
 - Added customer completion acknowledgment with timeline, notifications, and audit history.
 - Added classifier synonym and suggestive-phrase matching without double-counting one dataset entry.
 
+## Interface and accessibility
+
+- Preserved the established MRWD navy, blue, gold, and water-themed palette.
+- Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
+- Added a keyboard-accessible “Skip to main content” link and visible gold focus indicators.
+- Added accessible navigation, pagination, loading, error, badge, and dialog labels without changing their visual design.
+- Added reduced-motion support for users who request it through their operating-system settings.
+- Kept Leaflet maps below dialogs and modal backdrops.
+
 ## Database
 
 Run this migration after the earlier project migrations:
@@ -32,6 +41,7 @@ It adds complaint references, customer profile fields, Important announcement st
 - ESLint: passed with two React Hook Form compiler advisory warnings and no errors
 - Server JavaScript syntax: 17 files passed
 - Automated backend/classifier tests: 10/10 passed
+- Desktop and mobile browser checks: passed; original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were verified
 - Classifier development cases:
   - Category: 25/25
   - Priority: 24/25

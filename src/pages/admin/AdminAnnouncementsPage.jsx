@@ -1,0 +1,260 @@
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useAnnouncementStore } from '../../store/announcementStore'
+import { useAuthStore } from '../../store/authStore'
+import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
+import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  return `${days}d ago`
+}
+
+const CAT_COLORS = {
+  general:      'bg-blue-100 text-blue-800 border-blue-200',
+  interruption: 'bg-red-100 text-red-800 border-red-200',
+  billing:      'bg-yellow-100 text-yellow-900 border-yellow-200',
+  maintenance:  'bg-purple-100 text-purple-800 border-purple-200',
+  advisory:     'bg-green-100 text-green-800 border-green-200',
+}
+
+const CAT_STRIPE = {
+  general:      'bg-blue-500',
+  interruption: 'bg-red-500',
+  billing:      'bg-amber-400',
+  maintenance:  'bg-purple-500',
+  advisory:     'bg-green-500',
+}
+
+function CategoryBadge({ category }) {
+  const cat = ANNOUNCEMENT_CATEGORIES.find(c => c.value === category)
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-black uppercase tracking-wide border ${CAT_COLORS[category] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+      {cat?.label || category}
+    </span>
+  )
+}
+
+const schema = z.object({
+  title:    z.string().min(5, 'Title must be at least 5 characters'),
+  content:  z.string().min(20, 'Content must be at least 20 characters'),
+  category: z.string().min(1, 'Select a category'),
+  is_important: z.boolean(),
+})
+
+export default function AdminAnnouncementsPage() {
+  const user               = useAuthStore(s => s.user)
+  const announcements      = useAnnouncementStore(s => s.announcements)
+  const loading            = useAnnouncementStore(s => s.loading)
+  const error               = useAnnouncementStore(s => s.error)
+  const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
+  const postAnnouncement   = useAnnouncementStore(s => s.postAnnouncement)
+  const setAnnouncementImportance = useAnnouncementStore(s => s.setAnnouncementImportance)
+  const deleteAnnouncement = useAnnouncementStore(s => s.deleteAnnouncement)
+
+  useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
+
+  const [posting, setPosting]             = useState(false)
+  const [postError, setPostError]         = useState('')
+  const [toast, setToast]                 = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [deleting, setDeleting]           = useState(false)
+  const [showForm, setShowForm]           = useState(false)
+
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { title: '', content: '', category: '', is_important: false },
+  })
+
+  const watchedCategory = watch('category')
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
+
+  const onSubmit = async (data) => {
+    setPosting(true)
+    setPostError('')
+    try {
+      await postAnnouncement(data, user.full_name)
+      reset()
+      setShowForm(false)
+      showToast('Announcement posted.')
+    } catch (err) {
+      setPostError(err.message)
+    } finally {
+      setPosting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      await deleteAnnouncement(confirmDelete.id)
+      setConfirmDelete(null)
+      showToast('Announcement deleted.')
+    } catch (err) {
+      showToast(err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleImportance = async announcement => {
+    try {
+      await setAnnouncementImportance(announcement.id, !announcement.is_important)
+      showToast(announcement.is_important ? 'Announcement unmarked as important.' : 'Announcement marked as important.')
+    } catch (err) {
+      showToast(err.message)
+    }
+  }
+
+  const sorted = [...announcements].sort((a, b) =>
+    Number(Boolean(b.is_important)) - Number(Boolean(a.is_important)) ||
+    new Date(b.created_at) - new Date(a.created_at))
+
+  if (loading && announcements.length === 0) {
+    return <PageLoader label="Loading announcements..." />
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
+        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator</p>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>
+          <button onClick={() => setShowForm(v => !v)}
+            className={`text-xs font-black px-4 py-2 border transition-colors ${
+              showForm ? 'bg-white text-navy border-white' : 'border-white/40 text-white hover:bg-white/10'
+            }`}>
+            {showForm ? '✕ Cancel' : '+ New Post'}
+          </button>
+        </div>
+        <p className="text-navy-300 text-sm mt-1">{sorted.length} announcement{sorted.length !== 1 ? 's' : ''} posted · visible to all users</p>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="mb-4 bg-green-50 border-l-4 border-green-500 text-green-800 text-sm px-4 py-3 font-bold flex items-center gap-2">
+          ✓ {toast}
+        </div>
+      )}
+
+      {error && <ErrorBanner message={error} onRetry={fetchAnnouncements} />}
+
+      {/* Compose form */}
+      {showForm && (
+        <div className="bg-white border border-gray-200 mb-5 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-200 px-5 py-3">
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">New Announcement</p>
+          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
+            {postError && <ErrorBanner message={postError} />}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Title <span className="text-red-500">*</span></label>
+                <input aria-label="Title" type="text" placeholder="e.g. Scheduled Water Interruption – June 20"
+                  {...register('title')}
+                  className={`input-field ${errors.title ? 'input-error' : ''}`} />
+                {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Category <span className="text-red-500">*</span></label>
+                <select aria-label="Category" {...register('category')} className={`input-field ${errors.category ? 'input-error' : ''}`}>
+                  <option value="">Select...</option>
+                  {ANNOUNCEMENT_CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category.message}</p>}
+                {watchedCategory && (
+                  <div className={`mt-2 h-1 w-full ${CAT_STRIPE[watchedCategory] || 'bg-gray-300'}`} />
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Content <span className="text-red-500">*</span></label>
+              <textarea aria-label="Content" rows={4} placeholder="Write the full announcement here..."
+                {...register('content')}
+                className={`input-field resize-none ${errors.content ? 'input-error' : ''}`} />
+              {errors.content && <p className="mt-1 text-xs text-red-600">{errors.content.message}</p>}
+            </div>
+            <label className="flex items-start gap-3 rounded-lg border border-gold-200 bg-gold-50 p-3 cursor-pointer">
+              <input type="checkbox" {...register('is_important')} className="mt-0.5 h-4 w-4 accent-amber-500" />
+              <span><span className="block text-sm font-bold text-navy-900">Mark as important</span><span className="block text-xs text-gray-500 mt-0.5">Pins this notice above regular announcements for every user.</span></span>
+            </label>
+            <div className="flex gap-3 pt-1">
+              <button type="submit" disabled={posting}
+                className="btn-primary flex items-center gap-2">
+                {posting
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Posting...</>
+                  : '📢 Publish Announcement'
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* List */}
+      {sorted.length === 0 ? (
+        <EmptyState icon="📢" title="No announcements yet."
+          description='Click "New Post" to publish one.' />
+      ) : (
+        <div className="space-y-2">
+          {sorted.map(a => (
+            <div key={a.id} className="card rounded-xl overflow-hidden">
+              <div className={`h-1 ${CAT_STRIPE[a.category] || 'bg-gray-300'}`} />
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      {a.is_important && <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Important</span>}
+                      <h2 className="font-black text-gray-900 text-sm tracking-tight">{a.title}</h2>
+                      <CategoryBadge category={a.category} />
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">{a.content}</p>
+                    <p className="text-xs text-gray-400">
+                      <span className="font-semibold text-gray-500">{a.created_by_name}</span> · {timeAgo(a.created_at)}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-1">
+                    <button onClick={() => handleImportance(a)}
+                      title={a.is_important ? 'Remove important pin' : 'Mark as important'}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold border ${a.is_important ? 'border-gold-300 bg-gold-50 text-navy-800' : 'border-gray-200 text-gray-500 hover:border-gold-300'}`}>
+                      {a.is_important ? 'Unpin' : 'Important'}
+                    </button>
+                    <button onClick={() => setConfirmDelete(a)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this announcement?"
+        message={confirmDelete ? `"${confirmDelete.title}" will be removed for everyone. This can't be undone.` : ''}
+        confirmLabel="Delete"
+        danger
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </div>
+  )
+}

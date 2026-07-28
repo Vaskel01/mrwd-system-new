@@ -1,0 +1,26 @@
+﻿id,selected_type,description,has_photo,expected_category,expected_priority
+TC-001,Water Interruption,There has been no water since yesterday and the whole barangay is affected.,False,Water Interruption,high
+TC-002,Low Water Pressure,The water has low pressure and only a weak flow from our faucet.,False,Low Water Pressure,medium
+TC-003,Dirty / Discolored Water,The water is brown and has a bad smell.,False,Dirty / Discolored Water,medium
+TC-004,Dirty / Discolored Water,Contaminated water made two children sick and vomiting.,True,Dirty / Discolored Water,high
+TC-005,Water Leak,A burst pipe is flooding the road near our house.,True,Water Leak,high
+TC-006,Water Leak,There is only a small leak beside the meter.,False,Water Leak,medium
+TC-007,Billing Concern,My high water bill seems incorrect. Please check it.,False,Billing Concern,low
+TC-008,Meter Problem,The meter has an incorrect meter reading.,False,Meter Problem,low
+TC-009,New Connection Request,I want to apply for a new water connection.,False,New Connection Request,low
+TC-010,Water Interruption,No supply for hours at the hospital. This is urgent.,False,Water Interruption,high
+TC-011,Water Interruption,Water outage for hours in our area.,False,Water Interruption,high
+TC-012,Low Water Pressure,Mahina ang tubig and it only comes out as a trickle.,False,Low Water Pressure,medium
+TC-013,Dirty / Discolored Water,Maruming tubig at may amoy since yesterday.,False,Dirty / Discolored Water,high
+TC-014,Water Leak,A water main break is affecting the entire street.,False,Water Leak,high
+TC-015,Billing Concern,Request for a copy of bill and payment receipt.,False,Billing Concern,low
+TC-016,Water Leak,"The leaking pipe is getting worse, but there is no flooding.",False,Water Leak,medium
+TC-017,Dirty / Discolored Water,Brown water is coming from the school faucets.,False,Dirty / Discolored Water,medium
+TC-018,Water Interruption,We have been without water for two days and an elderly resident is affected.,False,Water Interruption,high
+TC-019,Other,I have a customer service question and need information.,False,Other,low
+TC-020,Low Water Pressure,"Low pressure, but it is not dangerous and there is no emergency.",False,Low Water Pressure,medium
+TC-021,Meter Problem,There is no flooding. I only have a meter question.,False,Meter Problem,low
+TC-022,Billing Concern,My payment is not reflected in the account balance.,False,Billing Concern,low
+TC-023,Meter Problem,The water meter is broken and not moving.,True,Meter Problem,medium
+TC-024,Other,A burst pipe is flooding the entire street.,False,Water Leak,high
+TC-025,Billing Concern,There is no water in the whole barangay since yesterday.,False,Water Interruption,high

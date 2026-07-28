@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
-import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
+import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 
 function timeAgo(iso) {
@@ -30,17 +30,10 @@ export default function AllComplaintsPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const restoreComplaint = useComplaintStore(s => s.restoreComplaint)
-  const reclassifyAllComplaints = useComplaintStore(s => s.reclassifyAllComplaints)
-
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('pending')
   const [filterPriority, setFilterPriority] = useState('all')
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('score')
-  const [restoringId, setRestoringId] = useState(null)
-  const [actionError, setActionError] = useState('')
-  const [reclassifying, setReclassifying] = useState(false)
-  const [reclassifyMessage, setReclassifyMessage] = useState('')
+  const [sortBy, setSortBy] = useState('priority_date')
   const [page, setPage] = useState(1)
   const pageSize = 12
 
@@ -49,13 +42,16 @@ export default function AllComplaintsPage() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     return complaints
-      .filter(c => filterStatus === 'all' || c.status === filterStatus)
+      .filter(c => filterStatus === 'all' ||
+        (filterStatus === 'in_progress' ? ['en_route', 'in_progress'].includes(c.status) : c.status === filterStatus))
       .filter(c => filterPriority === 'all' || c.priority === filterPriority)
       .filter(c => !query || [
-        c.id, c.complaint_type, c.description, c.customer_name,
+        c.reference_number, c.complaint_type, c.description, c.customer_name,
         c.address, c.assigned_name, c.status, c.rejection_reason,
       ].some(value => String(value || '').toLowerCase().includes(query)))
-      .sort((a, b) => sortBy === 'score'
+      .sort((a, b) => sortBy === 'priority_date'
+        ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || new Date(b.created_at) - new Date(a.created_at)
+        : sortBy === 'score'
         ? b.priority_score - a.priority_score || new Date(b.created_at) - new Date(a.created_at)
         : sortBy === 'priority'
           ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || b.priority_score - a.priority_score
@@ -66,35 +62,8 @@ export default function AllComplaintsPage() {
               : new Date(b.created_at) - new Date(a.created_at))
   }, [complaints, filterStatus, filterPriority, search, sortBy])
 
-  useEffect(() => { setPage(1) }, [filterStatus, filterPriority, search, sortBy])
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
-
-  const handleRestore = async (event, complaint) => {
-    event.stopPropagation()
-    setRestoringId(complaint.id)
-    setActionError('')
-    try {
-      await restoreComplaint(complaint.id)
-    } catch (err) {
-      setActionError(err.message)
-    } finally {
-      setRestoringId(null)
-    }
-  }
-
-  const handleReclassifyAll = async () => {
-    setReclassifying(true)
-    setActionError('')
-    setReclassifyMessage('')
-    try {
-      const result = await reclassifyAllComplaints()
-      setReclassifyMessage(`Classifier updated ${result.updated} complaint${result.updated === 1 ? '' : 's'}${result.failed ? `; ${result.failed} failed` : ''}.`)
-    } catch (err) {
-      setActionError(err.message)
-    } finally {
-      setReclassifying(false)
-    }
-  }
+  const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
 
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
 
@@ -103,7 +72,7 @@ export default function AllComplaintsPage() {
       <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin · Records</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Records</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">All Complaints</h1>
           </div>
           <div className="text-right">
@@ -113,33 +82,28 @@ export default function AllComplaintsPage() {
         </div>
       </div>
 
-      {(error || actionError) && <ErrorBanner message={actionError || error} onRetry={fetchComplaints} />}
-      {reclassifyMessage && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">{reclassifyMessage}</div>}
+      {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
 
       <div className="card rounded-xl p-4 space-y-3">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input name="allcomplaintspage-search-id-complaint-customer-address-status-or-technician-1" aria-label="Search ID, complaint, customer, address, status or technician..." type="text" placeholder="Search ID, complaint, customer, address, status or technician..."
+          <input name="allcomplaintspage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." type="text" placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
             value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-9 rounded-lg" />
         </div>
         <div className="flex flex-wrap gap-2 items-center justify-between">
           <div className="flex gap-1 flex-wrap">
-            {[['all','All'], ['pending','Pending'], ['assigned','Assigned'], ['en_route','En Route'], ['in_progress','On Site'], ['blocked','Needs Attention'], ['completed','Done'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, l]) => (
+            {[['pending','Pending'], ['all','All'], ['assigned','Assigned'], ['in_progress','In Progress'], ['blocked','Needs Attention'], ['completed','Completed'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, l]) => (
               <button key={v} onClick={() => setFilterStatus(v)}
                 className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                 style={filterStatus === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>{l}</button>
             ))}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            <button onClick={handleReclassifyAll} disabled={reclassifying}
-              className="inline-flex items-center gap-2 text-xs border border-navy-200 px-3 py-1.5 text-navy-700 bg-navy-50 font-bold rounded-full hover:bg-navy-100 disabled:opacity-50">
-              {reclassifying ? <><Spinner className="w-3.5 h-3.5 border-2 border-navy-700" /> Classifying...</> : '↻ Classify Existing'}
-            </button>
             <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="all">Any Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
             </select>
             <select name="allcomplaintspage-sort-by-3" aria-label="Sort By" value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
-              <option value="score">Score</option><option value="priority">Priority</option><option value="type">Type A–Z</option><option value="date">Newest</option><option value="oldest">Oldest</option>
+              <option value="priority_date">Priority, then Date</option><option value="score">Score</option><option value="priority">Priority</option><option value="type">Type A–Z</option><option value="date">Newest</option><option value="oldest">Oldest</option>
             </select>
           </div>
         </div>
@@ -165,24 +129,18 @@ export default function AllComplaintsPage() {
                 <td className="px-4 py-3">
                   <p className="font-bold text-gray-900 truncate">{c.complaint_type}</p>
                   <p className="text-xs text-gray-400 truncate">{c.description}</p>
-                  <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{c.id}</p>
+                  <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{c.reference_number}</p>
                   {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
                 </td>
                 <td className="px-4 py-3 text-gray-700 truncate">{c.customer_name}</td>
                 <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
                 <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                <td className="px-4 py-3 text-gray-500 truncate">{c.assigned_name || '—'}</td>
+                <td className="px-4 py-3 text-gray-500"><p className="truncate">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{timeAgo(c.created_at)}</td>
                 <td className="px-4 py-3 pr-5">
-                  {c.status === 'rejected' ? (
-                    <button onClick={e => handleRestore(e, c)} disabled={restoringId === c.id} className={TABLE_ACTION_CLASS}>
-                      {restoringId === c.id ? <Spinner className="w-3.5 h-3.5 border-2 border-white" /> : 'Restore'}
-                    </button>
-                  ) : (
-                    <button onClick={e => { e.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
-                      Open
-                    </button>
-                  )}
+                  <button onClick={e => { e.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
+                    Open
+                  </button>
                 </td>
               </tr>
             ))}
@@ -196,6 +154,7 @@ export default function AllComplaintsPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-bold text-gray-900">{c.complaint_type}</p>
+                <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{c.reference_number}</p>
                 <p className="text-xs text-gray-500 mt-1">{c.customer_name} · {timeAgo(c.created_at)}</p>
                 <p className="text-xs text-gray-400 truncate mt-1">📍 {c.address}</p>
               </div>
@@ -205,7 +164,6 @@ export default function AllComplaintsPage() {
             {c.status === 'rejected' && (
               <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg">
                 <p className="text-xs text-red-700"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>
-                <button onClick={e => handleRestore(e, c)} disabled={restoringId === c.id} className="mt-2 text-xs font-bold text-navy-700">↶ Undo Rejection</button>
               </div>
             )}
             <p className="text-xs font-bold text-navy-600 mt-3">View complete details →</p>
@@ -213,7 +171,7 @@ export default function AllComplaintsPage() {
         ))}
       </div>
 
-      <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
+      <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
     </div>
   )
 }

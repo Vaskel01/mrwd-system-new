@@ -4,9 +4,9 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 
 ## Prerequisites
 
-1. Run every required migration listed in `supabase/README.md`, ending with `complete-workflow-features.sql`.
+1. Run every required migration listed in `supabase/README.md`, ending with `migrations/20260728152348_complaint_workflow_polish.sql`.
 2. Create one customer, two maintenance accounts, and one admin.
-3. Give one technician `Available` status and the other `On Leave`.
+3. Give one Maintenance Personnel account `Available` status and the other `On Leave`.
 4. Keep browser developer tools open to record unexpected API errors.
 
 ## Customer workflow
@@ -19,11 +19,13 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | C-04 | Edit a pending complaint | Type, description, and address update successfully. |
 | C-05 | Cancel a pending complaint with a reason | Status becomes Cancelled and the reason remains visible. |
 | C-06 | Try to edit or cancel after assignment | Action is unavailable and the API rejects a direct attempt. |
-| C-07 | Search and paginate My Reports | Correct matching records and page counts appear. |
-| C-08 | Print complaint receipt | Print preview omits navigation and includes complaint details/timeline. |
-| C-09 | Reopen a completed complaint | Complaint returns to Pending and admins receive a notification. |
-| C-10 | Submit feedback | One rating/comment is saved; duplicate feedback is rejected. |
-| C-11 | Inspect the complaint API response | No priority score, keywords, confidence, sentiment, or predicted category is exposed. |
+| C-07 | Search and paginate My Complaints | Correct matching records and page counts appear. |
+| C-08 | Update account number, phone, service address, and barangay | My Profile saves and reloads the updated customer information. |
+| C-09 | Acknowledge a completed complaint | Confirmation date is saved, shown in details, added to the timeline, and visible to staff. |
+| C-10 | Print complaint receipt | Print preview omits navigation and includes complaint details/timeline. |
+| C-11 | Reopen a completed complaint | Complaint returns to Pending and admins receive a notification. |
+| C-12 | Submit feedback | One rating/comment is saved; duplicate feedback is rejected. |
+| C-13 | Inspect the complaint API response | No priority score, keywords, confidence, sentiment, or predicted category is exposed. |
 
 ## Administrator workflow
 
@@ -33,14 +35,17 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | A-02 | Deactivate staff with no active task | Login is blocked until the account is reactivated. |
 | A-03 | Deactivate staff with an active task | System refuses and asks the admin to reassign active tasks first. |
 | A-04 | Send staff password reset | Staff receives a reset email; action appears in the audit log. |
-| A-05 | Assign a complaint | Exactly one current task exists; customer and technician are notified. |
-| A-06 | Reassign the complaint | Old task becomes historical/inactive, new technician gets the current task, old technician loses active access. |
+| A-05 | Assign a complaint | Exactly one current task exists; the Customer and assigned Maintenance Personnel are notified. |
+| A-06 | Reassign the complaint | The old task becomes historical/inactive, the newly assigned Maintenance Personnel receives the current task, and the previous assignee loses active access. |
 | A-07 | Reject and undo rejection | Reason is required; customer sees it; restore returns to Pending or Assigned correctly. |
 | A-08 | Open Assign Tasks on laptop width | Action column remains visible; horizontal scrolling does not clip buttons. |
 | A-09 | Open Reports and export CSV | Counts match records and CSV opens with correct columns. |
 | A-10 | Print Reports | Browser print/save-PDF produces a readable report without navigation. |
 | A-11 | Open Audit Log | Assignment, reassignment, rejection, staff, completion, and feedback actions are recorded. |
-| A-12 | Review classifier | Full evidence is visible only to admin accounts. |
+| A-12 | Override a priority score with a reason | Operational score changes, classifier score remains visible, manual override is clearly labeled, and audit details contain previous/new values and reason. |
+| A-13 | Restore the classifier priority | Operational priority returns to the stored classifier score and the reset is audited. |
+| A-14 | Mark an announcement important | Important notice is pinned above regular notices for every role; unpinning restores normal date ordering. |
+| A-15 | Review classifier | Full evidence is visible only to admin accounts. |
 
 ## Maintenance workflow
 
@@ -49,16 +54,16 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | M-01 | Open My Tasks on laptop width | One `Open Task` button remains fully visible in every row. |
 | M-01B | View an assigned task created by a real customer account | The customer name appears instead of `Unknown` when the profile exists. |
 | M-02 | Acknowledge a task | Acknowledgement date and timeline entry appear. |
-| M-03 | Move Assigned → En Route → On Site | Only valid next steps are accepted; invalid transitions are rejected. |
+| M-03 | Move Assigned → In Progress | The unified progress transition is accepted; invalid transitions are rejected. Existing `en_route` records remain readable as In Progress. |
 | M-04 | Save ETA and materials | Customer/admin details show the saved plan and timeline entry. |
 | M-05 | Complete without notes/photo | Submission is blocked. |
 | M-06 | Complete with notes, materials, and photo | Status becomes Completed and completion report/proof appear in details. |
 | M-07 | Request additional assistance | Admin is notified and reason is visible without closing the assignment. |
 | M-08 | Request reassignment | Task becomes Needs Attention; admin can reassign it. |
 | M-09 | Report cannot complete | Task becomes Needs Attention and the reason is logged. |
-| M-10 | Set On Leave in My Profile | Admin sees the availability and cannot select that technician for new assignment. |
+| M-10 | Set On Leave in My Profile | The Administrator sees the availability and cannot select that Maintenance Personnel account for a new assignment. |
 | M-11 | Inspect complaint API response | Final category/priority are visible, but score, keywords, confidence, and reasoning are absent. |
-| M-12 | View completed feedback | Assigned technician sees customer rating/comment or a clear empty state. |
+| M-12 | View completed feedback | Assigned Maintenance Personnel sees the customer rating/comment or a clear empty state. |
 
 ## Data integrity checks
 

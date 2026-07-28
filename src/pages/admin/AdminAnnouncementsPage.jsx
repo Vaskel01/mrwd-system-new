@@ -45,6 +45,7 @@ const schema = z.object({
   title:    z.string().min(5, 'Title must be at least 5 characters'),
   content:  z.string().min(20, 'Content must be at least 20 characters'),
   category: z.string().min(1, 'Select a category'),
+  is_important: z.boolean(),
 })
 
 export default function AdminAnnouncementsPage() {
@@ -54,6 +55,7 @@ export default function AdminAnnouncementsPage() {
   const error               = useAnnouncementStore(s => s.error)
   const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const postAnnouncement   = useAnnouncementStore(s => s.postAnnouncement)
+  const setAnnouncementImportance = useAnnouncementStore(s => s.setAnnouncementImportance)
   const deleteAnnouncement = useAnnouncementStore(s => s.deleteAnnouncement)
 
   useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
@@ -67,7 +69,7 @@ export default function AdminAnnouncementsPage() {
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', content: '', category: '' },
+    defaultValues: { title: '', content: '', category: '', is_important: false },
   })
 
   const watchedCategory = watch('category')
@@ -103,7 +105,18 @@ export default function AdminAnnouncementsPage() {
     }
   }
 
-  const sorted = [...announcements].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const handleImportance = async announcement => {
+    try {
+      await setAnnouncementImportance(announcement.id, !announcement.is_important)
+      showToast(announcement.is_important ? 'Announcement unmarked as important.' : 'Announcement marked as important.')
+    } catch (err) {
+      showToast(err.message)
+    }
+  }
+
+  const sorted = [...announcements].sort((a, b) =>
+    Number(Boolean(b.is_important)) - Number(Boolean(a.is_important)) ||
+    new Date(b.created_at) - new Date(a.created_at))
 
   if (loading && announcements.length === 0) {
     return <PageLoader label="Loading announcements..." />
@@ -113,7 +126,7 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
-        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin</p>
+        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>
           <button onClick={() => setShowForm(v => !v)}
@@ -172,6 +185,10 @@ export default function AdminAnnouncementsPage() {
                 className={`input-field resize-none ${errors.content ? 'input-error' : ''}`} />
               {errors.content && <p className="mt-1 text-xs text-red-600">{errors.content.message}</p>}
             </div>
+            <label className="flex items-start gap-3 rounded-lg border border-gold-200 bg-gold-50 p-3 cursor-pointer">
+              <input type="checkbox" {...register('is_important')} className="mt-0.5 h-4 w-4 accent-amber-500" />
+              <span><span className="block text-sm font-bold text-navy-900">Mark as important</span><span className="block text-xs text-gray-500 mt-0.5">Pins this notice above regular announcements for every user.</span></span>
+            </label>
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={posting}
                 className="btn-primary flex items-center gap-2">
@@ -191,14 +208,14 @@ export default function AdminAnnouncementsPage() {
           description='Click "New Post" to publish one.' />
       ) : (
         <div className="space-y-2">
-          {sorted.map((a, i) => (
+          {sorted.map(a => (
             <div key={a.id} className="card rounded-xl overflow-hidden">
               <div className={`h-1 ${CAT_STRIPE[a.category] || 'bg-gray-300'}`} />
               <div className="p-4 sm:p-5">
                 <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      {i === 0 && <span className="text-xs font-black text-brand-700 bg-brand-100 px-2 py-0.5 uppercase tracking-widest">Latest</span>}
+                      {a.is_important && <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Important</span>}
                       <h2 className="font-black text-gray-900 text-sm tracking-tight">{a.title}</h2>
                       <CategoryBadge category={a.category} />
                     </div>
@@ -208,8 +225,12 @@ export default function AdminAnnouncementsPage() {
                     </p>
                   </div>
 
-                  {/* Delete control */}
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex items-center gap-1">
+                    <button onClick={() => handleImportance(a)}
+                      title={a.is_important ? 'Remove important pin' : 'Mark as important'}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-bold border ${a.is_important ? 'border-gold-300 bg-gold-50 text-navy-800' : 'border-gray-200 text-gray-500 hover:border-gold-300'}`}>
+                      {a.is_important ? 'Unpin' : 'Important'}
+                    </button>
                     <button onClick={() => setConfirmDelete(a)}
                       className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

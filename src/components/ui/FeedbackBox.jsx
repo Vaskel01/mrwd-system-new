@@ -55,8 +55,6 @@ export default function FeedbackBox({ complaintId }) {
 
   useEffect(() => {
     let cancelled = false
-    setExisting(undefined)
-    setLoadError('')
     fetchFeedback(complaintId)
       .then(data => { if (!cancelled) setExisting(data) })
       .catch(err => {

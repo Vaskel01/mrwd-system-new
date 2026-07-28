@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 
 const ROLE_HOME = {
-  customer:    '/customer/submit',
+  customer:    '/customer/my-complaints',
   admin:       '/admin/dashboard',
   maintenance_personnel: '/maintenance/tasks',
 }
@@ -39,7 +39,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   })
 
@@ -111,7 +111,7 @@ export default function LoginPage() {
         {/* Bottom quote */}
         <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
           <p className="text-white/90 text-sm italic leading-relaxed">
-            "We built this system so every resident can easily reach us — no more long lines, no more lost reports."
+            "We built this system so every customer can easily reach us — no more long lines, no more lost complaints."
           </p>
           <p className="text-gold-300 text-xs font-semibold mt-2">— Metro Roxas Water District Administration</p>
         </div>

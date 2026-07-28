@@ -93,8 +93,17 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
+  acknowledgeCompletion: async (complaintId, note = '') => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/acknowledge-completion`, {
+      method: 'PATCH',
+      body: JSON.stringify({ note: note || undefined }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
+  },
+
   // Assign complaint to maintenance (admin only). notes is optional —
-  // instructions for the crew, shown on their task and logged to the timeline.
+  // instructions for Maintenance Personnel, shown on the task and timeline.
   assignComplaint: async (complaintId, staffId, notes) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/assign`, {
       method: 'PATCH',
@@ -103,6 +112,19 @@ export const useComplaintStore = create((set, get) => ({
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
+  },
+
+  overridePriority: async (complaintId, { score, reason, resetToAlgorithm = false }) => {
+    const { complaint } = await apiFetch(`/complaints/${complaintId}/priority`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        score: resetToAlgorithm ? undefined : score,
+        reason,
+        reset_to_algorithm: resetToAlgorithm,
+      }),
+    })
+    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
+    return complaint
   },
 
   // Update complaint status (admin or assigned maintenance staff).
@@ -149,7 +171,7 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
-  // Bulk-assign several complaints to one crew member at once (admin only)
+  // Bulk-assign several complaints to one Maintenance Personnel account.
   bulkAssign: async (complaintIds, staffId, notes) => {
     const result = await apiFetch('/complaints/bulk-assign', {
       method: 'POST',

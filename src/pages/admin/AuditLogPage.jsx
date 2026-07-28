@@ -23,6 +23,12 @@ const DETAIL_LABELS = {
   materials_used: 'Materials used',
   previous_status: 'Previous status',
   new_status: 'New status',
+  previous_score: 'Previous score',
+  previous_priority: 'Previous priority',
+  previous_was_overridden: 'Previous override active',
+  algorithm_score: 'Classifier score',
+  new_score: 'New operational score',
+  new_priority: 'New operational priority',
 }
 
 const PROFILE_DETAIL_KEYS = new Set([
@@ -221,7 +227,20 @@ export default function AuditLogPage() {
   }
 
   useEffect(() => {
-    load()
+    let active = true
+    apiFetch('/audit?limit=500')
+      .then(response => {
+        if (!active) return
+        setLogs(response.logs || [])
+        setProfileDirectory(response.profiles || {})
+      })
+      .catch(err => {
+        if (active) setError(err.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
   }, [])
 
   const filtered = useMemo(() => {
@@ -245,9 +264,8 @@ export default function AuditLogPage() {
     })
   }, [logs, profileDirectory, search])
 
-  useEffect(() => setPage(1), [search])
-
-  const shown = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const shown = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
 
   if (loading && logs.length === 0) return <PageLoader label="Loading audit history..." />
 
@@ -256,7 +274,7 @@ export default function AuditLogPage() {
       <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Admin · Accountability</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Administrator · Accountability</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Audit Log</h1>
             <p className="text-navy-300 text-sm mt-1">Who performed each important complaint, task, and staff action.</p>
           </div>
@@ -267,11 +285,11 @@ export default function AuditLogPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="card rounded-xl p-4">
-        <input name="auditlogpage-search-actor-action-complaint-id-staff-member-or-details-1" aria-label="Search actor, action, complaint ID, staff member, or details..."
+        <input name="auditlogpage-search-actor-action-complaint-reference-user-or-details-1" aria-label="Search actor, action, complaint reference, user, or details..."
           value={search}
           onChange={event => setSearch(event.target.value)}
           className="input-field rounded-lg"
-          placeholder="Search actor, action, complaint ID, staff member, or details..."
+          placeholder="Search actor, action, complaint reference, user, or details..."
         />
       </div>
 
@@ -333,7 +351,7 @@ export default function AuditLogPage() {
       </div>
 
       <Pagination
-        page={page}
+        page={effectivePage}
         pageSize={pageSize}
         total={filtered.length}
         onPageChange={setPage}

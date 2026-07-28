@@ -37,7 +37,9 @@ export default function AnnouncementsPage() {
 
   useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
 
-  const sorted = [...announcements].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const sorted = [...announcements].sort((a, b) =>
+    Number(Boolean(b.is_important)) - Number(Boolean(a.is_important)) ||
+    new Date(b.created_at) - new Date(a.created_at))
   const filtered = activeCategory === 'all' ? sorted : sorted.filter(a => a.category === activeCategory)
   const categories = ['all', ...new Set(announcements.map(a => a.category))]
 
@@ -60,8 +62,8 @@ export default function AnnouncementsPage() {
     )
   }
 
-  const latest = sorted[0]
-  const rest   = filtered.slice(filtered[0]?.id === latest.id ? 1 : 0)
+  const important = filtered.filter(item => item.is_important)
+  const rest = filtered.filter(item => !item.is_important)
 
   return (
     <div className="space-y-5">
@@ -79,25 +81,25 @@ export default function AnnouncementsPage() {
         </div>
       </div>
 
-      {/* Latest — pinned, featured */}
-      {(activeCategory === 'all' || latest.category === activeCategory) && (
-        <div className="card rounded-xl border-2 border-gold-400 mb-5 overflow-hidden">
-          <div className={`h-1.5 ${CAT_CONFIG[latest.category]?.bar || 'bg-gray-400'}`} />
+      {/* Explicitly important notices — pinned and featured */}
+      {important.map(item => (
+        <div key={item.id} className="card rounded-xl border-2 border-gold-400 overflow-hidden">
+          <div className={`h-1.5 ${CAT_CONFIG[item.category]?.bar || 'bg-gray-400'}`} />
           <div className="p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Latest</span>
-              <CategoryPill category={latest.category} />
+              <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Important</span>
+              <CategoryPill category={item.category} />
             </div>
-            <h2 className="font-black text-gray-900 text-base sm:text-lg tracking-tight mb-2 leading-snug">{latest.title}</h2>
-            <p className="text-sm text-gray-600 leading-relaxed mb-4">{latest.content}</p>
+            <h2 className="font-black text-gray-900 text-base sm:text-lg tracking-tight mb-2 leading-snug">{item.title}</h2>
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">{item.content}</p>
             <div className="flex items-center gap-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
-              <span className="font-semibold text-gray-600">{latest.created_by_name}</span>
+              <span className="font-semibold text-gray-600">{item.created_by_name}</span>
               <span>·</span>
-              <span>{timeAgo(latest.created_at)}</span>
+              <span>{timeAgo(item.created_at)}</span>
             </div>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Category filter */}
       {categories.length > 2 && (
@@ -141,8 +143,8 @@ export default function AnnouncementsPage() {
             </div>
           )
         })}
-        {rest.length === 0 && filtered.length <= 1 && activeCategory !== 'all' && (
-          <p className="text-sm text-gray-400 text-center py-8">No other announcements in this category.</p>
+        {rest.length === 0 && important.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-8">No announcements in this category.</p>
         )}
       </div>
     </div>

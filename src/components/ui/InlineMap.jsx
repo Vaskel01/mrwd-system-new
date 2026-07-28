@@ -86,7 +86,7 @@ export default function InlineMap({ lat, lng, accuracy, height = 200 }) {
     return () => {
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
     }
-  }, [lat, lng])
+  }, [lat, lng, accuracy])
 
   if (!lat || !lng) return null
 

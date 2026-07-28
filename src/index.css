@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keep Leaflet's panes inside page content so application dialogs always
+   remain above maps. */
+.leaflet-container {
+  position: relative;
+  z-index: 0 !important;
+  isolation: isolate;
+}
+
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
 

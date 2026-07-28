@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Spinner } from './Feedback'
 
 export default function RejectionDialog({
@@ -12,21 +12,22 @@ export default function RejectionDialog({
 }) {
   const [reason, setReason] = useState('')
 
-  useEffect(() => {
-    if (open) setReason('')
-  }, [open])
-
   if (!open) return null
 
   const submit = () => {
     const trimmed = reason.trim()
     if (trimmed.length < 3 || loading) return
-    onConfirm(trimmed)
+    Promise.resolve(onConfirm(trimmed)).then(() => setReason(''))
+  }
+
+  const cancel = () => {
+    setReason('')
+    onCancel()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={loading ? undefined : onCancel} />
+      <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={loading ? undefined : cancel} />
       <div className="relative bg-white w-full max-w-md shadow-2xl rounded-xl overflow-hidden">
         <div className="p-6">
           <h3 className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
@@ -49,7 +50,7 @@ export default function RejectionDialog({
           </div>
         </div>
         <div className="flex gap-3 p-4 border-t border-gray-100 bg-gray-50">
-          <button onClick={onCancel} disabled={loading}
+          <button onClick={cancel} disabled={loading}
             className="flex-1 py-2.5 text-sm font-bold text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors rounded-lg">
             Cancel
           </button>

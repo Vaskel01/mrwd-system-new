@@ -1,6 +1,6 @@
 {
   "dataset_name": "MRWD Complaint Keyword Classification Dataset",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "created_for": "MRWD Centralized Complaint Management and Maintenance Task Assignment System",
   "classification_outputs": [
     "predicted complaint category",
@@ -28,6 +28,8 @@
     {
       "id": "KW-002",
       "term": "no water",
+      "synonyms": ["water unavailable", "water supply stopped", "dry faucets"],
+      "suggestive_phrases": ["nothing comes out of the faucet", "we cannot get any water", "there is nothing coming from the tap"],
       "match_type": "phrase",
       "complaint_category": "Water Interruption",
       "category_weight": 9,
@@ -208,6 +210,8 @@
     {
       "id": "KW-014",
       "term": "burst pipe",
+      "synonyms": ["ruptured pipe", "broken water line", "pipe blowout"],
+      "suggestive_phrases": ["water is gushing from the pipe", "the road is filling with water from a line"],
       "match_type": "phrase",
       "complaint_category": "Water Leak",
       "category_weight": 10,
@@ -478,6 +482,8 @@
     {
       "id": "KW-032",
       "term": "brown water",
+      "synonyms": ["rust colored water", "muddy water", "discolored water"],
+      "suggestive_phrases": ["the water looks like tea", "the water changed color", "the water is not clear"],
       "match_type": "phrase",
       "complaint_category": "Dirty / Discolored Water",
       "category_weight": 9,
@@ -688,6 +694,8 @@
     {
       "id": "KW-046",
       "term": "low pressure",
+      "synonyms": ["weak water flow", "poor water pressure", "reduced pressure"],
+      "suggestive_phrases": ["water only trickles from the faucet", "the flow is weaker than usual", "barely any water comes out"],
       "match_type": "phrase",
       "complaint_category": "Low Water Pressure",
       "category_weight": 9,
@@ -808,6 +816,8 @@
     {
       "id": "KW-054",
       "term": "incorrect meter reading",
+      "synonyms": ["wrong meter reading", "inaccurate meter reading", "meter reading error"],
+      "suggestive_phrases": ["the meter keeps moving when everything is closed", "the reading does not match our usage"],
       "match_type": "phrase",
       "complaint_category": "Meter Problem",
       "category_weight": 10,
@@ -1003,6 +1013,8 @@
     {
       "id": "KW-067",
       "term": "incorrect bill",
+      "synonyms": ["wrong bill amount", "billing error", "inaccurate charge"],
+      "suggestive_phrases": ["my bill suddenly increased without explanation", "the amount due does not match my usage"],
       "match_type": "phrase",
       "complaint_category": "Billing Concern",
       "category_weight": 10,
@@ -1258,6 +1270,8 @@
     {
       "id": "KW-084",
       "term": "new connection",
+      "synonyms": ["new water service", "service connection application", "water line application"],
+      "suggestive_phrases": ["i want water service installed", "how can i connect my house to the water line"],
       "match_type": "phrase",
       "complaint_category": "New Connection Request",
       "category_weight": 9,

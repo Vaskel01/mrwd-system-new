@@ -9,7 +9,7 @@ import { ErrorBanner } from '../../components/ui/Feedback'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
-  description:    z.string().min(20, 'Please describe the issue in at least 20 characters'),
+  description:    z.string().trim().min(1, 'Describe the issue before continuing'),
   address:        z.string().min(10, 'Enter the full address or location'),
 })
 
@@ -31,6 +31,12 @@ function PinMap({ lat, lng, onPinChange }) {
   const mapRef = useRef(null)
   const leafletMap = useRef(null)
   const markerRef = useRef(null)
+  const initialPositionRef = useRef({ lat, lng })
+  const onPinChangeRef = useRef(onPinChange)
+
+  useEffect(() => {
+    onPinChangeRef.current = onPinChange
+  }, [onPinChange])
 
   useEffect(() => {
     // Load Leaflet CSS
@@ -46,10 +52,11 @@ function PinMap({ lat, lng, onPinChange }) {
     const initMap = () => {
       if (leafletMap.current || !mapRef.current) return
       const L = window.L
-      const initLat = lat || 11.5869  // Roxas City default
-      const initLng = lng || 122.7511
+      const initialPosition = initialPositionRef.current
+      const initLat = initialPosition.lat || 11.5869  // Roxas City default
+      const initLng = initialPosition.lng || 122.7511
 
-      const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false }).setView([initLat, initLng], lat ? 16 : 12)
+      const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false }).setView([initLat, initLng], initialPosition.lat ? 16 : 12)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors', maxZoom: 19,
       }).addTo(map)
@@ -60,11 +67,11 @@ function PinMap({ lat, lng, onPinChange }) {
         iconSize: [28, 28], iconAnchor: [14, 28], className: '',
       })
 
-      if (lat && lng) {
-        const m = L.marker([lat, lng], { draggable: true, icon }).addTo(map)
+      if (initialPosition.lat && initialPosition.lng) {
+        const m = L.marker([initialPosition.lat, initialPosition.lng], { draggable: true, icon }).addTo(map)
         m.on('dragend', () => {
           const { lat: la, lng: lo } = m.getLatLng()
-          reverseGeocode(la, lo, onPinChange)
+          reverseGeocode(la, lo, onPinChangeRef.current)
         })
         markerRef.current = m
       }
@@ -77,11 +84,11 @@ function PinMap({ lat, lng, onPinChange }) {
           const m = L.marker([la, lo], { draggable: true, icon }).addTo(map)
           m.on('dragend', () => {
             const { lat: la2, lng: lo2 } = m.getLatLng()
-            reverseGeocode(la2, lo2, onPinChange)
+            reverseGeocode(la2, lo2, onPinChangeRef.current)
           })
           markerRef.current = m
         }
-        reverseGeocode(la, lo, onPinChange)
+        reverseGeocode(la, lo, onPinChangeRef.current)
       })
 
       leafletMap.current = map
@@ -240,8 +247,8 @@ export default function SubmitComplaintPage() {
 
             <div className="text-left rounded-lg border border-gray-100 divide-y divide-gray-100 mb-6 text-sm">
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ref ID</span>
-                <span className="font-mono text-xs text-gray-700">{submitted.id}</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Complaint Reference</span>
+                <span className="font-mono text-xs font-bold text-gray-700">{submitted.reference_number}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Complaint Type</span>
@@ -256,7 +263,7 @@ export default function SubmitComplaintPage() {
                 </div>
               )}
             </div>
-            <button onClick={() => setSubmitted(null)} className="btn-primary w-full">File Another Report</button>
+            <button onClick={() => setSubmitted(null)} className="btn-primary w-full">Submit Another Complaint</button>
           </div>
         </div>
       </div>
@@ -271,7 +278,7 @@ export default function SubmitComplaintPage() {
           <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
         </svg>
         <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
-        <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">File a Report</h1>
+        <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">Submit a Complaint</h1>
         <p className="relative text-navy-300 text-sm mt-1">Provide the issue details so the MRWD team can review and respond.</p>
       </div>
 
@@ -330,7 +337,7 @@ export default function SubmitComplaintPage() {
               <div>
                 <div className="flex justify-between mb-1.5">
                   <label className="text-sm font-bold text-gray-700">Details <span className="text-red-500">*</span></label>
-                  <span className="text-xs text-gray-400 font-mono">{watchedDesc?.length || 0} / 20 min</span>
+                  <span className="text-xs text-gray-400">No character limit</span>
                 </div>
                 <textarea aria-label="Description" rows={5} placeholder="When did it start? How bad is it? Who is affected?"
                   {...register('description')}
@@ -529,7 +536,7 @@ export default function SubmitComplaintPage() {
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(2)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>
               <button type="submit" disabled={submitting} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
-                {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Submitting...</> : 'Submit Report →'}
+                {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Submitting...</> : 'Submit Complaint →'}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 {
-  "classifierVersion": "hybrid-sentiment-v1.1.0",
+  "classifierVersion": "hybrid-sentiment-v1.2.0",
   "classificationMethod": "Hybrid sentiment-aware dataset-backed priority scoring algorithm",
   "typeScores": {
     "Water Interruption": 40,

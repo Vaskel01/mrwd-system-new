@@ -50,7 +50,7 @@ export default function RegisterPage() {
       if (result.requiresEmailConfirmation) {
         setConfirmSent(true)
       } else {
-        navigate('/customer/submit', { replace: true })
+        navigate('/customer/my-complaints', { replace: true })
       }
     } catch (err) {
       setError(err.message)
@@ -109,7 +109,7 @@ export default function RegisterPage() {
 
         <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
           <p className="text-white/90 text-sm italic leading-relaxed">
-            "We built this system so every resident can easily reach us — no more long lines, no more lost reports."
+            "We built this system so every customer can easily reach us — no more long lines, no more lost complaints."
           </p>
           <p className="text-gold-300 text-xs font-semibold mt-2">— Metro Roxas Water District Administration</p>
         </div>

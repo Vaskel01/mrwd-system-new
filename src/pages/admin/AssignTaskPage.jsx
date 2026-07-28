@@ -29,7 +29,7 @@ const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded
 function matchesSearch(complaint, query) {
   if (!query) return true
   return [
-    complaint.id, complaint.complaint_type, complaint.description,
+    complaint.reference_number, complaint.complaint_type, complaint.description,
     complaint.customer_name, complaint.address, complaint.assigned_name,
     complaint.status, complaint.task_notes, complaint.rejection_reason,
   ].some(value => String(value || '').toLowerCase().includes(query))
@@ -85,12 +85,6 @@ export default function AssignTaskPage() {
       .catch(err => setStaffError(err.message))
   }, [])
 
-  useEffect(() => {
-    const staff = searchParams.get('staff') || 'all'
-    setStaffFilter(staff)
-    if (staff !== 'all') setView('active')
-  }, [searchParams])
-
   const counts = useMemo(() => ({
     all: complaints.length,
     unassigned: complaints.filter(c => queueFor(c) === 'unassigned').length,
@@ -103,7 +97,8 @@ export default function AssignTaskPage() {
     return complaints
       .filter(c => view === 'all' || queueFor(c) === view)
       .filter(c => priorityFilter === 'all' || c.priority === priorityFilter)
-      .filter(c => statusFilter === 'all' || c.status === statusFilter)
+      .filter(c => statusFilter === 'all' ||
+        (statusFilter === 'in_progress' ? ['en_route', 'in_progress'].includes(c.status) : c.status === statusFilter))
       .filter(c => staffFilter === 'all' || c.assigned_to === staffFilter)
       .filter(c => matchesSearch(c, query))
       .sort((a, b) => {
@@ -116,8 +111,8 @@ export default function AssignTaskPage() {
       })
   }, [complaints, view, priorityFilter, statusFilter, staffFilter, search, sortBy])
 
-  useEffect(() => { setPage(1) }, [view, priorityFilter, statusFilter, staffFilter, search, sortBy])
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
 
   const selectableRows = paged.filter(c => queueFor(c) === 'unassigned')
   const allSelectableChecked = selectableRows.length > 0 && selectableRows.every(c => checked.has(c.id))
@@ -255,7 +250,7 @@ export default function AssignTaskPage() {
       <div className="page-band wave-header rounded-2xl px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Admin · Dispatch</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Administrator · Dispatch</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Assign Tasks</h1>
             <p className="text-navy-300 text-sm mt-1">Manage the entire dispatch queue from one complaint-style list.</p>
           </div>
@@ -278,7 +273,7 @@ export default function AssignTaskPage() {
         {[
           ['unassigned', 'Unassigned', counts.unassigned, 'text-amber-600'],
           ['active', 'Active', counts.active, 'text-brand-600'],
-          ['resolved', 'Resolved', counts.resolved, 'text-green-600'],
+          ['resolved', 'Completed', counts.resolved, 'text-green-600'],
           ['all', 'All Records', counts.all, 'text-navy-800'],
         ].map(([value, label, count, color]) => (
           <button key={value} onClick={() => setView(value)}
@@ -294,8 +289,8 @@ export default function AssignTaskPage() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input name="assigntaskpage-search-id-complaint-customer-address-status-or-technician-1" aria-label="Search ID, complaint, customer, address, status or technician..." value={search} onChange={event => setSearch(event.target.value)}
-            placeholder="Search ID, complaint, customer, address, status or technician..."
+          <input name="assigntaskpage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." value={search} onChange={event => setSearch(event.target.value)}
+            placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
             className="input-field pl-9 rounded-lg" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
@@ -309,15 +304,14 @@ export default function AssignTaskPage() {
             <option value="all">Any Status</option>
             <option value="pending">Pending</option>
             <option value="assigned">Assigned</option>
-            <option value="en_route">En Route</option>
-            <option value="in_progress">On Site</option>
+            <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="blocked">Needs Attention</option>
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
           </select>
           <select name="assigntaskpage-staff-filter-4" aria-label="Staff Filter" value={staffFilter} onChange={event => changeStaffFilter(event.target.value)} className="input-field rounded-lg text-sm">
-            <option value="all">Any Technician</option>
+            <option value="all">Any Maintenance Personnel</option>
             {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
           </select>
           <select name="assigntaskpage-sort-by-5" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
@@ -325,7 +319,7 @@ export default function AssignTaskPage() {
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
             <option value="type">Type A–Z</option>
-            <option value="staff">Technician A–Z</option>
+            <option value="staff">Maintenance Personnel A–Z</option>
           </select>
           <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm col-span-2 lg:col-span-1">Reset Filters</button>
         </div>
@@ -394,13 +388,13 @@ export default function AssignTaskPage() {
                   <td className="px-3 py-3 align-top">
                     <p className="font-bold text-gray-900 truncate">{complaint.complaint_type}</p>
                     <p className="text-xs text-gray-400 truncate">{complaint.description}</p>
-                    <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{complaint.id}</p>
+                    <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{complaint.reference_number}</p>
                     {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
                   </td>
                   <td className="px-3 py-3 text-gray-700 align-top truncate">{complaint.customer_name}</td>
                   <td className="px-3 py-3 align-top"><PriorityBadge priority={complaint.priority} /></td>
                   <td className="px-3 py-3 align-top"><StatusBadge status={complaint.status} /></td>
-                  <td className="px-3 py-3 text-gray-500 align-top truncate">{complaint.assigned_name || 'Unassigned'}</td>
+                  <td className="px-3 py-3 text-gray-500 align-top"><p className="truncate">{complaint.assigned_name || 'Unassigned'}</p>{complaint.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(complaint.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
                   <td className="px-3 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(complaint.created_at)}</td>
                   <td className="px-3 py-3 pr-5 align-top">{renderActions(complaint)}</td>
                 </tr>
@@ -427,13 +421,14 @@ export default function AssignTaskPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900">{complaint.complaint_type}</p>
+                      <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{complaint.reference_number}</p>
                       <p className="text-xs text-gray-500 mt-1">{complaint.customer_name} · {timeAgo(complaint.created_at)}</p>
                       <p className="text-xs text-gray-400 truncate mt-1">📍 {complaint.address}</p>
                     </div>
                     <span className="font-display font-black text-2xl text-navy-800">{complaint.priority_score}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={complaint.priority} /><StatusBadge status={complaint.status} /></div>
-                  <p className="text-xs text-gray-500 mt-3">👷 {complaint.assigned_name || 'Not assigned'}</p>
+                  <p className="text-xs text-gray-500 mt-3">👷 {complaint.assigned_name || 'Not assigned'}{complaint.assigned_at ? ` · Assigned ${new Date(complaint.assigned_at).toLocaleDateString('en-PH')}` : ''}</p>
                   {complaint.status === 'rejected' && (
                     <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</div>
                   )}
@@ -445,7 +440,7 @@ export default function AssignTaskPage() {
         })}
       </div>
 
-      <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
+      <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
 
       {assignTarget && (
         <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={() => !assigning && setAssignTarget(null)}>
@@ -457,16 +452,16 @@ export default function AssignTaskPage() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Maintenance Staff</label>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Maintenance Personnel</label>
                 <select name="assigntaskpage-selected-staff-11" aria-label="Selected Staff" value={selectedStaff} onChange={event => setSelectedStaff(event.target.value)} className="input-field rounded-lg">
-                  <option value="">Select technician…</option>
+                  <option value="">Select Maintenance Personnel…</option>
                   {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Instructions</label>
-                <textarea name="assigntaskpage-optional-instructions-for-the-technician-12" aria-label="Optional instructions for the technician" value={assignNotes} onChange={event => setAssignNotes(event.target.value)} rows={4}
-                  placeholder="Optional instructions for the technician" className="input-field rounded-lg resize-none" />
+                <textarea name="assigntaskpage-optional-assignment-instructions-12" aria-label="Optional assignment instructions" value={assignNotes} onChange={event => setAssignNotes(event.target.value)} rows={4}
+                  placeholder="Optional instructions for Maintenance Personnel" className="input-field rounded-lg resize-none" />
               </div>
               <div className="flex justify-end gap-2">
                 <button onClick={() => setAssignTarget(null)} disabled={assigning} className="btn-secondary rounded-lg">Cancel</button>

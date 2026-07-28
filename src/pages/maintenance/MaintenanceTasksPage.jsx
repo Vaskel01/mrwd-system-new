@@ -6,15 +6,9 @@ import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 
-function timeAgo(iso) {
-  const value = iso ? new Date(iso).getTime() : Date.now()
-  const diff = Date.now() - value
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+function formatAssignedDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
@@ -28,7 +22,7 @@ const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded
 function matchesSearch(task, query) {
   if (!query) return true
   return [
-    task.id, task.complaint_type, task.description, task.address,
+    task.reference_number, task.complaint_type, task.description, task.address,
     task.customer_name, task.status, task.task_notes, task.rejection_reason,
   ].some(value => String(value || '').toLowerCase().includes(query))
 }
@@ -64,7 +58,8 @@ export default function MaintenanceTasksPage() {
     return myTasks
       .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(task.status) : task.status === view))
       .filter(task => priorityFilter === 'all' || task.priority === priorityFilter)
-      .filter(task => statusFilter === 'all' || task.status === statusFilter)
+      .filter(task => statusFilter === 'all' ||
+        (statusFilter === 'in_progress' ? ['en_route', 'in_progress'].includes(task.status) : task.status === statusFilter))
       .filter(task => matchesSearch(task, query))
       .sort((a, b) => {
         if (sortBy === 'priority') {
@@ -79,8 +74,8 @@ export default function MaintenanceTasksPage() {
       })
   }, [myTasks, view, priorityFilter, statusFilter, search, sortBy])
 
-  useEffect(() => { setPage(1) }, [view, search, priorityFilter, statusFilter, sortBy])
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
+  const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
 
   const resetFilters = () => {
     setSearch('')
@@ -114,7 +109,7 @@ export default function MaintenanceTasksPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Portal</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1>
-            <p className="text-navy-300 text-sm mt-1">Open a task to view directions, update its status, and add work notes.</p>
+            <p className="text-navy-300 text-sm mt-1">Review assigned work, update progress, and submit completion evidence.</p>
           </div>
           <div className="text-right">
             <p className="font-display font-black text-5xl leading-none text-gold-400">{completionRate}%</p>
@@ -146,8 +141,8 @@ export default function MaintenanceTasksPage() {
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input name="maintenancetaskspage-search-task-id-complaint-customer-address-notes-or-status-1" aria-label="Search task ID, complaint, customer, address, notes or status..." value={search} onChange={event => setSearch(event.target.value)}
-              placeholder="Search task ID, complaint, customer, address, notes or status..."
+            <input name="maintenancetaskspage-search-reference-complaint-customer-address-notes-or-status-1" aria-label="Search complaint reference, customer, address, notes or status..." value={search} onChange={event => setSearch(event.target.value)}
+              placeholder="Search complaint reference, customer, address, notes or status..."
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -160,8 +155,7 @@ export default function MaintenanceTasksPage() {
             <select name="maintenancetaskspage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Status</option>
               <option value="assigned">Assigned</option>
-              <option value="en_route">En Route</option>
-              <option value="in_progress">On Site</option>
+              <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
@@ -186,16 +180,16 @@ export default function MaintenanceTasksPage() {
         </div>
       ) : (
         <>
-          <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
-            <table className="w-full table-fixed text-sm">
+          <div className="hidden lg:block card rounded-xl overflow-x-auto p-2">
+            <table className="w-full min-w-[980px] table-fixed text-sm">
               <colgroup>
-                <col className="w-[36%]" />
-                <col className="w-[14%]" />
+                <col className="w-[34%]" />
+                <col className="w-[13%]" />
                 <col className="w-[10%]" />
                 <col className="w-[12%]" />
-                <col className="w-[17%]" />
-                <col className="w-[11%]" />
-                <col className="w-[136px]" />
+                <col className="w-[16%]" />
+                <col className="w-[15%]" />
+                <col className="w-[120px]" />
               </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
@@ -204,7 +198,7 @@ export default function MaintenanceTasksPage() {
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Updated</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assigned On</th>
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -217,16 +211,16 @@ export default function MaintenanceTasksPage() {
                     <td className="px-4 py-3 align-top">
                       <p className="font-bold text-gray-900 truncate">{task.complaint_type}</p>
                       <p className="text-xs text-gray-400 truncate">{task.description}</p>
-                      <p className="text-[10px] text-gray-300 font-mono mt-1 truncate">{task.id}</p>
+                      <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{task.reference_number}</p>
                       {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
                       {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="text-[10px] font-bold text-brand-700 mt-1">Needs acknowledgement</p>}
-                      {task.status === 'blocked' && <p className="text-xs font-bold text-orange-700 mt-1 truncate">Admin attention requested</p>}
+                      {task.status === 'blocked' && <p className="text-xs font-bold text-orange-700 mt-1 truncate">Administrator attention requested</p>}
                     </td>
                     <td className="px-4 py-3 text-gray-700 align-top truncate">{task.customer_name}</td>
                     <td className="px-4 py-3 align-top"><PriorityBadge priority={task.priority} /></td>
                     <td className="px-4 py-3 align-top"><StatusBadge status={task.status} /></td>
                     <td className="px-4 py-3 text-gray-500 align-top truncate">{task.address}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(task.updated_at || task.created_at)}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs align-top whitespace-nowrap">{formatAssignedDate(task.assigned_at || task.task_created_at)}</td>
                     <td className="px-4 py-3 pr-6 align-top">{renderAction(task)}</td>
                   </tr>
                 ))}
@@ -243,7 +237,8 @@ export default function MaintenanceTasksPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                      <p className="text-xs text-gray-500 mt-1">{task.customer_name} · {timeAgo(task.updated_at || task.created_at)}</p>
+                      <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{task.reference_number}</p>
+                      <p className="text-xs text-gray-500 mt-1">{task.customer_name} · Assigned {formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
                       <p className="text-xs text-gray-400 truncate mt-1">📍 {task.address}</p>
                     </div>
                     <StatusBadge status={task.status} />
@@ -255,7 +250,7 @@ export default function MaintenanceTasksPage() {
               </div>
             ))}
           </div>
-          <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="tasks" />
+          <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="tasks" />
         </>
       )}
     </div>

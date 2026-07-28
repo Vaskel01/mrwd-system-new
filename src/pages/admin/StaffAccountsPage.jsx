@@ -13,7 +13,7 @@ const ROLE_BADGE = {
   maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
 }
 const ROLE_LABEL = {
-  admin: 'Admin',
+  admin: 'Administrator',
   maintenance_personnel: 'Maintenance',
 }
 
@@ -228,9 +228,9 @@ export default function StaffAccountsPage() {
       <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Admin · Access</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Access</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl tracking-tight">Staff Accounts</h1>
-            <p className="text-navy-300 text-sm mt-1">Manage access, password resets, availability, and technician workload.</p>
+            <p className="text-navy-300 text-sm mt-1">Manage access, password resets, availability, and Maintenance Personnel workload.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={handleRefresh} disabled={refreshing}
@@ -299,7 +299,7 @@ export default function StaffAccountsPage() {
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Role <span className="text-red-500">*</span></label>
                 <select aria-label="Role" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
                   <option value="">Select role…</option>
-                  <option value="admin">Admin</option>
+                  <option value="admin">Administrator</option>
                   <option value="maintenance_personnel">Maintenance</option>
                 </select>
                 {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
@@ -527,7 +527,7 @@ export default function StaffAccountsPage() {
                   >
                     <span>
                       <span className="block text-sm font-black text-navy-900">View assigned tasks</span>
-                      <span className="block text-xs text-gray-500 mt-0.5">Open this technician's filtered task list.</span>
+                      <span className="block text-xs text-gray-500 mt-0.5">Open this Maintenance Personnel account's filtered task list.</span>
                     </span>
                     <span className="text-navy-700 font-black">→</span>
                   </button>

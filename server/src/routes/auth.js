@@ -3,7 +3,7 @@ import { supabaseAnonClient } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, email, full_name, role, is_active, availability_status, availability_note, availability_until'
+const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body || {}

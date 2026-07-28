@@ -26,9 +26,11 @@ The frontend does not contain a duplicate classifier. It submits the complaint t
 
 ## Dataset contents
 
-The dataset contains 129 initial words and phrases. Each entry may include:
+The dataset contains 129 initial canonical entries. Each entry may include:
 
 - word or multi-word phrase
+- synonyms and lexical alternatives
+- suggestive phrases that imply an issue without naming it directly
 - matching type
 - related complaint category
 - category classification weight
@@ -43,15 +45,16 @@ The dataset includes English and selected commonly used Filipino complaint phras
 ## Classification flow
 
 1. Normalize the complaint text.
-2. Match longer phrases before individual words.
-3. Normalize common word variants through deterministic stemming.
-4. Ignore configured negated issues, such as “there is no leak.”
-5. Preserve domain phrases in which “no” expresses the issue, such as “no water.”
-6. Sum category evidence and select the strongest category.
-7. Use the predicted category base severity when the mismatch threshold is reached.
-8. Add the configured dataset, sentiment, and photo-evidence adjustments.
-9. Bound the final score from 0 to 100.
-10. Classify the result as Low, Medium, or High Priority.
+2. Expand each canonical entry into its configured synonyms and suggestive phrases.
+3. Match longer phrases before individual words.
+4. Normalize common word variants through deterministic stemming.
+5. Ignore configured negated issues, such as “there is no leak.”
+6. Preserve domain phrases in which “no” expresses the issue, such as “no water.”
+7. Sum category evidence and select the strongest category.
+8. Use the predicted category base severity when the mismatch threshold is reached.
+9. Add the configured dataset, sentiment, and photo-evidence adjustments.
+10. Bound the final score from 0 to 100.
+11. Classify the result as Low, Medium, or High Priority.
 
 ## Formula and thresholds
 
@@ -89,7 +92,15 @@ Run `supabase/dataset-backed-classification.sql` before using stored classifier 
 - **Maintenance Personnel:** only the operational category and priority are returned.
 - **Administrator:** complete classifier analysis is available for review.
 
-Administrators may correct the complaint information and rerun the classifier. They do not have an unrestricted control for directly overwriting the numerical score.
+Administrators may apply a controlled operational priority override. The override:
+
+- requires a reason;
+- preserves the latest classifier-generated score;
+- clearly identifies the current score as manually overridden;
+- records the previous and new values in the audit log; and
+- can be restored to the classifier recommendation.
+
+This is human decision support, not silent modification of the classifier output.
 
 ## Development evaluation
 

@@ -4,10 +4,10 @@ A web-based complaint management and maintenance task assignment system for Metr
 
 ## Main features
 
-- **Customer:** register, submit geotagged complaints, attach photos, track timelines, view billing records and advisories, receive notifications, reopen completed complaints, print receipts, and submit feedback.
-- **Administrator:** review complaints and classifier evidence, assign or reassign maintenance work, manage staff accounts and availability, publish advisories, review feedback, export reports, and inspect audit logs.
+- **Customer:** register, maintain service-account details, submit geotagged complaints, attach photos, track timelines, acknowledge completed work, view billing records and important advisories, receive notifications, reopen completed complaints, print receipts, and submit feedback.
+- **Administrator:** review complaints and classifier evidence, apply audited priority overrides, assign or reassign maintenance work, manage staff accounts and availability, publish important advisories, review feedback, export reports, and inspect audit logs.
 - **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress and materials, request assistance or reassignment, submit completion reports, and view customer feedback.
-- **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm generates the initial category, sentiment, score, and Low/Medium/High priority.
+- **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
 - **Privacy:** Customers receive no classifier internals. Maintenance Personnel receive only the operational category and priority. Administrators can review the complete classifier breakdown.
 
 ## Project structure
@@ -71,7 +71,8 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 7. `supabase/rejection-reason-and-restore.sql`
 8. `supabase/feedback-staff-visibility.sql`
 9. `supabase/dataset-backed-classification.sql`
-10. `supabase/complete-workflow-features.sql` — run last
+10. `supabase/complete-workflow-features.sql`
+11. `supabase/migrations/20260728152348_complaint_workflow_polish.sql` — run last
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 

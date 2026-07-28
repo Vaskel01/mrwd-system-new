@@ -4,7 +4,7 @@ import { supabaseAnonClient } from '../supabaseClient.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, availability_status, availability_note, availability_until'
+const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
 
 router.get('/me', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', req.user.id).single()
@@ -13,17 +13,36 @@ router.get('/me', requireAuth, async (req, res) => {
 })
 
 router.patch('/me', requireAuth, async (req, res) => {
-  const { full_name, availability_status, availability_note, availability_until } = req.body || {}
+  const {
+    full_name,
+    account_number,
+    phone,
+    service_address,
+    barangay,
+    availability_status,
+    availability_note,
+    availability_until,
+  } = req.body || {}
   if (!full_name || full_name.trim().length < 2) return res.status(400).json({ error: 'Full name must contain at least 2 characters.' })
 
   const { data, error } = await req.supabase.rpc('update_my_profile', {
     p_full_name: full_name.trim(),
+    p_account_number: account_number == null ? null : String(account_number),
+    p_phone: phone == null ? null : String(phone),
+    p_service_address: service_address == null ? null : String(service_address),
+    p_barangay: barangay == null ? null : String(barangay),
     p_availability_status: availability_status || null,
     p_availability_note: availability_note || null,
     p_availability_until: availability_until || null,
   })
-  if (error) return res.status(400).json({ error: error.message })
+  if (error) {
+    const message = error.code === '23505'
+      ? 'That account number is already assigned to another customer.'
+      : error.message
+    return res.status(400).json({ error: message })
+  }
   await writeAudit(req.supabase, req.user, 'profile.updated', 'profile', req.user.id, {
+    customer_contact_updated: req.user.role === 'customer',
     availability_status: availability_status || undefined,
   })
   res.json({ user: data })

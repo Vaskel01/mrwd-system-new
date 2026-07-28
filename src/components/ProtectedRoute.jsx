@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
 const ROLE_HOME = {
-  customer:    '/customer/submit',
+  customer:    '/customer/my-complaints',
   admin:       '/admin/dashboard',
   maintenance_personnel: '/maintenance/tasks',
 }

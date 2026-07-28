@@ -97,6 +97,11 @@ export function presentComplaintForRole(complaint, role) {
   const presented = { ...complaint }
   const internalFields = [
     'priority_score',
+    'algorithm_priority_score',
+    'priority_override_reason',
+    'priority_overridden_by',
+    'priority_overridden_at',
+    'priority_is_overridden',
     'rule_score',
     'sentiment_score',
     'classification_confidence',
@@ -124,6 +129,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
   const task = taskMap[row.id]
   return {
     id: row.id,
+    reference_number: row.reference_number || `MRWD-${String(row.id).slice(0, 8).toUpperCase()}`,
     customer_id: row.resident_id,
     customer_name: profileMap[row.resident_id] || 'Customer profile unavailable',
     complaint_type: categoryMap[row.category_id] || 'Unknown',
@@ -138,6 +144,11 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     rejected_at: row.rejected_at || null,
     priority: row.priority,
     priority_score: row.priority_score,
+    algorithm_priority_score: row.algorithm_priority_score ?? row.priority_score,
+    priority_override_reason: row.priority_override_reason || null,
+    priority_overridden_by: row.priority_overridden_by || null,
+    priority_overridden_at: row.priority_overridden_at || null,
+    priority_is_overridden: Boolean(row.priority_overridden_at),
     rule_score: row.rule_score,
     sentiment_score: row.sentiment_score,
     classified_category: row.classified_category || categoryMap[row.category_id] || 'Unknown',
@@ -155,6 +166,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     task_status: task ? task.status : null,
     task_notes: task ? task.notes : null,
     task_created_at: task ? task.created_at : null,
+    assigned_at: task ? task.created_at : null,
     task_updated_at: task ? task.updated_at : null,
     task_is_active: task ? task.is_active !== false : false,
     acknowledged_at: task ? task.acknowledged_at : null,
@@ -172,6 +184,8 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     cancellation_reason: row.cancellation_reason || null,
     reopened_at: row.reopened_at || null,
     reopen_reason: row.reopen_reason || null,
+    customer_acknowledged_at: row.customer_acknowledged_at || null,
+    customer_acknowledgment_note: row.customer_acknowledgment_note || null,
     created_at: row.submitted_at,
     updated_at: row.updated_at,
   }
@@ -209,4 +223,3 @@ function flagPossibleDuplicates(shaped) {
 
   return shaped
 }
-

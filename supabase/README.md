@@ -16,6 +16,7 @@ This folder contains incremental migrations for the existing MRWD database. It d
 | 8 | `feedback-staff-visibility.sql` | Allows assigned Maintenance Personnel to view completed-work feedback. |
 | 9 | `dataset-backed-classification.sql` | Adds stored classifier fields to complaints. |
 | 10 | `complete-workflow-features.sql` | Final workflow, notification, audit, assignment-history, profile, and storage migration. Run last. |
+| 11 | `migrations/20260728152348_complaint_workflow_polish.sql` | Adds complaint references, expanded customer profiles, important announcements, audited priority overrides, and completion acknowledgments. |
 
 Many statements are safe to rerun, but always back up the database and review the SQL before executing it.
 

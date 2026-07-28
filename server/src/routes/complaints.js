@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { scoreComplaint } from '../lib/priorityScoring.js'
+import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
 import { getAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 
 const router = Router()
 const STATUS_VALUES = ['pending', 'assigned', 'en_route', 'in_progress', 'completed', 'rejected', 'cancelled', 'blocked']
 const STATUS_LABEL = {
-  pending: 'Pending', assigned: 'Assigned', en_route: 'En Route', in_progress: 'On Site',
+  pending: 'Pending', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
   completed: 'Completed', rejected: 'Rejected', cancelled: 'Cancelled', blocked: 'Needs Attention',
 }
 
@@ -30,7 +30,7 @@ async function getTaskForComplaint(supabase, complaintId, { current = true } = {
 async function getComplaintRow(supabase, id) {
   const { data } = await supabase
     .from('complaints')
-    .select('id, resident_id, category_id, description, address_text, status, submitted_at')
+    .select('id, reference_number, resident_id, category_id, description, address_text, status, priority, priority_score, algorithm_priority_score, priority_overridden_at, customer_acknowledged_at, submitted_at')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -67,23 +67,23 @@ async function assignOne(req, complaintId, assignedTo, notes) {
   })
   if (error) throw error
 
-  const technician = await getProfile(req.supabase, assignedTo)
+  const maintenancePerson = await getProfile(req.supabase, assignedTo)
   const isReassignment = Boolean(previous?.assigned_staff_id && previous.assigned_staff_id !== assignedTo)
   await logTaskUpdate(
     req.supabase,
     task.id,
     req.user.id,
-    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${technician?.full_name || 'maintenance personnel'}${notes ? `. Instructions: ${notes}` : '.'}`
+    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${maintenancePerson?.full_name || 'Maintenance Personnel'}${notes ? `. Instructions: ${notes}` : '.'}`
   )
 
   await notifyUsers(req.supabase, req.user, [assignedTo], {
     title: isReassignment ? 'Task reassigned to you' : 'New maintenance task',
-    message: `${technician?.full_name || 'Technician'}, you have been assigned a ${complaintRow.status === 'blocked' ? 'blocked ' : ''}complaint. Open the task for details.`,
+    message: `${maintenancePerson?.full_name || 'Maintenance Personnel'}, you have been assigned a ${complaintRow.status === 'blocked' ? 'blocked ' : ''}complaint. Open the task for details.`,
     type: 'assignment', complaintId,
   })
   await notifyUsers(req.supabase, req.user, [complaintRow.resident_id], {
-    title: isReassignment ? 'Your technician was changed' : 'Technician assigned',
-    message: `${technician?.full_name || 'A maintenance technician'} is now assigned to your complaint.`,
+    title: isReassignment ? 'Your assigned personnel changed' : 'Maintenance Personnel assigned',
+    message: `${maintenancePerson?.full_name || 'Maintenance Personnel'} is now assigned to your complaint.`,
     type: 'status', complaintId,
   })
   if (isReassignment) {
@@ -115,7 +115,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const [{ data: complaints, error: complaintsError }, { data: categories, error: categoriesError }] = await Promise.all([
-      req.supabase.from('complaints').select('id, category_id, description, photo_urls'),
+      req.supabase.from('complaints').select('id, category_id, description, photo_urls, priority_overridden_at'),
       req.supabase.from('complaint_categories').select('id, name, base_severity_score'),
     ])
     if (complaintsError) throw complaintsError
@@ -133,9 +133,8 @@ router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, re
         has_photo: Array.isArray(row.photo_urls) && row.photo_urls.length > 0,
         base_severity_score: category.base_severity_score,
       })
-      const { error } = await req.supabase.from('complaints').update({
-        priority: result.priority,
-        priority_score: result.priority_score,
+      const update = {
+        algorithm_priority_score: result.priority_score,
         rule_score: result.rule_score,
         sentiment_score: result.sentiment_score,
         classified_category: result.predicted_category,
@@ -149,7 +148,12 @@ router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, re
         classifier_version: result.classifier_version,
         classification_method: result.classification_method,
         updated_at: new Date().toISOString(),
-      }).eq('id', row.id)
+      }
+      if (!row.priority_overridden_at) {
+        update.priority = result.priority
+        update.priority_score = result.priority_score
+      }
+      const { error } = await req.supabase.from('complaints').update(update).eq('id', row.id)
       if (error) failures.push({ id: row.id, error: error.message })
       else updated += 1
     }
@@ -248,6 +252,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
     status: 'pending',
     priority: result.priority,
     priority_score: result.priority_score,
+    algorithm_priority_score: result.priority_score,
     rule_score: result.rule_score,
     sentiment_score: result.sentiment_score,
     classified_category: result.predicted_category,
@@ -265,7 +270,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
 
   const admins = await getAdminIds(req.supabase)
   await notifyUsers(req.supabase, req.user, admins, {
-    title: 'New complaint filed', message: `${req.user.full_name} submitted a ${complaint_type} report.`, type: 'new', complaintId: inserted.id,
+    title: 'New complaint filed', message: `${req.user.full_name} submitted a ${complaint_type} complaint.`, type: 'new', complaintId: inserted.id,
   })
   await writeAudit(req.supabase, req.user, 'complaint.created', 'complaint', inserted.id, { complaint_type })
   return respondWithComplaint(req, res, inserted.id, 201)
@@ -298,6 +303,10 @@ router.patch('/:id', requireAuth, requireRole('customer'), async (req, res) => {
     address_text: address.trim(),
     priority: result.priority,
     priority_score: result.priority_score,
+    algorithm_priority_score: result.priority_score,
+    priority_override_reason: null,
+    priority_overridden_by: null,
+    priority_overridden_at: null,
     rule_score: result.rule_score,
     sentiment_score: result.sentiment_score,
     classified_category: result.predicted_category,
@@ -347,7 +356,12 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
     await logTaskUpdate(req.supabase, task.id, req.user.id, `Customer reopened the complaint. Reason: ${reason}`)
   }
   const { error } = await req.supabase.from('complaints').update({
-    status: 'pending', reopened_at: new Date().toISOString(), reopen_reason: reason, updated_at: new Date().toISOString(),
+    status: 'pending',
+    reopened_at: new Date().toISOString(),
+    reopen_reason: reason,
+    customer_acknowledged_at: null,
+    customer_acknowledgment_note: null,
+    updated_at: new Date().toISOString(),
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
 
@@ -356,6 +370,43 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
     title: 'Completed complaint reopened', message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
   await writeAudit(req.supabase, req.user, 'complaint.reopened', 'complaint', req.params.id, { reason })
+  return respondWithComplaint(req, res, req.params.id)
+})
+
+// Customer: confirm that the completion report and result were reviewed.
+router.patch('/:id/acknowledge-completion', requireAuth, requireRole('customer'), async (req, res) => {
+  const complaint = await getComplaintRow(req.supabase, req.params.id)
+  if (!complaint || complaint.resident_id !== req.user.id) {
+    return res.status(404).json({ error: 'Complaint not found.' })
+  }
+  if (complaint.status !== 'completed') {
+    return res.status(400).json({ error: 'Only a completed complaint can be acknowledged.' })
+  }
+  if (complaint.customer_acknowledged_at) {
+    return respondWithComplaint(req, res, req.params.id)
+  }
+
+  const note = String(req.body?.note || '').trim()
+  const now = new Date().toISOString()
+  const { error } = await req.supabase.from('complaints').update({
+    customer_acknowledged_at: now,
+    customer_acknowledgment_note: note || null,
+    updated_at: now,
+  }).eq('id', req.params.id)
+  if (error) return res.status(400).json({ error: error.message })
+
+  const task = await getTaskForComplaint(req.supabase, req.params.id)
+  await logTaskUpdate(req.supabase, task?.id, req.user.id, 'Customer acknowledged the completed work.')
+  const admins = await getAdminIds(req.supabase)
+  await notifyUsers(req.supabase, req.user, [...admins, task?.assigned_staff_id], {
+    title: 'Completion acknowledged',
+    message: `${req.user.full_name} confirmed that the completion report was reviewed.`,
+    type: 'completed',
+    complaintId: req.params.id,
+  })
+  await writeAudit(req.supabase, req.user, 'complaint.completion_acknowledged', 'complaint', req.params.id, {
+    note: note || null,
+  })
   return respondWithComplaint(req, res, req.params.id)
 })
 
@@ -371,10 +422,94 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
   }
 })
 
+// Admin: override or restore the classifier-generated operational priority.
+router.patch('/:id/priority', requireAuth, requireRole('admin'), async (req, res) => {
+  const complaint = await getComplaintRow(req.supabase, req.params.id)
+  if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
+
+  const reason = String(req.body?.reason || '').trim()
+  if (reason.length < 5) {
+    return res.status(400).json({ error: 'A reason of at least 5 characters is required for the audit trail.' })
+  }
+
+  const resetToAlgorithm = req.body?.reset_to_algorithm === true
+  const numericScore = Number(req.body?.score)
+  if (!resetToAlgorithm && (!Number.isInteger(numericScore) || numericScore < 0 || numericScore > 100)) {
+    return res.status(400).json({ error: 'Priority score must be a whole number from 0 to 100.' })
+  }
+
+  const algorithmScore = Number(complaint.algorithm_priority_score ?? complaint.priority_score)
+  const nextScore = resetToAlgorithm ? algorithmScore : numericScore
+  const nextPriority = priorityFromScore(nextScore)
+  const previous = {
+    score: complaint.priority_score,
+    priority: complaint.priority,
+    was_overridden: Boolean(complaint.priority_overridden_at),
+  }
+  const now = new Date().toISOString()
+  const update = resetToAlgorithm
+    ? {
+        priority_score: nextScore,
+        priority: nextPriority,
+        priority_override_reason: null,
+        priority_overridden_by: null,
+        priority_overridden_at: null,
+        updated_at: now,
+      }
+    : {
+        priority_score: nextScore,
+        priority: nextPriority,
+        priority_override_reason: reason,
+        priority_overridden_by: req.user.id,
+        priority_overridden_at: now,
+        updated_at: now,
+      }
+
+  const { error } = await req.supabase.from('complaints').update(update).eq('id', req.params.id)
+  if (error) return res.status(400).json({ error: error.message })
+
+  const task = await getTaskForComplaint(req.supabase, req.params.id)
+  const actionLabel = resetToAlgorithm ? 'Priority restored to the classifier recommendation' : 'Priority manually overridden'
+  await logTaskUpdate(
+    req.supabase,
+    task?.id,
+    req.user.id,
+    `${actionLabel}: ${nextScore}/100 (${nextPriority}). Reason: ${reason}`
+  )
+  if (task?.assigned_staff_id) {
+    await notifyUsers(req.supabase, req.user, [task.assigned_staff_id], {
+      title: 'Complaint priority updated',
+      message: `The operational priority is now ${nextPriority.toUpperCase()}.`,
+      type: 'status',
+      complaintId: req.params.id,
+    })
+  }
+  await writeAudit(
+    req.supabase,
+    req.user,
+    resetToAlgorithm ? 'complaint.priority_override_removed' : 'complaint.priority_overridden',
+    'complaint',
+    req.params.id,
+    {
+      previous_score: previous.score,
+      previous_priority: previous.priority,
+      previous_was_overridden: previous.was_overridden,
+      algorithm_score: algorithmScore,
+      new_score: nextScore,
+      new_priority: nextPriority,
+      reason,
+    }
+  )
+  return respondWithComplaint(req, res, req.params.id)
+})
+
 // General status progression. Completion uses /complete so proof is captured.
 router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
-  const { status, rejection_reason } = req.body || {}
-  if (!STATUS_VALUES.includes(status)) return res.status(400).json({ error: `status must be one of: ${STATUS_VALUES.join(', ')}.` })
+  const { status: requestedStatus, rejection_reason } = req.body || {}
+  if (!STATUS_VALUES.includes(requestedStatus)) return res.status(400).json({ error: `status must be one of: ${STATUS_VALUES.join(', ')}.` })
+  // Legacy clients may still send en_route. New activity is stored as the
+  // unified in_progress state while existing en_route rows remain readable.
+  const status = requestedStatus === 'en_route' ? 'in_progress' : requestedStatus
   if (status === 'completed') return res.status(400).json({ error: 'Use the completion report to mark this task completed.' })
   if (req.user.role === 'admin' && status !== 'rejected') {
     return res.status(400).json({ error: 'Admins must use assignment, restoration, or completion actions instead of manually forcing a workflow status.' })
@@ -391,7 +526,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
     return res.status(403).json({ error: 'This complaint is not assigned to you.' })
   }
   if (req.user.role === 'maintenance_personnel') {
-    const allowedTransitions = { assigned: ['en_route'], en_route: ['in_progress'], in_progress: [], blocked: [] }
+    const allowedTransitions = { assigned: ['in_progress'], en_route: ['in_progress'], in_progress: [], blocked: [] }
     if (!allowedTransitions[complaint.status]?.includes(status)) {
       return res.status(400).json({ error: `Invalid task transition from ${STATUS_LABEL[complaint.status] || complaint.status} to ${STATUS_LABEL[status] || status}.` })
     }
@@ -452,7 +587,7 @@ router.patch('/:id/task/acknowledge', requireAuth, requireRole('maintenance_pers
   const now = new Date().toISOString()
   const { error } = await req.supabase.from('maintenance_tasks').update({ acknowledged_at: now }).eq('id', task.id)
   if (error) return res.status(400).json({ error: error.message })
-  await logTaskUpdate(req.supabase, task.id, req.user.id, 'Technician acknowledged the assignment.')
+  await logTaskUpdate(req.supabase, task.id, req.user.id, 'Maintenance Personnel acknowledged the assignment.')
   await writeAudit(req.supabase, req.user, 'task.acknowledged', 'complaint', req.params.id)
   return respondWithComplaint(req, res, req.params.id)
 })
@@ -504,7 +639,7 @@ router.patch('/:id/complete', requireAuth, requireRole('admin', 'maintenance_per
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task.id, req.user.id, `Task completed. Resolution: ${completionNotes}`)
   await notifyUsers(req.supabase, req.user, [complaint?.resident_id], {
-    title: 'Complaint resolved', message: 'The assigned technician submitted a completion report. You may now review the resolution and leave feedback.', type: 'completed', complaintId: req.params.id,
+    title: 'Complaint completed', message: 'The assigned Maintenance Personnel submitted a completion report. Please review and acknowledge the completed work.', type: 'completed', complaintId: req.params.id,
   })
   await writeAudit(req.supabase, req.user, 'task.completed', 'complaint', req.params.id, {
     has_photo: true,

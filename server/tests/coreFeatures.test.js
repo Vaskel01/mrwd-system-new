@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { scoreComplaint } from '../src/lib/priorityScoring.js'
+import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js'
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
@@ -32,6 +32,11 @@ test('customer complaint response removes all classifier and priority fields', (
     id: '00000000-0000-0000-0000-000000000001',
     priority: 'high',
     priority_score: 88,
+    algorithm_priority_score: 72,
+    priority_override_reason: 'Verified emergency impact',
+    priority_overridden_by: '00000000-0000-0000-0000-000000000002',
+    priority_overridden_at: '2026-07-28T00:00:00.000Z',
+    priority_is_overridden: true,
     classified_category: 'Water Leak',
     classification_confidence: 91,
     classification_keywords: [{ term: 'pipe burst' }],
@@ -40,6 +45,9 @@ test('customer complaint response removes all classifier and priority fields', (
   const shown = presentComplaintForRole(source, 'customer')
   assert.equal(shown.priority, undefined)
   assert.equal(shown.priority_score, undefined)
+  assert.equal(shown.algorithm_priority_score, undefined)
+  assert.equal(shown.priority_override_reason, undefined)
+  assert.equal(shown.priority_is_overridden, undefined)
   assert.equal(shown.classified_category, undefined)
   assert.equal(shown.classification_confidence, undefined)
   assert.equal(shown.classification_keywords, undefined)
@@ -98,4 +106,35 @@ test('urgent sentiment receives a larger adjustment than neutral sentiment', () 
   assert.equal(urgent.sentiment_adjustment, 10)
   assert.equal(neutral.classification_sentiment, 'neutral')
   assert.equal(neutral.sentiment_adjustment, 0)
+})
+
+test('classifier recognizes configured synonyms without duplicating canonical entry weight', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'A ruptured pipe is sending water across the street.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'Water Leak')
+  assert.ok(result.matched_keywords.some(item =>
+    item.canonical_term === 'burst pipe' && item.matched_term === 'ruptured pipe'))
+  assert.equal(result.matched_keywords.filter(item => item.id === 'KW-014').length, 1)
+})
+
+test('classifier recognizes a suggestive phrase that does not use the canonical term', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'Nothing comes out of the faucet in our whole house.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'Water Interruption')
+  assert.ok(result.matched_keywords.some(item => item.matched_term === 'nothing comes out of the faucet'))
+})
+
+test('priority thresholds include exact boundary values', () => {
+  assert.equal(priorityFromScore(29), 'low')
+  assert.equal(priorityFromScore(30), 'medium')
+  assert.equal(priorityFromScore(59), 'medium')
+  assert.equal(priorityFromScore(60), 'high')
 })

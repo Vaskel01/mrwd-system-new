@@ -5,7 +5,6 @@ import { useNotificationStore } from '../../store/notificationStore'
 
 const NAV = {
   customer: [
-    { to: '/customer/submit',        icon: FileIcon,    label: 'Submit Complaint' },
     { to: '/customer/my-complaints', icon: ListIcon,    label: 'My Complaints' },
     { to: '/customer/billing',       icon: BillingIcon, label: 'Billing' },
     { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
@@ -32,8 +31,8 @@ const NAV = {
 }
 
 const ROLE_CONFIG = {
-  customer:    { tag: 'Consumer',   gradient: 'from-blue-500 to-blue-600',   dot: '#60a5fa' },
-  admin:       { tag: 'Admin',      gradient: 'from-navy-700 to-navy-900',   dot: '#e6b020' },
+  customer:    { tag: 'Customer',      gradient: 'from-blue-500 to-blue-600', dot: '#60a5fa' },
+  admin:       { tag: 'Administrator', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
   maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
@@ -46,9 +45,6 @@ function UsersIcon({ className }) {
 }
 function ListIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-}
-function FileIcon({ className }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
 }
 function BillingIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>

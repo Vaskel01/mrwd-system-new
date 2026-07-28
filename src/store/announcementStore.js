@@ -26,6 +26,17 @@ export const useAnnouncementStore = create((set) => ({
     return announcement
   },
 
+  setAnnouncementImportance: async (id, isImportant) => {
+    const { announcement } = await apiFetch(`/announcements/${id}/importance`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_important: isImportant }),
+    })
+    set(s => ({
+      announcements: s.announcements.map(item => item.id === id ? announcement : item),
+    }))
+    return announcement
+  },
+
   // Admin: delete an announcement
   deleteAnnouncement: async (id) => {
     await apiFetch(`/announcements/${id}`, { method: 'DELETE' })

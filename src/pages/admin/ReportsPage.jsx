@@ -31,15 +31,28 @@ export default function ReportsPage() {
       setData(result)
     } catch (err) { setError(err.message) } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let active = true
+    Promise.all([apiFetch('/reports/summary'), fetchComplaints()])
+      .then(([result]) => {
+        if (active) setData(result)
+      })
+      .catch(err => {
+        if (active) setError(err.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [fetchComplaints])
 
   const csvRows = useMemo(() => complaints.map(item => [
-    item.id, item.complaint_type, item.customer_name, item.status, item.priority,
+    item.reference_number, item.complaint_type, item.customer_name, item.status, item.priority,
     item.assigned_name || '', item.address, item.created_at, item.completed_at || '', item.description,
   ]), [complaints])
 
   const exportCsv = () => {
-    const headers = ['Reference ID', 'Category', 'Customer', 'Status', 'Priority', 'Technician', 'Address', 'Filed', 'Completed', 'Description']
+    const headers = ['Complaint Reference', 'Category', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Filed', 'Completed', 'Description']
     const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -54,7 +67,7 @@ export default function ReportsPage() {
       <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6 no-print">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Admin · Analytics</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Administrator · Analytics</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Reports & Exports</h1>
             <p className="text-navy-300 text-sm mt-1">Complaint volume, resolution performance, workload, and satisfaction.</p>
           </div>
@@ -82,13 +95,13 @@ export default function ReportsPage() {
 
         <div className="hidden lg:block overflow-hidden rounded-lg border border-gray-100 p-2">
           <table className="w-full table-fixed text-sm">
-            <thead><tr className="bg-gray-50 border-b-2 border-gray-200 text-left">{['Technician', 'Availability', 'Active', 'Completed', 'Total', 'Completion Rate'].map(item => <th key={item} className="px-3 py-3 text-xs font-black text-gray-400 uppercase">{item}</th>)}</tr></thead>
+            <thead><tr className="bg-gray-50 border-b-2 border-gray-200 text-left">{['Maintenance Personnel', 'Availability', 'Active', 'Completed', 'Total', 'Completion Rate'].map(item => <th key={item} className="px-3 py-3 text-xs font-black text-gray-400 uppercase">{item}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">{(data?.technician_workload || []).map(person => <tr key={person.id}><td className="px-3 py-3 font-bold text-gray-900 truncate">{person.name}{!person.is_active && <span className="ml-2 text-[10px] text-red-600">INACTIVE</span>}</td><td className="px-3 py-3 capitalize text-gray-600 truncate">{titleCase(person.availability_status)}</td><td className="px-3 py-3">{person.active}</td><td className="px-3 py-3">{person.completed}</td><td className="px-3 py-3">{person.total}</td><td className="px-3 py-3 pr-5 font-bold text-navy-800">{person.completion_rate}%</td></tr>)}</tbody>
           </table>
         </div>
 
         <div className="lg:hidden space-y-3">
-          {(data?.technician_workload || []).length === 0 ? <p className="text-sm text-gray-400">No technician workload data yet.</p> : (data?.technician_workload || []).map(person => (
+          {(data?.technician_workload || []).length === 0 ? <p className="text-sm text-gray-400">No Maintenance Personnel workload data yet.</p> : (data?.technician_workload || []).map(person => (
             <div key={person.id} className="rounded-xl border border-gray-200 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

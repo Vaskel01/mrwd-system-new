@@ -62,7 +62,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
           : null,
         feedback_count: ratings.length,
       },
-      by_status: countBy(complaints, item => item.status),
+      by_status: countBy(complaints, item => item.status === 'en_route' ? 'in_progress' : item.status),
       by_category: countBy(complaints, item => item.complaint_type),
       by_priority: countBy(complaints, item => item.priority),
       technician_workload: technicianWorkload,

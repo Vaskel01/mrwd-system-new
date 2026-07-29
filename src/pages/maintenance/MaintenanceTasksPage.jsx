@@ -157,7 +157,7 @@ export default function MaintenanceTasksPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-6 py-6">
+      <div className="page-band wave-header rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Portal</p>
@@ -186,7 +186,7 @@ export default function MaintenanceTasksPage() {
       )}
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your task list changed since this page was loaded." />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           ['active', 'Active', counts.active, 'text-brand-600'],
           ['completed', 'Completed', counts.completed, 'text-green-600'],
@@ -210,7 +210,7 @@ export default function MaintenanceTasksPage() {
               placeholder="Search complaint reference, customer, address, notes or status..."
               className="input-field pl-9 rounded-lg" />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
             <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">Any Priority</option>
               <option value="high">High Priority</option>
@@ -245,7 +245,7 @@ export default function MaintenanceTasksPage() {
         </div>
       ) : (
         <>
-          <div className="hidden lg:block card rounded-xl overflow-x-auto p-2">
+          <div className="hidden xl:block card rounded-xl overflow-x-auto p-2">
             <table className="w-full min-w-[780px] table-fixed text-sm">
               <colgroup>
                 <col className="w-[33%]" />
@@ -300,7 +300,7 @@ export default function MaintenanceTasksPage() {
             </table>
           </div>
 
-          <div className="lg:hidden space-y-3">
+          <div className="xl:hidden space-y-3">
             {filtered.length === 0 ? (
               <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
             ) : paged.map(task => (

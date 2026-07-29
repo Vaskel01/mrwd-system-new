@@ -258,7 +258,7 @@ export default function AssignTaskPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-6 py-6">
+      <div className="page-band wave-header rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Administrator · Dispatch</p>
@@ -290,7 +290,7 @@ export default function AssignTaskPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           ['unassigned', 'Unassigned', counts.unassigned, 'text-amber-600'],
           ['active', 'Active', counts.active, 'text-brand-600'],
@@ -314,7 +314,7 @@ export default function AssignTaskPage() {
             placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
             className="input-field pl-9 rounded-lg" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-5 gap-2">
           <select name="assigntaskpage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
             <option value="high">High Priority</option>
@@ -342,7 +342,7 @@ export default function AssignTaskPage() {
             <option value="type">Type A–Z</option>
             <option value="staff">Maintenance Personnel A–Z</option>
           </select>
-          <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm col-span-2 lg:col-span-1">Reset Filters</button>
+          <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Reset Filters</button>
         </div>
       </div>
 
@@ -369,7 +369,7 @@ export default function AssignTaskPage() {
         </div>
       )}
 
-      <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
+      <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
             <col className="w-[44px]" />
@@ -425,7 +425,7 @@ export default function AssignTaskPage() {
         </table>
       </div>
 
-      <div className="lg:hidden space-y-3">
+      <div className="xl:hidden space-y-3">
         {filtered.length === 0 ? (
           <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
         ) : paged.map(complaint => {

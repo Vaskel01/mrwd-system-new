@@ -332,7 +332,7 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
+      <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
             <col className="w-[16%]" />
@@ -364,7 +364,7 @@ export default function AuditLogPage() {
         </table>
       </div>
 
-      <div className="lg:hidden space-y-3">
+      <div className="xl:hidden space-y-3">
         {shown.length === 0 ? (
           <div className="card rounded-xl p-10 text-center text-gray-400">No audit entries match.</div>
         ) : shown.map(item => (

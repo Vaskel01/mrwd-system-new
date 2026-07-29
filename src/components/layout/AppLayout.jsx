@@ -197,7 +197,7 @@ export default function AppLayout({ children }) {
   )
 
   return (
-    <div className="app-shell min-h-screen flex font-sans">
+    <div className="app-shell min-h-screen min-w-0 max-w-full overflow-x-clip flex font-sans">
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
       {/* ── Mobile overlay ── */}
@@ -215,14 +215,14 @@ export default function AppLayout({ children }) {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: 0 }}>
-        <div className="lg:ml-60 flex flex-col min-h-screen">
+      <div className="min-w-0 flex-1 flex flex-col min-h-screen" style={{ marginLeft: 0 }}>
+        <div className="lg:ml-60 min-w-0 flex flex-col min-h-screen">
 
           {/* ── Top bar ── */}
-          <header className="app-topbar sticky top-0 z-20 h-14 flex items-center justify-between px-4 sm:px-6">
+          <header className="app-topbar sticky top-0 z-20 h-14 min-w-0 flex items-center justify-between gap-2 px-3 sm:px-6">
 
             {/* Left: hamburger + breadcrumb */}
-            <div className="flex items-center gap-3">
+            <div className="min-w-0 flex items-center gap-2 sm:gap-3">
               <button onClick={() => setSidebarOpen(v => !v)}
                 className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
                 aria-label="Toggle navigation" aria-expanded={sidebarOpen} aria-controls="primary-navigation">
@@ -248,7 +248,7 @@ export default function AppLayout({ children }) {
             </div>
 
             {/* Right: date + avatar */}
-            <div className="flex items-center gap-3">
+            <div className="shrink-0 flex items-center gap-2 sm:gap-3">
               <span className="hidden sm:block text-xs text-gray-400">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
@@ -265,15 +265,15 @@ export default function AppLayout({ children }) {
           </header>
 
           {/* ── Page content ── */}
-          <main id="main-content" tabIndex={-1} className="app-main flex-1 overflow-auto">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <main id="main-content" tabIndex={-1} className="app-main min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+            <div className="mx-auto w-full min-w-0 max-w-5xl px-3 min-[360px]:px-4 sm:px-6 py-5 sm:py-8">
               {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
             </div>
           </main>
 
           {/* ── Footer ── */}
-          <footer className="app-footer px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
+          <footer className="app-footer px-3 sm:px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
             Metro Roxas Water District © {new Date().getFullYear()} · All rights reserved
           </footer>
         </div>

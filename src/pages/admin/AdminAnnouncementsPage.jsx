@@ -162,12 +162,12 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator</p>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>
           <button onClick={() => showForm ? closeForm() : openNewForm()}
-            className={`text-xs font-black px-4 py-2 border transition-colors ${
+            className={`w-full min-[420px]:w-auto text-xs font-black px-4 py-2 border transition-colors ${
               showForm ? 'bg-white text-navy border-white' : 'border-white/40 text-white hover:bg-white/10'
             }`}>
             {showForm ? '✕ Cancel' : '+ New Post'}
@@ -191,7 +191,7 @@ export default function AdminAnnouncementsPage() {
           <div className="bg-gray-50 border-b border-gray-200 px-5 py-3">
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{editing ? 'Edit Announcement' : 'New Announcement'}</p>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-5 space-y-4">
             {postError && <ErrorBanner message={postError} />}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
@@ -254,7 +254,7 @@ export default function AdminAnnouncementsPage() {
             <div key={a.id} className="card rounded-xl overflow-hidden">
               <div className={`h-1 ${CAT_STRIPE[a.category] || 'bg-gray-300'}`} />
               <div className="p-4 sm:p-5">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col min-[520px]:flex-row items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       {a.is_important && <span className="inline-flex items-center gap-1 text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest"><AppIcon name="alert" className="h-3.5 w-3.5" />Important</span>}
@@ -269,7 +269,7 @@ export default function AdminAnnouncementsPage() {
                     </p>
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-1">
+                  <div className="flex w-full min-[520px]:w-auto shrink-0 flex-wrap items-center justify-end gap-1">
                     <button onClick={() => openEditForm(a)}
                       className="rounded-lg px-2.5 py-1.5 text-xs font-bold border border-gray-200 text-navy-700 hover:border-navy-300">
                       Edit

@@ -255,7 +255,7 @@ export default function StaffAccountsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Access</p>
@@ -311,7 +311,7 @@ export default function StaffAccountsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
         <button onClick={() => setRoleFilter('all')} className={`card rounded-xl p-4 text-left ${roleFilter === 'all' ? 'ring-2 ring-navy-700 border-navy-300' : ''}`}>
           <p className="font-display font-black text-3xl text-navy-800">{counts.all}</p><p className="text-xs font-bold text-gray-500 mt-1">All Staff</p>
         </button>
@@ -386,7 +386,7 @@ export default function StaffAccountsPage() {
             </svg>
             <input name="staffaccountspage-search-staff-name-email-or-role-5" aria-label="Search staff name, email, or role..." value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or role..." className="input-field pl-9 rounded-lg" />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
             <select name="staffaccountspage-role-filter-6" aria-label="Role Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Role</option>
               <option value="admin">Admins</option>
@@ -404,7 +404,7 @@ export default function StaffAccountsPage() {
               <option value="active">Most Active Tasks</option>
               <option value="completed">Most Completed Tasks</option>
             </select>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm col-span-2 lg:col-span-1">Reset Filters</button>
+            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Reset Filters</button>
           </div>
         </div>
       )}
@@ -417,7 +417,7 @@ export default function StaffAccountsPage() {
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
         <>
-          <div className="hidden lg:block card rounded-xl overflow-x-auto p-2">
+          <div className="hidden xl:block card rounded-xl overflow-x-auto p-2">
             <table className="w-full min-w-[820px] table-fixed text-sm">
               <colgroup>
                 <col className="w-[25%]" />
@@ -486,7 +486,7 @@ export default function StaffAccountsPage() {
             </table>
           </div>
 
-          <div className="lg:hidden space-y-3">
+          <div className="xl:hidden space-y-3">
             {filteredStaff.map(account => {
               const stats = workload[account.id] || { active: 0, completed: 0, rejected: 0, rate: 0 }
               return (
@@ -531,7 +531,7 @@ export default function StaffAccountsPage() {
           role="presentation"
         >
           <section
-            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
+            className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="staff-manage-title"
@@ -552,7 +552,7 @@ export default function StaffAccountsPage() {
               </button>
             </div>
 
-            <div className="p-5 space-y-5">
+            <div className="overflow-y-auto p-4 sm:p-5 space-y-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[managedAccount.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                   {ROLE_LABEL[managedAccount.role] || managedAccount.role}

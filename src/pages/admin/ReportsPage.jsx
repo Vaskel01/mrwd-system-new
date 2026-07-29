@@ -138,10 +138,10 @@ export default function ReportsPage() {
               <input type="date" value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} className="input-field rounded-lg" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => selectPreset('month')} className="btn-secondary rounded-lg text-xs">This Month</button>
-            <button type="button" onClick={() => selectPreset('30days')} className="btn-secondary rounded-lg text-xs">Last 30 Days</button>
-            <button type="button" onClick={() => selectPreset('quarter')} className="btn-secondary rounded-lg text-xs">This Quarter</button>
+          <div className="grid w-full grid-cols-1 min-[420px]:grid-cols-3 gap-2 lg:w-auto">
+            <button type="button" onClick={() => selectPreset('month')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">This Month</button>
+            <button type="button" onClick={() => selectPreset('30days')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">Last 30 Days</button>
+            <button type="button" onClick={() => selectPreset('quarter')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">This Quarter</button>
           </div>
         </div>
         <p className="mt-3 text-xs text-gray-500">All cards, charts, workload counts, and the CSV export use this filing-date range.</p>
@@ -160,14 +160,14 @@ export default function ReportsPage() {
           <div className="text-sm text-gray-600 break-words"><b>{summary.average_resolution_hours ?? '—'}</b> average resolution hours · <b>{summary.feedback_count ?? 0}</b> feedback responses</div>
         </div>
 
-        <div className="hidden lg:block overflow-hidden rounded-lg border border-gray-100 p-2">
+        <div className="hidden xl:block overflow-hidden rounded-lg border border-gray-100 p-2">
           <table className="w-full table-fixed text-sm">
             <thead><tr className="bg-gray-50 border-b-2 border-gray-200 text-left">{['Maintenance Personnel', 'Availability', 'Active', 'Completed', 'Total', 'Completion Rate'].map(item => <th key={item} className="px-3 py-3 text-xs font-black text-gray-400 uppercase">{item}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">{(data?.technician_workload || []).map(person => <tr key={person.id}><td className="px-3 py-3 font-bold text-gray-900 truncate">{person.name}{!person.is_active && <span className="ml-2 text-[10px] text-red-600">INACTIVE</span>}</td><td className="px-3 py-3 capitalize text-gray-600 truncate">{titleCase(person.availability_status)}</td><td className="px-3 py-3">{person.active}</td><td className="px-3 py-3">{person.completed}</td><td className="px-3 py-3">{person.total}</td><td className="px-3 py-3 pr-5 font-bold text-navy-800">{person.completion_rate}%</td></tr>)}</tbody>
           </table>
         </div>
 
-        <div className="lg:hidden space-y-3">
+        <div className="xl:hidden space-y-3">
           {(data?.technician_workload || []).length === 0 ? <p className="text-sm text-gray-400">No Maintenance Personnel workload data yet.</p> : (data?.technician_workload || []).map(person => (
             <div key={person.id} className="rounded-xl border border-gray-200 p-4">
               <div className="flex items-start justify-between gap-3">

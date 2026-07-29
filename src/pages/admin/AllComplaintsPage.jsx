@@ -86,7 +86,7 @@ export default function AllComplaintsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-6 py-6 relative">
+      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <div className="relative flex items-end justify-between">
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Records</p>
@@ -117,7 +117,7 @@ export default function AllComplaintsPage() {
           <input name="allcomplaintspage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." type="text" placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} className="input-field pl-9 rounded-lg" />
         </div>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 lg:grid-cols-4">
           <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
             <option value="high">High Priority</option>
@@ -146,7 +146,7 @@ export default function AllComplaintsPage() {
         </div>
       </div>
 
-      <div className="hidden md:block card rounded-xl overflow-hidden p-2">
+      <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
             <col className="w-[42%]" />
@@ -185,7 +185,7 @@ export default function AllComplaintsPage() {
         </table>
       </div>
 
-      <div className="md:hidden space-y-3">
+      <div className="xl:hidden space-y-3">
         {filtered.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-400">No complaints match your search and filters.</div> : paged.map(c => (
           <div key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]} cursor-pointer`}>
             <div className="flex items-start justify-between gap-3">

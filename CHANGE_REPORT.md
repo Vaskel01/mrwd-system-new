@@ -61,6 +61,10 @@
 - Added accessible navigation, pagination, loading, error, badge, and dialog labels without changing their visual design.
 - Added reduced-motion support for users who request it through their operating-system settings.
 - Kept Leaflet maps below dialogs and modal backdrops.
+- Added shared width constraints to the application shell, top bar, main content, and footer so long child content cannot widen the page.
+- Made filter panels stack cleanly on narrow phones and reduced page-header padding below the small-screen breakpoint.
+- Kept dense operational tables for true desktop widths and automatically switched All Complaints, Assign Tasks, Staff Accounts, Audit Log, Reports, and My Tasks to readable cards on tablets and sidebar-width laptops.
+- Made announcement actions and Staff Accounts dialogs wrap, scroll, and remain fully reachable on small screens.
 
 ## Database
 
@@ -85,7 +89,9 @@ They add complaint references, customer profile fields, Important announcement s
 - ESLint: passed with three React Hook Form compiler advisory warnings and no errors
 - Server JavaScript syntax: 19 files passed
 - Automated backend/core-feature tests: 12/12 passed
-- Desktop and mobile browser checks: passed; original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were verified
+- Responsive browser audit: 100/100 route-and-viewport combinations passed at 320, 375, 768, 1024, and 1366 pixels with no page-level horizontal overflow or off-screen form controls
+- Mobile Staff Accounts dialog check: passed at 320 × 700, including the taller Maintenance Personnel action dialog
+- Original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were preserved
 - Classifier development cases:
   - Category: 25/25
   - Priority: 24/25

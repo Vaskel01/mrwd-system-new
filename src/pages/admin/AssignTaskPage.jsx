@@ -280,7 +280,7 @@ export default function AssignTaskPage() {
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
       {staffError && <ErrorBanner message={staffError} />}
 
-      <div className="rounded-xl border border-navy-200 bg-navy-50 p-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
         <div className="flex items-start gap-3">
           <AppIcon name="assignment" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
           <div>

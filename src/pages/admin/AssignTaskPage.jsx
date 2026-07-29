@@ -6,6 +6,7 @@ import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import RejectionDialog from '../../components/ui/RejectionDialog'
 import Pagination from '../../components/ui/Pagination'
+import AppIcon from '../../components/ui/AppIcon'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -423,12 +424,12 @@ export default function AssignTaskPage() {
                       <p className="font-bold text-gray-900">{complaint.complaint_type}</p>
                       <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{complaint.reference_number}</p>
                       <p className="text-xs text-gray-500 mt-1">{complaint.customer_name} · {timeAgo(complaint.created_at)}</p>
-                      <p className="text-xs text-gray-400 truncate mt-1">📍 {complaint.address}</p>
+                      <p className="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-gray-400"><AppIcon name="location" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{complaint.address}</span></p>
                     </div>
                     <span className="font-display font-black text-2xl text-navy-800">{complaint.priority_score}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={complaint.priority} /><StatusBadge status={complaint.status} /></div>
-                  <p className="text-xs text-gray-500 mt-3">👷 {complaint.assigned_name || 'Not assigned'}{complaint.assigned_at ? ` · Assigned ${new Date(complaint.assigned_at).toLocaleDateString('en-PH')}` : ''}</p>
+                  <p className="mt-3 inline-flex items-center gap-1 text-xs text-gray-500"><AppIcon name="user" className="h-3.5 w-3.5" />{complaint.assigned_name || 'Not assigned'}{complaint.assigned_at ? ` · Assigned ${new Date(complaint.assigned_at).toLocaleDateString('en-PH')}` : ''}</p>
                   {complaint.status === 'rejected' && (
                     <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</div>
                   )}

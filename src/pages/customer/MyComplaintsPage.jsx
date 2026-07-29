@@ -1,36 +1,39 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
+import AppIcon from '../../components/ui/AppIcon'
+import RefreshNotice from '../../components/ui/RefreshNotice'
+import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
 function timeAgo(iso) {
-  const d = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(d / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  const difference = Date.now() - new Date(iso).getTime()
+  const minutes = Math.floor(difference / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
 const STATUS_CONFIG = {
-  pending: { bar: 10, color: '#94a3b8', icon: '⏳', label: 'Pending Review', msg: 'Your complaint is queued for review.' },
-  assigned: { bar: 35, color: '#7c3aed', icon: '📋', label: 'Assigned', msg: 'Maintenance Personnel has been assigned.' },
-  en_route: { bar: 75, color: '#3463b0', icon: '🔧', label: 'In Progress', msg: 'Maintenance Personnel is working on this complaint.' },
-  in_progress: { bar: 75, color: '#3463b0', icon: '🔧', label: 'In Progress', msg: 'Maintenance Personnel is working on this complaint.' },
-  completed: { bar: 100, color: '#16a34a', icon: '✓', label: 'Completed', msg: 'The reported work has been completed.' },
-  rejected: { bar: 100, color: '#dc2626', icon: '✗', label: 'Rejected', msg: 'This complaint was rejected by the Administrator.' },
-  cancelled: { bar: 100, color: '#64748b', icon: '—', label: 'Cancelled', msg: 'You cancelled this complaint before assignment.' },
-  blocked: { bar: 75, color: '#ea580c', icon: '!', label: 'Needs Attention', msg: 'Maintenance Personnel requested administrative assistance.' },
+  pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending Review', message: 'Your complaint is queued for review.' },
+  assigned: { bar: 35, color: '#7c3aed', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned.' },
+  en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
+  in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
+  completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Completed', message: 'The reported work has been completed.' },
+  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Administrator.' },
+  cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
+  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs Attention', message: 'Maintenance Personnel requested administrative assistance.' },
 }
 
 function ComplaintCard({ complaint, onView }) {
-  const cfg = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
+  const config = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
   return (
-    <div className="card rounded-xl overflow-hidden">
+    <article className="card rounded-xl overflow-hidden">
       <div className="h-1 bg-navy-700" />
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
@@ -46,71 +49,81 @@ function ComplaintCard({ complaint, onView }) {
 
         <div className="mt-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="font-semibold text-gray-700">{cfg.icon} {cfg.label}</span>
-            <span className="text-xs font-bold text-gray-400">{cfg.bar}%</span>
+            <span className="font-semibold text-gray-700 inline-flex items-center gap-1.5"><AppIcon name={config.icon} className="w-4 h-4" />{config.label}</span>
+            <span className="text-xs font-bold text-gray-400">{config.bar}%</span>
           </div>
-          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full" style={{ width: `${cfg.bar}%`, background: cfg.color }} /></div>
-          <p className="text-xs text-gray-400 mt-1.5">{cfg.msg}</p>
+          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-label="Complaint progress" aria-valuenow={config.bar} aria-valuemin="0" aria-valuemax="100">
+            <div className="h-full" style={{ width: `${config.bar}%`, background: config.color }} />
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">{config.message}</p>
         </div>
 
-        {complaint.status === 'rejected' && (
+        {complaint.status === 'rejected' ? (
           <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
             <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">Why it was rejected</p>
             <p className="text-sm text-red-800 mt-1 leading-relaxed">{complaint.rejection_reason || 'No reason was recorded.'}</p>
           </div>
-        )}
+        ) : null}
 
         <p className="text-sm text-gray-600 mt-4 line-clamp-2">{complaint.description}</p>
         <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-gray-100">
           <div className="text-xs text-gray-400 min-w-0">
-            <p className="truncate">📍 {complaint.address}</p>
-            <p className="mt-1">🕒 {timeAgo(complaint.created_at)} {complaint.assigned_name ? `· 👷 ${complaint.assigned_name}` : ''}</p>
+            <p className="truncate inline-flex items-center gap-1"><AppIcon name="location" className="w-3.5 h-3.5" />{complaint.address}</p>
+            <p className="mt-1 inline-flex items-center gap-1"><AppIcon name="clock" className="w-3.5 h-3.5" />{timeAgo(complaint.created_at)}{complaint.assigned_name ? ` · ${complaint.assigned_name}` : ''}</p>
           </div>
           <button onClick={() => onView(complaint.id)} className="btn-primary shrink-0 rounded-lg text-xs px-4 py-2">View Details →</button>
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 
 export default function MyComplaintsPage() {
   const navigate = useNavigate()
-  const user = useAuthStore(s => s.user)
-  const allComplaints = useComplaintStore(s => s.complaints)
-  const complaints = useMemo(() => allComplaints.filter(c => c.customer_id === user?.id), [allComplaints, user?.id])
-  const loading = useComplaintStore(s => s.loading)
-  const error = useComplaintStore(s => s.error)
-  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const user = useAuthStore(state => state.user)
+  const allComplaints = useComplaintStore(state => state.complaints)
+  const complaints = useMemo(() => allComplaints.filter(complaint => complaint.customer_id === user?.id), [allComplaints, user?.id])
+  const loading = useComplaintStore(state => state.loading)
+  const error = useComplaintStore(state => state.error)
+  const fetchComplaints = useComplaintStore(state => state.fetchComplaints)
+  const [filter, setFilter] = useState(() => searchParams.get('status') || 'all')
+  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const pageSize = 8
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
+  useEffect(() => {
+    const next = {}
+    if (filter !== 'all') next.status = filter
+    if (search.trim()) next.q = search.trim()
+    if (page > 1) next.page = String(page)
+    setSearchParams(next, { replace: true })
+  }, [filter, search, page, setSearchParams])
 
+  const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
   const counts = {
     all: complaints.length,
-    pending: complaints.filter(c => c.status === 'pending').length,
-    active: complaints.filter(c => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status)).length,
-    completed: complaints.filter(c => c.status === 'completed').length,
-    rejected: complaints.filter(c => c.status === 'rejected').length,
-    cancelled: complaints.filter(c => c.status === 'cancelled').length,
+    pending: complaints.filter(complaint => complaint.status === 'pending').length,
+    active: complaints.filter(complaint => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length,
+    completed: complaints.filter(complaint => complaint.status === 'completed').length,
+    rejected: complaints.filter(complaint => complaint.status === 'rejected').length,
+    cancelled: complaints.filter(complaint => complaint.status === 'cancelled').length,
   }
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return complaints.filter(c => {
-      const matchesStatus = filter === 'all' ||
-        (filter === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status) : c.status === filter)
-      const matchesSearch = !q || [c.reference_number, c.complaint_type, c.description, c.address, c.status, c.assigned_name, c.rejection_reason]
-        .some(value => String(value || '').toLowerCase().includes(q))
+    const query = search.trim().toLowerCase()
+    return complaints.filter(complaint => {
+      const matchesStatus = filter === 'all'
+        || (filter === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status) : complaint.status === filter)
+      const matchesSearch = !query || [complaint.reference_number, complaint.complaint_type, complaint.description, complaint.address, complaint.status, complaint.assigned_name, complaint.rejection_reason]
+        .some(value => String(value || '').toLowerCase().includes(query))
       return matchesStatus && matchesSearch
     })
   }, [complaints, filter, search])
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
-
   if (loading && complaints.length === 0) return <PageLoader label="Loading your complaints..." />
 
   return (
@@ -123,39 +136,48 @@ export default function MyComplaintsPage() {
             <p className="text-navy-300 text-sm mt-1">Search and open any complaint for its complete timeline.</p>
           </div>
           <div className="flex items-center gap-4">
-            <p className="font-display font-black text-5xl leading-none" style={{ color: '#e6b020' }}>{complaints.length}</p>
+            <p className="font-display font-black text-5xl leading-none text-gold-400">{complaints.length}</p>
             <button onClick={() => navigate('/customer/submit')} className="rounded-lg bg-gold-400 hover:bg-gold-300 text-navy-900 font-black px-4 py-2.5 text-sm shadow-sm">+ Submit Complaint</button>
           </div>
         </div>
       </div>
 
-      {error && complaints.length === 0 && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      {error && complaints.length === 0 ? <ErrorBanner message={error} onRetry={fetchComplaints} /> : null}
+      <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} />
 
-      {complaints.length > 0 && (
+      {complaints.length > 0 ? (
         <div className="card rounded-xl p-4 space-y-3">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
-            <input name="mycomplaintspage-search-reference-type-description-address-or-status-1" aria-label="Search complaint reference, type, description, address or status..." value={search} onChange={e => setSearch(e.target.value)}
+            <AppIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input aria-label="Search complaint reference, type, description, address or status" value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
               placeholder="Search complaint reference, type, description, address or status..."
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {[['all','All'], ['pending','Pending'], ['active','Active'], ['completed','Completed'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, label]) => (
-              <button key={v} onClick={() => setFilter(v)} className="px-4 py-2 rounded-full text-sm font-semibold"
-                style={filter === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
-                {label} <span className="ml-1 font-bold">{counts[v]}</span>
+            {[['all', 'All'], ['pending', 'Pending'], ['active', 'Active'], ['completed', 'Completed'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="px-4 py-2 rounded-full text-sm font-semibold"
+                style={filter === value ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                {label} <span className="ml-1 font-bold">{counts[value]}</span>
               </button>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {complaints.length === 0 ? (
-        <div className="card rounded-xl p-16 text-center"><div className="text-6xl mb-4">📋</div><h2 className="font-display font-bold text-navy-800 text-xl">No complaints yet</h2><p className="text-sm text-gray-400 mt-2 mb-5">Submit your first complaint to begin tracking it here.</p><button onClick={() => navigate('/customer/submit')} className="btn-primary rounded-lg">Submit Complaint</button></div>
+        <div className="card rounded-xl p-16 text-center">
+          <AppIcon name="clipboard" className="w-14 h-14 mx-auto mb-4 text-navy-300" />
+          <h2 className="font-display font-bold text-navy-800 text-xl">No complaints yet</h2>
+          <p className="text-sm text-gray-400 mt-2 mb-5">Submit your first complaint to begin tracking it here.</p>
+          <button onClick={() => navigate('/customer/submit')} className="btn-primary rounded-lg">Submit Complaint</button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-400">No complaints match your search.</div>
       ) : (
-        <><div className="space-y-4">{paged.map(c => <ComplaintCard key={c.id} complaint={c} onView={id => navigate(`/complaints/${id}`)} />)}</div><Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" /></>
+        <>
+          <div className="space-y-4">{paged.map(complaint => <ComplaintCard key={complaint.id} complaint={complaint} onView={id => navigate(`/complaints/${id}`)} />)}</div>
+          <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
+        </>
       )}
     </div>
   )

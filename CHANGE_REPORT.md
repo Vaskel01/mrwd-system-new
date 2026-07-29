@@ -21,6 +21,16 @@
 
 - Preserved the established MRWD navy, blue, gold, and water-themed palette.
 - Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
+- Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
+- Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
+- Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.
+- Made completed complaint-submission steps directly navigable and clarified that reverse-geocoded addresses remain editable.
+- Added subtle high-priority/pending emphasis, active-filter counts, and a single clear table-row action.
+- Simplified Maintenance Personnel task actions into one dominant next step, location tools, and a More actions disclosure.
+- Preserved complaint, task, and staff filters in the URL and remembered the administrator's last status view.
+- Added optional refresh notices to complaint lists/details instead of silently replacing data while a user is working.
+- Added paginated notifications with per-item dismissal and account-scoped deletion security.
+- Added a visible masked/reveal fallback for temporary staff passwords when clipboard access is unavailable.
 - Added a keyboard-accessible “Skip to main content” link and visible gold focus indicators.
 - Added accessible navigation, pagination, loading, error, badge, and dialog labels without changing their visual design.
 - Added reduced-motion support for users who request it through their operating-system settings.
@@ -28,11 +38,13 @@
 
 ## Database
 
-Run this migration after the earlier project migrations:
+Run these migrations after the earlier project migrations, in this order:
 
 `supabase/migrations/20260728152348_complaint_workflow_polish.sql`
 
-It adds complaint references, customer profile fields, Important announcement state, priority-override metadata, and completion acknowledgments.
+`supabase/migrations/20260729101153_notification_cleanup_policy.sql`
+
+They add complaint references, customer profile fields, Important announcement state, priority-override metadata, completion acknowledgments, and user-scoped notification dismissal.
 
 ## Verification
 

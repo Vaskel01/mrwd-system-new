@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { Spinner, ErrorBanner } from './Feedback'
+import AppIcon from './AppIcon'
 
 function Star({ filled, onClick, onMouseEnter, onMouseLeave, size = 'w-7 h-7' }) {
   const icon = (
@@ -124,7 +125,7 @@ export default function FeedbackBox({ complaintId }) {
   if (!canSubmit) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
-        <div className="text-3xl mb-2">💬</div>
+        <AppIcon name="feedback" className="mx-auto mb-2 h-8 w-8 text-gray-400" />
         <p className="font-bold text-gray-700">No customer feedback yet</p>
         <p className="text-sm text-gray-400 mt-1">The customer has not submitted a rating or comment for this completed complaint.</p>
       </div>

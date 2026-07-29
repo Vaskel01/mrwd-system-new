@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useBillingStore } from '../../store/billingStore'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
 
 function formatPeso(amount) {
   return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })
@@ -108,7 +109,7 @@ export default function BillingPage() {
 
         {bills.length === 0 ? (
           <div className="p-8">
-            <EmptyState icon="🧾" title="No bills yet"
+            <EmptyState icon={<AppIcon name="billing" className="h-9 w-9" />} title="No bills yet"
               description="Your billing statements will show up here once they're issued." />
           </div>
         ) : (
@@ -127,7 +128,7 @@ export default function BillingPage() {
                   {b.status === 'paid'
                     ? <span className="text-xs font-bold text-green-600">✓ PAID</span>
                     : <span className={`text-xs font-bold ${isOverdue(b.due_date, b.status) ? 'text-red-600' : 'text-amber-600'}`}>
-                        {isOverdue(b.due_date, b.status) ? '⚠ OVERDUE' : 'UNPAID'}
+                        {isOverdue(b.due_date, b.status) ? <span className="inline-flex items-center gap-1"><AppIcon name="alert" className="h-3.5 w-3.5" />OVERDUE</span> : 'UNPAID'}
                       </span>
                   }
                 </div>
@@ -156,7 +157,7 @@ export default function BillingPage() {
                   <td className="px-5 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
                   <td className="px-5 py-3.5">
                     <span className={`text-sm ${isOverdue(b.due_date, b.status) ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                      {isOverdue(b.due_date, b.status) && '⚠ '}
+                      {isOverdue(b.due_date, b.status) && <AppIcon name="alert" className="mr-1 inline h-3.5 w-3.5" />}
                       {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </td>

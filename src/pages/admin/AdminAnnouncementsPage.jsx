@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import AppIcon from '../../components/ui/AppIcon'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -194,7 +195,7 @@ export default function AdminAnnouncementsPage() {
                 className="btn-primary flex items-center gap-2">
                 {posting
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Posting...</>
-                  : '📢 Publish Announcement'
+                  : <><AppIcon name="announcement" className="h-4 w-4" />Publish Announcement</>
                 }
               </button>
             </div>
@@ -204,7 +205,7 @@ export default function AdminAnnouncementsPage() {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <EmptyState icon="📢" title="No announcements yet."
+        <EmptyState icon={<AppIcon name="announcement" className="h-9 w-9" />} title="No announcements yet."
           description='Click "New Post" to publish one.' />
       ) : (
         <div className="space-y-2">
@@ -215,7 +216,7 @@ export default function AdminAnnouncementsPage() {
                 <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      {a.is_important && <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Important</span>}
+                      {a.is_important && <span className="inline-flex items-center gap-1 text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest"><AppIcon name="alert" className="h-3.5 w-3.5" />Important</span>}
                       <h2 className="font-black text-gray-900 text-sm tracking-tight">{a.title}</h2>
                       <CategoryBadge category={a.category} />
                     </div>

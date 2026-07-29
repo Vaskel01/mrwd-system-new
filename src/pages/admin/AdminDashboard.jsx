@@ -3,6 +3,8 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { useAuthStore } from '../../store/authStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, EmptyState } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
+import PriorityScoreHelp from '../../components/ui/PriorityScoreHelp'
 import { useNavigate } from 'react-router-dom'
 
 function timeAgo(iso) {
@@ -20,7 +22,9 @@ function StatCard({ label, value, sub, accent, icon }) {
       <div className="flex items-start justify-between mb-3">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-tight">{label}</p>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
-             style={{ background: 'rgba(0,0,0,.04)' }}>{icon}</div>
+             style={{ background: 'rgba(0,0,0,.04)' }}>
+          <AppIcon name={icon} className="h-4 w-4 text-navy-700" />
+        </div>
       </div>
       <p className="font-display font-black text-4xl text-navy-900 leading-none">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1.5">{sub}</p>}
@@ -97,18 +101,18 @@ export default function AdminDashboard() {
                style={{ width: `${resolveRate}%`, background: 'linear-gradient(90deg, #e6b020, #fde68a)' }} />
         </div>
         <div className="flex justify-between text-[11px] text-navy-300 mt-1.5">
-          <span>⏳ {pending} pending</span>
-          <span>🔧 {inProgress} active</span>
-          <span>✓ {completed} done</span>
+          <span className="inline-flex items-center gap-1"><AppIcon name="clock" className="h-3.5 w-3.5" />{pending} pending</span>
+          <span className="inline-flex items-center gap-1"><AppIcon name="tool" className="h-3.5 w-3.5" />{inProgress} active</span>
+          <span className="inline-flex items-center gap-1"><AppIcon name="check" className="h-3.5 w-3.5" />{completed} done</span>
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Filed"   value={total}     sub="all time"           accent="accent-navy"  icon="📋" />
-        <StatCard label="Pending"       value={pending}   sub="awaiting review"    accent="accent-amber" icon="⏳" />
-        <StatCard label="High Priority" value={high}      sub="urgent cases"       accent="accent-red"   icon="🚨" />
-        <StatCard label="Completed"     value={completed} sub={`${resolveRate}% rate`} accent="accent-green" icon="✅" />
+        <StatCard label="Total Filed"   value={total}     sub="all time"           accent="accent-navy"  icon="clipboard" />
+        <StatCard label="Pending"       value={pending}   sub="awaiting review"    accent="accent-amber" icon="clock" />
+        <StatCard label="High Priority" value={high}      sub="urgent cases"       accent="accent-red"   icon="alert" />
+        <StatCard label="Completed"     value={completed} sub={`${resolveRate}% rate`} accent="accent-green" icon="check" />
       </div>
 
       {/* Unassigned alert */}
@@ -138,7 +142,7 @@ export default function AdminDashboard() {
         </div>
 
         {recent.length === 0 ? (
-          <EmptyState icon="📋" title="No complaints filed yet"
+          <EmptyState icon={<AppIcon name="clipboard" className="h-9 w-9" />} title="No complaints filed yet"
             description="Once customers start submitting complaints, they will appear here." />
         ) : (
         <>
@@ -148,7 +152,9 @@ export default function AdminDashboard() {
             <thead>
               <tr style={{ borderBottom: '1px solid #f0f4f8', background: '#fafbfd' }}>
                 {['Type', 'Customer', 'Priority', 'Score', 'Status', 'Filed'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{h}</th>
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1">{h}{h === 'Score' && <PriorityScoreHelp />}</span>
+                  </th>
                 ))}
               </tr>
             </thead>

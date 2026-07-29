@@ -8,7 +8,6 @@ const NAV = {
     { to: '/customer/my-complaints', icon: ListIcon,    label: 'My Complaints' },
     { to: '/customer/billing',       icon: BillingIcon, label: 'Billing' },
     { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
-    { to: '/notifications',          icon: BellIcon,    label: 'Notifications', notification: true },
     { to: '/profile',                icon: ProfileIcon, label: 'My Profile' },
   ],
   admin: [
@@ -19,13 +18,11 @@ const NAV = {
     { to: '/admin/audit',         icon: AuditIcon,   label: 'Audit Log' },
     { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
     { to: '/admin/staff',         icon: UsersIcon,   label: 'Staff Accounts' },
-    { to: '/notifications',       icon: BellIcon,    label: 'Notifications', notification: true },
     { to: '/profile',             icon: ProfileIcon, label: 'My Profile' },
   ],
   maintenance_personnel: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
-    { to: '/notifications',             icon: BellIcon,   label: 'Notifications', notification: true },
     { to: '/profile',                   icon: ProfileIcon, label: 'My Profile' },
   ],
 }
@@ -111,14 +108,14 @@ export default function AppLayout({ children }) {
   const navItems = NAV[role] || []
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const unreadCount = useNotificationStore(state => state.unreadCount)
-  const fetchNotifications = useNotificationStore(state => state.fetchNotifications)
+  const fetchUnreadCount = useNotificationStore(state => state.fetchUnreadCount)
   const clearNotifications = useNotificationStore(state => state.clear)
 
   useEffect(() => {
-    fetchNotifications().catch(() => {})
-    const interval = window.setInterval(() => fetchNotifications().catch(() => {}), 60000)
+    fetchUnreadCount()
+    const interval = window.setInterval(fetchUnreadCount, 60000)
     return () => window.clearInterval(interval)
-  }, [fetchNotifications])
+  }, [fetchUnreadCount])
 
   const handleSignOut = () => { clearNotifications(); signOut(); navigate('/', { replace: true }) }
   const closeSidebar  = () => setSidebarOpen(false)

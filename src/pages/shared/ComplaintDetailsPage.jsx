@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
@@ -11,6 +11,10 @@ import RejectionDialog from '../../components/ui/RejectionDialog'
 import InlineMap from '../../components/ui/InlineMap'
 import Timeline from '../../components/ui/Timeline'
 import FeedbackBox from '../../components/ui/FeedbackBox'
+import AppIcon from '../../components/ui/AppIcon'
+import PriorityScoreHelp from '../../components/ui/PriorityScoreHelp'
+import RefreshNotice from '../../components/ui/RefreshNotice'
+import { useComplaintDetailRefresh } from '../../hooks/useComplaintRefresh'
 
 const ROLE_HOME = {
   customer: '/customer/my-complaints',
@@ -19,7 +23,7 @@ const ROLE_HOME = {
 }
 
 const NEXT_TASK_STATUS = {
-  assigned: { value: 'in_progress', label: 'Start Work', icon: '🔧' },
+  assigned: { value: 'in_progress', label: 'Start Work', icon: 'tool' },
 }
 
 function formatDate(value) {
@@ -35,10 +39,21 @@ function DetailRow({ label, children }) {
 
 function Modal({ open, title, subtitle, onClose, children, maxWidth = 'max-w-lg' }) {
   if (!open) return null
-  return <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={onClose}><div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[92vh] overflow-y-auto`} onMouseDown={event => event.stopPropagation()}><div className="page-band wave-header px-6 py-5"><h2 className="font-display font-black text-white text-xl">{title}</h2>{subtitle && <p className="text-navy-300 text-xs mt-1">{subtitle}</p>}</div><div className="p-6">{children}</div></div></div>
+  const titleId = `dialog-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm p-4 flex items-center justify-center" onMouseDown={onClose}>
+      <section className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[92vh] overflow-y-auto`} onMouseDown={event => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div className="page-band wave-header px-6 py-5">
+          <h2 id={titleId} className="font-display font-black text-white text-xl">{title}</h2>
+          {subtitle ? <p className="text-navy-300 text-xs mt-1">{subtitle}</p> : null}
+        </div>
+        <div className="p-6">{children}</div>
+      </section>
+    </div>
+  )
 }
 
-function ClassifierAnalysis({ complaint }) {
+function ClassifierDetails({ complaint }) {
   const hasStoredAnalysis = Boolean(complaint.classifier_version || complaint.classification_keywords?.length)
   const confidence = complaint.classification_confidence == null ? null : Math.round(Number(complaint.classification_confidence))
   const sentimentStyles = { urgent: 'bg-red-100 text-red-800 border-red-200', negative: 'bg-amber-100 text-amber-800 border-amber-200', neutral: 'bg-green-100 text-green-800 border-green-200' }
@@ -48,6 +63,120 @@ function ClassifierAnalysis({ complaint }) {
   const algorithmScore = Number(complaint.algorithm_priority_score ?? complaint.priority_score ?? 0)
   const finalScore = complaint.priority_is_overridden ? algorithmScore : Number(complaint.priority_score || 0)
   return <div className="card rounded-xl p-5"><div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="font-display font-bold text-navy-900">Automated Classification</h2><p className="text-xs text-gray-400 mt-1">Dataset-backed analysis visible only to administrators</p></div>{complaint.classifier_version && <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded">{complaint.classifier_version}</span>}</div>{!hasStoredAnalysis ? <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center"><p className="text-sm font-bold text-gray-700">No stored classification analysis</p><p className="text-xs text-gray-400 mt-1">This is an older complaint.</p></div> : <><div className="grid grid-cols-2 gap-3"><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Predicted Category</p><p className="text-sm font-bold text-navy-900 mt-1">{complaint.classified_category || complaint.complaint_type}</p></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Confidence</p><p className="text-2xl font-black text-navy-900">{confidence ?? '—'}{confidence != null && <span className="text-xs font-normal text-gray-400">%</span>}</p></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Text Sentiment</p><span className={`inline-flex mt-1.5 px-2 py-1 rounded border text-xs font-black uppercase ${sentimentStyles[complaint.classification_sentiment] || sentimentStyles.neutral}`}>{complaint.classification_sentiment || 'neutral'}</span></div><div className="rounded-lg border border-gray-100 bg-gray-50 p-3"><p className="text-[10px] font-black text-gray-400 uppercase">Priority Class</p><div className="mt-1.5"><PriorityBadge priority={complaint.priority} /></div></div></div><div className="mt-4 rounded-xl border border-navy-100 bg-navy-50/60 p-4"><div className="flex items-center justify-between gap-3 mb-3"><div><p className="text-[10px] font-black text-navy-500 uppercase tracking-wider">Hybrid Priority Score</p><p className="text-xs text-gray-500 mt-0.5">Category rules + dataset severity + sentiment + photo evidence</p></div><p className="text-3xl font-black text-navy-900">{finalScore}<span className="text-xs font-normal text-gray-400">/100</span></p></div><div className="grid grid-cols-2 lg:grid-cols-4 gap-2"><div className="rounded-lg bg-white border border-gray-100 p-2.5"><p className="text-[9px] font-black text-gray-400 uppercase">Base Severity</p><p className="font-black text-navy-900 mt-1">+{Number(complaint.rule_score || 0)}</p></div><div className="rounded-lg bg-white border border-gray-100 p-2.5"><p className="text-[9px] font-black text-gray-400 uppercase">Keyword Severity</p><p className={`font-black mt-1 ${keywordAdjustment >= 0 ? 'text-green-700' : 'text-red-600'}`}>{keywordAdjustment >= 0 ? '+' : ''}{keywordAdjustment}</p></div><div className="rounded-lg bg-white border border-gray-100 p-2.5"><p className="text-[9px] font-black text-gray-400 uppercase">Sentiment</p><p className="font-black text-amber-700 mt-1">+{sentimentAdjustment}</p></div><div className="rounded-lg bg-white border border-gray-100 p-2.5"><p className="text-[9px] font-black text-gray-400 uppercase">Photo Evidence</p><p className="font-black text-blue-700 mt-1">+{photoAdjustment}</p></div></div></div>{complaint.classification_mismatch && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"><p className="text-xs font-bold text-amber-900">Category mismatch detected</p><p className="text-xs text-amber-700 mt-0.5">Selected “{complaint.complaint_type},” classified as “{complaint.classified_category}.”</p></div>}<div className="mt-4"><p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Matched Dataset Terms</p>{complaint.classification_keywords?.length ? <div className="flex flex-wrap gap-2">{complaint.classification_keywords.map((item, index) => <span key={`${item.id || item.term}-${index}`} className="inline-flex items-center gap-1 rounded-full border border-navy-100 bg-navy-50 px-2.5 py-1 text-xs font-bold text-navy-700">{item.term}<span className={Number(item.priority_weight) >= 0 ? 'text-green-700' : 'text-red-600'}>{Number(item.priority_weight) >= 0 ? '+' : ''}{item.priority_weight}</span></span>)}</div> : <p className="text-xs text-gray-400">No keyword matched.</p>}</div>{complaint.classification_reasons?.length > 0 && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Decision Explanation</p><ul className="space-y-1.5">{complaint.classification_reasons.map((reason, index) => <li key={index} className="text-xs text-gray-600 flex gap-2"><span className="text-gold-500">•</span><span>{reason}</span></li>)}</ul></div>}</>}</div>
+}
+
+function ClassifierAnalysis({ complaint }) {
+  const base = Number(complaint.rule_score || 0)
+  const keyword = Math.max(-10, Math.min(50, (complaint.classification_keywords || []).reduce((sum, item) => sum + (Number(item.priority_weight) || 0), 0)))
+  const sentiment = Number(complaint.sentiment_score || 0)
+  const photo = complaint.photo_urls?.length ? 10 : 0
+  const finalScore = Number(complaint.algorithm_priority_score ?? complaint.priority_score ?? 0)
+  const components = [
+    { label: 'Base', value: base, color: 'bg-navy-700' },
+    { label: 'Dataset', value: keyword, color: keyword >= 0 ? 'bg-green-600' : 'bg-red-500' },
+    { label: 'Sentiment', value: sentiment, color: 'bg-amber-500' },
+    { label: 'Photo', value: photo, color: 'bg-brand-500' },
+  ]
+  return (
+    <div className="space-y-4">
+      <section className="card rounded-xl p-5" aria-labelledby="score-composition-title">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-1">
+              <h2 id="score-composition-title" className="font-display font-bold text-navy-900">Priority Score Composition</h2>
+              <PriorityScoreHelp />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Each block shows how the algorithm builds the recommendation.</p>
+          </div>
+          <p className="font-display font-black text-3xl text-navy-900">{finalScore}<span className="text-xs font-normal text-gray-400">/100</span></p>
+        </div>
+        <div className="mt-4 flex h-10 w-full overflow-hidden rounded-lg bg-gray-100" aria-label={`Base ${base}, dataset ${keyword}, sentiment ${sentiment}, photo ${photo}, final ${finalScore}`}>
+          {components.map(component => {
+            const width = Math.max(5, Math.abs(component.value))
+            return <div key={component.label} className={`${component.color} min-w-[2.25rem] border-r border-white/60`} style={{ width: `${width}%` }} title={`${component.label}: ${component.value >= 0 ? '+' : ''}${component.value}`} />
+          })}
+        </div>
+        <ol className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {components.map((component, index) => (
+            <li key={component.label} className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
+              <p className="text-[9px] font-black uppercase tracking-wider text-gray-400">{index + 1}. {component.label}</p>
+              <p className="mt-1 font-black text-navy-900">{component.value >= 0 ? '+' : ''}{component.value}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <ClassifierDetails complaint={complaint} />
+    </div>
+  )
+}
+
+function MaintenanceTaskActions({
+  complaint,
+  nextTaskStatus,
+  busy,
+  onAcknowledge,
+  onNextStatus,
+  onComplete,
+  onPlan,
+  onIssue,
+  onCopyAddress,
+  onOpenMap,
+}) {
+  const isActive = ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)
+  const needsAcknowledgment = !complaint.acknowledged_at && ['assigned', 'en_route', 'in_progress'].includes(complaint.status)
+  const canComplete = ['en_route', 'in_progress'].includes(complaint.status)
+
+  return (
+    <section className="card rounded-xl p-5 no-print" aria-labelledby="task-actions-title">
+      <h2 id="task-actions-title" className="font-display font-bold text-navy-900">Task Actions</h2>
+      <p className="mt-1 text-xs text-gray-500">Complete the highlighted next step, then use the supporting tools as needed.</p>
+
+      <div className="mt-4 space-y-3">
+        {needsAcknowledgment ? (
+          <button onClick={onAcknowledge} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-black text-white shadow-sm hover:bg-brand-700 disabled:opacity-50">
+            <AppIcon name="check" className="h-5 w-5" />
+            Acknowledge Assignment
+          </button>
+        ) : nextTaskStatus ? (
+          <button onClick={() => onNextStatus(nextTaskStatus.value)} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-navy-800 px-4 py-3.5 text-sm font-black text-white shadow-sm hover:bg-navy-900 disabled:opacity-50">
+            <AppIcon name={nextTaskStatus.icon} className="h-5 w-5" />
+            {nextTaskStatus.label}
+          </button>
+        ) : canComplete ? (
+          <button onClick={onComplete} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:opacity-50">
+            <AppIcon name="check" className="h-5 w-5" />
+            Complete With Report
+          </button>
+        ) : complaint.status === 'completed' ? (
+          <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800" role="status">
+            <AppIcon name="check" className="h-4 w-4" />
+            Completion report submitted.
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-2 gap-2" aria-label="Location tools">
+          <button onClick={onCopyAddress} className="inline-flex items-center justify-center gap-2 rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-xs font-bold text-navy-700 hover:bg-navy-50">
+            <AppIcon name="copy" className="h-4 w-4" />
+            Copy Address
+          </button>
+          <button onClick={onOpenMap} className="inline-flex items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-700 hover:bg-brand-100">
+            <AppIcon name="location" className="h-4 w-4" />
+            Open Map
+          </button>
+        </div>
+
+        {isActive && (
+          <details className="rounded-lg border border-gray-200 bg-gray-50">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-navy-800">More actions</summary>
+            <div className="space-y-2 border-t border-gray-200 p-3">
+              <button onClick={onPlan} className="btn-secondary w-full rounded-lg">Update Work Plan / ETA</button>
+              <button onClick={onIssue} className="w-full rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-bold text-orange-800">Request Help / Reassignment</button>
+            </div>
+          </details>
+        )}
+      </div>
+    </section>
+  )
 }
 
 export default function ComplaintDetailsPage() {
@@ -133,6 +262,13 @@ export default function ComplaintDetailsPage() {
 
   const copyAddress = async () => { try { await navigator.clipboard.writeText(complaint.address || ''); setMessage('Address copied.') } catch { setError('Could not copy the address.') } }
   const openMap = () => { const target = complaint.gps ? `https://www.openstreetmap.org/?mlat=${complaint.gps.lat}&mlon=${complaint.gps.lng}#map=17/${complaint.gps.lat}/${complaint.gps.lng}` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(complaint.address || '')}`; window.open(target, '_blank', 'noopener,noreferrer') }
+  const refreshComplaint = useCallback(async complaintId => {
+    const latest = await useComplaintStore.getState().fetchComplaint(complaintId)
+    setComplaint(latest)
+    setRefreshKey(key => key + 1)
+    return latest
+  }, [])
+  const { updatesAvailable, refreshNow } = useComplaintDetailRefresh(id, complaint, refreshComplaint)
 
   if (loadedComplaintId !== id) return <PageLoader label="Loading complaint details..." />
   if (!complaint) return <ErrorBanner message={error || 'Complaint not found.'} onRetry={() => navigate(ROLE_HOME[user?.role] || '/')} />
@@ -145,6 +281,7 @@ export default function ComplaintDetailsPage() {
   const isMaintenance = user?.role === 'maintenance_personnel'
 
   return <div className="space-y-5 complaint-receipt">
+    <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="This complaint has newer information." />
     <div className="flex items-center justify-between gap-3 no-print"><button onClick={() => navigate(ROLE_HOME[user?.role] || -1)} className="text-sm font-bold text-navy-600 hover:text-navy-900">← Back to {isMaintenance ? 'My Tasks' : isAdmin ? 'All Complaints' : 'My Complaints'}</button><button onClick={() => window.print()} className="btn-secondary rounded-lg text-xs">Print / Save Receipt</button></div>
 
     <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden"><div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4"><div><p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Complaint Details</p><h1 className="font-display font-black text-white text-2xl sm:text-3xl">{complaint.complaint_type}</h1><p className="text-navy-300 text-xs font-mono font-bold mt-2">Reference: {complaint.reference_number}</p></div><div className="flex items-center gap-2 flex-wrap">{!isCustomer && complaint.priority && <PriorityBadge priority={complaint.priority} />}<StatusBadge status={complaint.status} /></div></div></div>
@@ -160,7 +297,7 @@ export default function ComplaintDetailsPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5"><div className="lg:col-span-2 space-y-5">
       <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Complaint Information</h2><DetailRow label="Description">{complaint.description}</DetailRow><DetailRow label="Address">{complaint.address}</DetailRow><DetailRow label="Customer">{complaint.customer_name}</DetailRow>{complaint.task_notes && <DetailRow label="Administrator Instructions">{complaint.task_notes}</DetailRow>}</div>
       {complaint.gps && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-2">Location</h2><p className="text-xs font-mono text-brand-700 mb-3">{complaint.gps.lat.toFixed(5)}, {complaint.gps.lng.toFixed(5)}</p><InlineMap lat={complaint.gps.lat} lng={complaint.gps.lng} accuracy={complaint.gps.accuracy} height={280} /></div>}
-      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>{photo && !photoError ? <a href={photo} target="_blank" rel="noreferrer"><img src={photo} alt="Complaint attachment" onError={() => setPhotoError(true)} className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border" /><p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p></a> : <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center"><div className="text-3xl mb-2">📷</div><p className="font-bold text-gray-700">No photo attached</p><p className="text-sm text-gray-400 mt-1">{photoError ? 'The attached photo could not be loaded.' : 'This complaint was submitted without a photo.'}</p></div>}</div>
+      <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>{photo && !photoError ? <a href={photo} target="_blank" rel="noreferrer"><img src={photo} alt="Complaint attachment" onError={() => setPhotoError(true)} className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border" /><p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p></a> : <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center"><AppIcon name="camera" className="mx-auto mb-2 h-8 w-8 text-gray-400" /><p className="font-bold text-gray-700">No photo attached</p><p className="text-sm text-gray-400 mt-1">{photoError ? 'The attached photo could not be loaded.' : 'This complaint was submitted without a photo.'}</p></div>}</div>
       {(complaint.completion_notes || complaint.completion_photo_url || complaint.materials_used) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Completion Report</h2><DetailRow label="Resolution Performed">{complaint.completion_notes || 'No resolution notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials Used">{complaint.materials_used}</DetailRow>}<DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.completion_photo_url && !completionPhotoError ? <a href={complaint.completion_photo_url} target="_blank" rel="noreferrer"><img src={complaint.completion_photo_url} alt="Completion proof" onError={() => setCompletionPhotoError(true)} className="w-full max-h-[420px] object-contain rounded-lg border mt-3" /><p className="text-xs text-brand-700 font-bold mt-2">Open proof photo ↗</p></a> : !complaint.completion_photo_url ? <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-center text-sm text-gray-500 mt-3">No completion photo attached.</div> : null}</div>}
     </div><div className="space-y-5">
       <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-2">Task Summary</h2>{isAdmin && <DetailRow label={complaint.priority_is_overridden ? 'Operational Priority Score (Manual)' : 'Priority Score'}><span className="font-display font-black text-3xl text-navy-900">{complaint.priority_score}</span> / 100</DetailRow>}{isMaintenance && <><DetailRow label="Assigned Category">{complaint.classified_category || complaint.complaint_type}</DetailRow><DetailRow label="Assigned Priority"><PriorityBadge priority={complaint.priority} /></DetailRow></>}<DetailRow label="Assigned Maintenance Personnel">{complaint.assigned_name || 'Not assigned'}</DetailRow><DetailRow label="Assigned On">{formatDate(complaint.assigned_at)}</DetailRow><DetailRow label="Acknowledged">{formatDate(complaint.acknowledged_at)}</DetailRow><DetailRow label="Estimated Completion">{formatDate(complaint.estimated_completion_at)}</DetailRow><DetailRow label="Filed">{formatDate(complaint.created_at)}</DetailRow><DetailRow label="Last Updated">{formatDate(complaint.updated_at)}</DetailRow><DetailRow label="Completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.customer_acknowledged_at && <DetailRow label="Customer Acknowledged">{formatDate(complaint.customer_acknowledged_at)}</DetailRow>}</div>
@@ -170,7 +307,29 @@ export default function ComplaintDetailsPage() {
 
       {isAdmin && <><ClassifierAnalysis complaint={complaint} /><div className="card rounded-xl p-5 no-print"><h2 className="font-display font-bold text-navy-900">Administrator Management</h2><p className="text-xs text-gray-400 mt-1 mb-4">Review priority, assignment, and complaint actions.</p><div className="space-y-2"><button onClick={() => { setPriorityForm({ score: complaint.priority_score, reason: '' }); setPriorityOpen(true) }} className="btn-secondary rounded-lg w-full">{complaint.priority_is_overridden ? 'Edit Manual Priority Override' : 'Override Priority Score'}</button>{!['completed','cancelled','rejected'].includes(complaint.status) && <button onClick={() => { setAssignStaff(complaint.assigned_to || ''); setAssignNotes(complaint.task_notes || ''); setAssignOpen(true) }} className="btn-primary rounded-lg w-full">{complaint.assigned_to ? 'Manage / Reassign Maintenance Personnel' : 'Assign Maintenance Personnel'}</button>}{!['completed','cancelled','rejected'].includes(complaint.status) && <button onClick={() => setRejectOpen(true)} className="w-full rounded-lg border border-red-200 bg-red-50 text-red-700 font-bold text-sm px-4 py-2.5">Reject Complaint</button>}{complaint.status === 'rejected' && <button onClick={() => setRestoreOpen(true)} className="btn-primary rounded-lg w-full">Undo Rejection</button>}</div></div></>}
 
-      {isMaintenance && <div className="card rounded-xl p-5 no-print"><h2 className="font-display font-bold text-navy-900">Task Actions</h2><p className="text-xs text-gray-400 mt-1 mb-4">A focused set of actions for this assignment.</p><div className="space-y-2">{!complaint.acknowledged_at && ['assigned','en_route','in_progress'].includes(complaint.status) && <button onClick={handleAcknowledge} disabled={busy} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-brand-600 disabled:opacity-50">Acknowledge Assignment</button>}{nextTaskStatus && <button onClick={() => handleTaskStatus(nextTaskStatus.value)} disabled={busy} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-navy-800 disabled:opacity-50">{nextTaskStatus.icon} {nextTaskStatus.label}</button>}{['en_route','in_progress'].includes(complaint.status) && <button onClick={() => { setCompletion({ completion_notes: '', materials_used: complaint.materials_used || '', photo: null }); setCompleteOpen(true) }} className="w-full rounded-lg px-4 py-3 text-sm font-bold text-white bg-green-600">✓ Complete With Report</button>}{['assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => { setPlan({ estimated_completion_at: complaint.estimated_completion_at ? new Date(complaint.estimated_completion_at).toISOString().slice(0,16) : '', materials_used: complaint.materials_used || '' }); setPlanOpen(true) }} className="btn-secondary rounded-lg w-full">Update Work Plan / ETA</button>}{['assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => setIssueOpen(true)} className="w-full rounded-lg border border-orange-200 bg-orange-50 text-orange-800 font-bold text-sm px-4 py-2.5">Request Help / Reassignment</button>}<div className="grid grid-cols-2 gap-2"><button onClick={copyAddress} className="rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-xs font-bold text-navy-700">Copy Address</button><button onClick={openMap} className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs font-bold text-brand-700">Open Map ↗</button></div>{complaint.status === 'completed' && <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800">✓ Completion report submitted.</div>}</div></div>}
+      {isMaintenance && (
+        <MaintenanceTaskActions
+          complaint={complaint}
+          nextTaskStatus={nextTaskStatus}
+          busy={busy}
+          onAcknowledge={handleAcknowledge}
+          onNextStatus={handleTaskStatus}
+          onComplete={() => {
+            setCompletion({ completion_notes: '', materials_used: complaint.materials_used || '', photo: null })
+            setCompleteOpen(true)
+          }}
+          onPlan={() => {
+            setPlan({
+              estimated_completion_at: complaint.estimated_completion_at ? new Date(complaint.estimated_completion_at).toISOString().slice(0, 16) : '',
+              materials_used: complaint.materials_used || '',
+            })
+            setPlanOpen(true)
+          }}
+          onIssue={() => setIssueOpen(true)}
+          onCopyAddress={copyAddress}
+          onOpenMap={openMap}
+        />
+      )}
 
       <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Complete Timeline</h2><Timeline complaintId={complaint.id} refreshKey={`${complaint.status}-${refreshKey}`} />{canComment && !['rejected','cancelled'].includes(complaint.status) && <div className="mt-4 pt-4 border-t no-print"><textarea name="complaintdetailspage-add-a-task-update-1" aria-label="Add a task update..." value={comment} onChange={event => setComment(event.target.value)} rows={3} placeholder="Add a task update..." className="input-field resize-none text-sm" /><button onClick={handleComment} disabled={posting || !comment.trim()} className="btn-primary mt-2 w-full rounded-lg disabled:opacity-50">{posting ? <Spinner className="w-4 h-4 border-2 border-white" /> : 'Post Timeline Update'}</button></div>}</div>
       {complaint.status === 'completed' && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">{isCustomer ? 'Resolution Feedback' : 'Customer Feedback'}</h2><FeedbackBox key={complaint.id} complaintId={complaint.id} /></div>}

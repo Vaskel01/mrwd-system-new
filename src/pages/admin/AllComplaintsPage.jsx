@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
+import AppIcon from '../../components/ui/AppIcon'
+import PriorityScoreHelp from '../../components/ui/PriorityScoreHelp'
+import RefreshNotice from '../../components/ui/RefreshNotice'
+import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -26,18 +30,31 @@ const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded
 
 export default function AllComplaintsPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const complaints = useComplaintStore(s => s.complaints)
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const [filterStatus, setFilterStatus] = useState('pending')
-  const [filterPriority, setFilterPriority] = useState('all')
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('priority_date')
-  const [page, setPage] = useState(1)
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || localStorage.getItem('mrwd-admin-status-filter') || 'pending')
+  const [filterPriority, setFilterPriority] = useState(() => searchParams.get('priority') || 'all')
+  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority_date')
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const pageSize = 12
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
+  useEffect(() => {
+    const next = {}
+    if (filterStatus !== 'pending') next.status = filterStatus
+    if (filterPriority !== 'all') next.priority = filterPriority
+    if (search.trim()) next.q = search.trim()
+    if (sortBy !== 'priority_date') next.sort = sortBy
+    if (page > 1) next.page = String(page)
+    setSearchParams(next, { replace: true })
+    localStorage.setItem('mrwd-admin-status-filter', filterStatus)
+  }, [filterStatus, filterPriority, search, sortBy, page, setSearchParams])
+
+  const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -64,6 +81,7 @@ export default function AllComplaintsPage() {
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
+  const activeFilterCount = [filterStatus !== 'all', filterPriority !== 'all', Boolean(search.trim()), sortBy !== 'priority_date'].filter(Boolean).length
 
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
 
@@ -83,6 +101,7 @@ export default function AllComplaintsPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Complaint records changed since this page was loaded." />
 
       <div className="card rounded-xl p-4 space-y-3">
         <div className="relative">
@@ -93,19 +112,26 @@ export default function AllComplaintsPage() {
         <div className="flex flex-wrap gap-2 items-center justify-between">
           <div className="flex gap-1 flex-wrap">
             {[['pending','Pending'], ['all','All'], ['assigned','Assigned'], ['in_progress','In Progress'], ['blocked','Needs Attention'], ['completed','Completed'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, l]) => (
-              <button key={v} onClick={() => setFilterStatus(v)}
+              <button key={v} onClick={() => { setFilterStatus(v); setPage(1) }}
+                aria-pressed={filterStatus === v}
                 className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                 style={filterStatus === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>{l}</button>
             ))}
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => setFilterPriority(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
+            <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="all">Any Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
             </select>
-            <select name="allcomplaintspage-sort-by-3" aria-label="Sort By" value={sortBy} onChange={e => setSortBy(e.target.value)} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
+            <select name="allcomplaintspage-sort-by-3" aria-label="Sort By" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
               <option value="priority_date">Priority, then Date</option><option value="score">Score</option><option value="priority">Priority</option><option value="type">Type A–Z</option><option value="date">Newest</option><option value="oldest">Oldest</option>
             </select>
           </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-50 px-2.5 py-1 font-bold text-navy-700">
+            {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} applied · {filtered.length} results
+          </span>
+          <button type="button" onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setSearch(''); setSortBy('priority_date'); setPage(1) }} className="font-bold text-brand-700 hover:underline">Clear filters</button>
         </div>
       </div>
 
@@ -121,11 +147,11 @@ export default function AllComplaintsPage() {
             <col className="w-[136px]" />
           </colgroup>
           <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
+            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h === 'Priority' ? <span className="inline-flex items-center gap-1">Priority <PriorityScoreHelp /></span> : h}</th>)}
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (
-              <tr key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]}`}>
+              <tr key={c.id} className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]} ${c.priority === 'high' && c.status === 'pending' ? 'bg-red-50/60' : ''}`}>
                 <td className="px-4 py-3">
                   <p className="font-bold text-gray-900 truncate">{c.complaint_type}</p>
                   <p className="text-xs text-gray-400 truncate">{c.description}</p>
@@ -138,7 +164,7 @@ export default function AllComplaintsPage() {
                 <td className="px-4 py-3 text-gray-500"><p className="truncate">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{timeAgo(c.created_at)}</td>
                 <td className="px-4 py-3 pr-5">
-                  <button onClick={e => { e.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
+                  <button onClick={() => navigate(`/complaints/${c.id}`)} className={TABLE_ACTION_CLASS}>
                     Open
                   </button>
                 </td>
@@ -156,9 +182,9 @@ export default function AllComplaintsPage() {
                 <p className="font-bold text-gray-900">{c.complaint_type}</p>
                 <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{c.reference_number}</p>
                 <p className="text-xs text-gray-500 mt-1">{c.customer_name} · {timeAgo(c.created_at)}</p>
-                <p className="text-xs text-gray-400 truncate mt-1">📍 {c.address}</p>
+                <p className="text-xs text-gray-400 truncate mt-1 inline-flex items-center gap-1"><AppIcon name="location" className="w-3.5 h-3.5" />{c.address}</p>
               </div>
-              <span className="font-display font-black text-2xl text-navy-800">{c.priority_score}</span>
+              <span className="font-display font-black text-2xl text-navy-800" aria-label={`Priority score ${c.priority_score} out of 100`}>{c.priority_score}</span>
             </div>
             <div className="flex items-center gap-2 mt-3"><PriorityBadge priority={c.priority}/><StatusBadge status={c.status}/></div>
             {c.status === 'rejected' && (

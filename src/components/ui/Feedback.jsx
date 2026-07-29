@@ -1,4 +1,5 @@
 import { friendlyError } from '../../lib/friendlyError'
+import AppIcon from './AppIcon'
 
 export function Spinner({ className = 'w-5 h-5 border-2 border-brand-600' }) {
   return <span className={`${className} inline-block border-t-transparent rounded-full animate-spin`} aria-hidden="true" />
@@ -16,7 +17,7 @@ export function PageLoader({ label = 'Loading...' }) {
 }
 
 // "Nothing here yet" state — for empty lists, empty search results, etc.
-export function EmptyState({ icon = '📭', title, description, action }) {
+export function EmptyState({ icon = <AppIcon name="document" className="h-9 w-9" />, title, description, action }) {
   return (
     <div className="bg-white border border-dashed border-gray-300 p-12 text-center">
       <p className="text-4xl mb-3" aria-hidden="true">{icon}</p>

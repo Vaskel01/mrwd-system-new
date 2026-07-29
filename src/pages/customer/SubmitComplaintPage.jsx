@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { COMPLAINT_TYPES } from '../../config/staticData'
 import { ErrorBanner } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
@@ -16,14 +17,14 @@ const schema = z.object({
 const STEP_LABELS = ['Type', 'Details', 'Location', 'Review']
 
 const TYPE_ICONS = {
-  'Water Interruption': '🚱',
-  'Water Leak': '💧',
-  'Low Water Pressure': '📉',
-  'Dirty / Discolored Water': '⚠️',
-  'Billing Concern': '🧾',
-  'Meter Problem': '📊',
-  'New Connection Request': '🔌',
-  'Other': '📝',
+  'Water Interruption': 'waterOff',
+  'Water Leak': 'droplet',
+  'Low Water Pressure': 'pressure',
+  'Dirty / Discolored Water': 'alert',
+  'Billing Concern': 'billing',
+  'Meter Problem': 'meter',
+  'New Connection Request': 'tool',
+  'Other': 'document',
 }
 
 // ── Interactive pin-on-map using Leaflet (loaded via CDN) ───────────────────
@@ -131,6 +132,7 @@ export default function SubmitComplaintPage() {
   const submitComplaint = useComplaintStore(s => s.submitComplaint)
 
   const [step, setStep] = useState(0)
+  const [furthestStep, setFurthestStep] = useState(0)
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -210,7 +212,13 @@ export default function SubmitComplaintPage() {
     if (step === 0) valid = await trigger('complaint_type')
     if (step === 1) valid = await trigger('description')
     if (step === 2) valid = await trigger('address')
-    if (valid) setStep(s => s + 1)
+    if (valid) {
+      setStep(current => {
+        const next = current + 1
+        setFurthestStep(value => Math.max(value, next))
+        return next
+      })
+    }
   }
 
   const onSubmit = async (data) => {
@@ -224,7 +232,7 @@ export default function SubmitComplaintPage() {
       )
       setSubmitted(result)
       reset()
-      setPhoto(null); setPhotoPreview(null); setStep(0)
+      setPhoto(null); setPhotoPreview(null); setStep(0); setFurthestStep(0)
       setGpsCoords(null); setGpsError(null); setLocationMode(null)
     } catch (err) {
       setSubmitError(err.message)
@@ -258,7 +266,8 @@ export default function SubmitComplaintPage() {
                 <div className="flex items-center justify-between px-4 py-3">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">GPS</span>
                   <span className="font-mono text-xs text-green-700 bg-green-50 px-2 py-0.5">
-                    📍 {submitted.gps.lat.toFixed(5)}, {submitted.gps.lng.toFixed(5)}
+                    <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
+                    {submitted.gps.lat.toFixed(5)}, {submitted.gps.lng.toFixed(5)}
                   </span>
                 </div>
               )}
@@ -284,20 +293,25 @@ export default function SubmitComplaintPage() {
 
       {/* Step rail */}
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-        {STEP_LABELS.map((label, i) => (
-          <div key={i} className={`h-10 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-colors border ${
+        {STEP_LABELS.map((label, i) => {
+          const completed = i < furthestStep
+          const canJump = completed && i !== step
+          return (
+          <button type="button" key={i} onClick={() => canJump && setStep(i)} disabled={!canJump}
+            aria-current={i === step ? 'step' : undefined}
+            className={`h-10 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-colors border ${
               i === step ? 'bg-navy-900 text-white border-navy-900' :
-              i < step  ? 'bg-navy-800 text-white border-gold-500' :
+              completed ? 'bg-navy-800 text-white border-gold-500 cursor-pointer hover:bg-navy-700' :
                           'bg-white text-gray-400 border-gray-200'
             }`}>
               <span className={`w-5 h-5 flex items-center justify-center text-xs font-black shrink-0 ${
                 i < step ? '' : i === step ? '' : 'opacity-50'
               }`}>
-                {i < step ? '✓' : i + 1}
+                {completed ? <AppIcon name="check" className="w-4 h-4" /> : i + 1}
               </span>
               <span className="hidden sm:inline truncate">{label}</span>
-          </div>
-        ))}
+          </button>
+        )})}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -315,7 +329,7 @@ export default function SubmitComplaintPage() {
                     watchedType === t ? 'border-gold-500 bg-gold-50' : 'border-gray-100 hover:border-gray-300 bg-white'
                   }`}>
                     <input aria-label="Complaint type" type="radio" value={t} {...register('complaint_type')} className="sr-only" />
-                    <span className="text-xl shrink-0">{TYPE_ICONS[t] || '📝'}</span>
+                    <AppIcon name={TYPE_ICONS[t] || 'document'} className="w-6 h-6 shrink-0 text-navy-700" />
                     <span className={`text-sm font-semibold ${watchedType === t ? 'text-navy-800' : 'text-gray-700'}`}>{t}</span>
                   </label>
                 ))}
@@ -419,7 +433,7 @@ export default function SubmitComplaintPage() {
 
               {gpsError && (
                 <p className="text-xs text-red-600 font-semibold flex items-start gap-1">
-                  <span>⚠️</span> {gpsError}
+                  <AppIcon name="alert" className="w-4 h-4 shrink-0" /> {gpsError}
                 </p>
               )}
 
@@ -428,7 +442,7 @@ export default function SubmitComplaintPage() {
                 <div className="border border-green-200 bg-green-50 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-green-600 text-lg">📍</span>
+                      <AppIcon name="location" className="w-5 h-5 text-green-600" />
                       <div>
                         <p className="text-xs font-black text-green-800 uppercase tracking-wider">GPS Location Captured</p>
                         <p className="text-xs text-green-700 font-mono mt-0.5">
@@ -460,7 +474,8 @@ export default function SubmitComplaintPage() {
                   {gpsCoords && (
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                       <span className="font-mono bg-gray-100 px-2 py-0.5">
-                        📍 {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                        <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
+                        {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
                       <span className="text-gray-400">pinned</span>
                     </div>
@@ -485,7 +500,9 @@ export default function SubmitComplaintPage() {
                 </label>
                 <input aria-label="Address" type="text" placeholder="e.g. 123 Rizal St., Brgy. Baybay, Roxas City, Capiz"
                   {...register('address')}
+                  aria-describedby={gpsCoords ? 'address-edit-help' : undefined}
                   className={`input-field ${errors.address ? 'input-error' : ''}`} />
+                {gpsCoords && <p id="address-edit-help" className="mt-1.5 text-xs text-gray-500">Location services provide an approximate address. Edit this field if any part looks wrong or incomplete.</p>}
                 {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address.message}</p>}
               </div>
             </div>
@@ -505,7 +522,7 @@ export default function SubmitComplaintPage() {
             <div className="divide-y divide-gray-100 text-sm">
               <div className="flex gap-4 px-5 py-3">
                 <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Type</span>
-                <span className="font-bold text-gray-900">{TYPE_ICONS[watchedType]} {watchedType}</span>
+                <span className="font-bold text-gray-900 inline-flex items-center gap-2"><AppIcon name={TYPE_ICONS[watchedType] || 'document'} className="w-5 h-5 text-navy-700" />{watchedType}</span>
               </div>
               <div className="flex gap-4 px-5 py-3">
                 <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Details</span>
@@ -518,7 +535,8 @@ export default function SubmitComplaintPage() {
                   {gpsCoords && (
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <span className="text-xs bg-green-100 text-green-800 font-mono px-2 py-0.5 font-bold">
-                        📍 GPS: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
+                        <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
+                        GPS: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
                       <span className="text-xs text-gray-400">±{gpsCoords.accuracy}m</span>
                     </div>

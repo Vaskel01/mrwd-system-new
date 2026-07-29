@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
+import AppIcon from '../../components/ui/AppIcon'
+import RefreshNotice from '../../components/ui/RefreshNotice'
+import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
 function formatAssignedDate(iso) {
   if (!iso) return '—'
@@ -29,21 +32,34 @@ function matchesSearch(task, query) {
 
 export default function MaintenanceTasksPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const user = useAuthStore(s => s.user)
   const complaints = useComplaintStore(s => s.complaints)
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
 
-  const [view, setView] = useState('active')
-  const [search, setSearch] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('priority')
-  const [page, setPage] = useState(1)
+  const [view, setView] = useState(() => searchParams.get('view') || 'active')
+  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get('priority') || 'all')
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all')
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority')
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const pageSize = 10
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
+  useEffect(() => {
+    const next = {}
+    if (view !== 'active') next.view = view
+    if (search.trim()) next.q = search.trim()
+    if (priorityFilter !== 'all') next.priority = priorityFilter
+    if (statusFilter !== 'all') next.status = statusFilter
+    if (sortBy !== 'priority') next.sort = sortBy
+    if (page > 1) next.page = String(page)
+    setSearchParams(next, { replace: true })
+  }, [view, search, priorityFilter, statusFilter, sortBy, page, setSearchParams])
+
+  const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
 
   const myTasks = useMemo(() => complaints.filter(c => c.assigned_to === user?.id), [complaints, user?.id])
   const counts = useMemo(() => ({
@@ -82,6 +98,7 @@ export default function MaintenanceTasksPage() {
     setPriorityFilter('all')
     setStatusFilter('all')
     setSortBy('priority')
+    setPage(1)
   }
 
   const renderAction = task => (
@@ -119,6 +136,7 @@ export default function MaintenanceTasksPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your task list changed since this page was loaded." />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -127,7 +145,8 @@ export default function MaintenanceTasksPage() {
           ['rejected', 'Rejected', counts.rejected, 'text-red-600'],
           ['all', 'All Tasks', counts.all, 'text-navy-800'],
         ].map(([value, label, count, color]) => (
-          <button key={value} onClick={() => setView(value)}
+          <button key={value} onClick={() => { setView(value); setPage(1) }}
+            aria-pressed={view === value}
             className={`card rounded-xl p-4 text-left transition-all ${view === value ? 'ring-2 ring-navy-700 border-navy-300' : 'hover:border-navy-200'}`}>
             <p className={`font-display font-black text-3xl ${color}`}>{count}</p>
             <p className="text-xs font-bold text-gray-500 mt-1">{label}</p>
@@ -138,21 +157,19 @@ export default function MaintenanceTasksPage() {
       {myTasks.length > 0 && (
         <div className="card rounded-xl p-4 space-y-3">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input name="maintenancetaskspage-search-reference-complaint-customer-address-notes-or-status-1" aria-label="Search complaint reference, customer, address, notes or status..." value={search} onChange={event => setSearch(event.target.value)}
+            <AppIcon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input name="maintenancetaskspage-search-reference-complaint-customer-address-notes-or-status-1" aria-label="Search complaint reference, customer, address, notes or status..." value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
               placeholder="Search complaint reference, customer, address, notes or status..."
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-            <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">Any Priority</option>
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
               <option value="low">Low Priority</option>
             </select>
-            <select name="maintenancetaskspage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">Any Status</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
@@ -160,7 +177,7 @@ export default function MaintenanceTasksPage() {
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select name="maintenancetaskspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+            <select name="maintenancetaskspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="priority">Priority</option>
               <option value="updated">Recently Updated</option>
               <option value="newest">Newest Filed</option>
@@ -174,7 +191,7 @@ export default function MaintenanceTasksPage() {
 
       {myTasks.length === 0 ? (
         <div className="card rounded-xl p-16 text-center">
-          <div className="text-6xl mb-4">🔧</div>
+          <AppIcon name="tool" className="mx-auto mb-4 h-12 w-12 text-navy-500" />
           <h2 className="font-display font-bold text-navy-800 text-xl">No tasks assigned yet</h2>
           <p className="text-sm text-gray-400 mt-2">New assignments will appear here automatically.</p>
         </div>
@@ -206,8 +223,8 @@ export default function MaintenanceTasksPage() {
                 {filtered.length === 0 ? (
                   <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
                 ) : paged.map(task => (
-                  <tr key={task.id} onClick={() => navigate(`/complaints/${task.id}`)}
-                    className={`cursor-pointer hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                  <tr key={task.id}
+                    className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                     <td className="px-4 py-3 align-top">
                       <p className="font-bold text-gray-900 truncate">{task.complaint_type}</p>
                       <p className="text-xs text-gray-400 truncate">{task.description}</p>
@@ -233,13 +250,13 @@ export default function MaintenanceTasksPage() {
               <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
             ) : paged.map(task => (
               <div key={task.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
-                <div onClick={() => navigate(`/complaints/${task.id}`)} className="p-4 cursor-pointer">
+                <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
                       <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{task.reference_number}</p>
                       <p className="text-xs text-gray-500 mt-1">{task.customer_name} · Assigned {formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      <p className="text-xs text-gray-400 truncate mt-1">📍 {task.address}</p>
+                      <p className="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-gray-400"><AppIcon name="location" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{task.address}</span></p>
                     </div>
                     <StatusBadge status={task.status} />
                   </div>

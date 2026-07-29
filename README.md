@@ -73,7 +73,8 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 8. `supabase/feedback-staff-visibility.sql`
 9. `supabase/dataset-backed-classification.sql`
 10. `supabase/complete-workflow-features.sql`
-11. `supabase/migrations/20260728152348_complaint_workflow_polish.sql` — run last
+11. `supabase/migrations/20260728152348_complaint_workflow_polish.sql`
+12. `supabase/migrations/20260729101153_notification_cleanup_policy.sql` — run last
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 

@@ -1,6 +1,7 @@
 import { useAnnouncementStore } from '../../store/announcementStore'
 import { useState, useEffect } from 'react'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -56,7 +57,7 @@ export default function AnnouncementsPage() {
         </div>
         {error
           ? <ErrorBanner message={error} onRetry={fetchAnnouncements} />
-          : <EmptyState icon="📢" title="No announcements posted yet." />
+          : <EmptyState icon={<AppIcon name="announcement" className="h-9 w-9" />} title="No announcements posted yet." />
         }
       </div>
     )
@@ -87,7 +88,7 @@ export default function AnnouncementsPage() {
           <div className={`h-1.5 ${CAT_CONFIG[item.category]?.bar || 'bg-gray-400'}`} />
           <div className="p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest">📌 Important</span>
+              <span className="inline-flex items-center gap-1 text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest"><AppIcon name="alert" className="h-3.5 w-3.5" />Important</span>
               <CategoryPill category={item.category} />
             </div>
             <h2 className="font-black text-gray-900 text-base sm:text-lg tracking-tight mb-2 leading-snug">{item.title}</h2>

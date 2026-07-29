@@ -4,7 +4,7 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 
 ## Prerequisites
 
-1. Run every required migration listed in `supabase/README.md`, ending with `migrations/20260728152348_complaint_workflow_polish.sql`.
+1. Run every required migration listed in `supabase/README.md`, ending with `migrations/20260729101153_notification_cleanup_policy.sql`.
 2. Create one customer, two maintenance accounts, and one admin.
 3. Give one Maintenance Personnel account `Available` status and the other `On Leave`.
 4. Keep browser developer tools open to record unexpected API errors.
@@ -100,6 +100,11 @@ where status = 'completed'
 | UI-05 | Enable reduced motion in the operating system | Decorative animation and transitions are minimized without hiding content. |
 | UI-06 | Open any Leaflet map, then open a dialog | The map and marker stay below the dialog and backdrop. |
 | UI-07 | Inspect pages at mobile, tablet, and desktop widths | The original MRWD palette, wave headers, typography, and navigation remain consistent and readable. |
+| UI-08 | Leave a filtered complaint/staff list, open a record, then use browser Back | Search, filters, sort order, and page are restored from the URL. |
+| UI-09 | Wait on a complaint list or detail page while another account changes a record | A non-disruptive refresh banner appears and the user chooses when to load the update. |
+| UI-10 | Open Priority Score help and the admin classifier analysis | Thresholds are explained and the score composition diagram matches the numerical breakdown. |
+| UI-11 | Print a complaint containing GPS information | The unreliable interactive Leaflet map is replaced by a readable coordinate/location summary. |
+| UI-12 | Use Notifications with more than one page of records | Pagination works, individual notifications can be dismissed, and one account cannot delete another account's notifications. |
 
 ## Classifier evaluation
 

@@ -4,18 +4,39 @@ import { apiFetch } from '../lib/api'
 export const useNotificationStore = create(set => ({
   notifications: [],
   unreadCount: 0,
+  total: 0,
+  page: 1,
+  pageSize: 20,
   loading: false,
   error: null,
 
-  fetchNotifications: async () => {
+  fetchNotifications: async (page = 1) => {
     set({ loading: true, error: null })
     try {
-      const result = await apiFetch('/notifications')
-      set({ notifications: result.notifications || [], unreadCount: result.unread_count || 0, loading: false })
+      const result = await apiFetch(`/notifications?page=${page}&limit=20`)
+      set({
+        notifications: result.notifications || [],
+        unreadCount: result.unread_count || 0,
+        total: result.total || 0,
+        page: result.page || page,
+        pageSize: result.page_size || 20,
+        loading: false,
+      })
       return result.notifications || []
     } catch (error) {
       set({ loading: false, error: error.message })
       throw error
+    }
+  },
+
+  fetchUnreadCount: async () => {
+    try {
+      const result = await apiFetch('/notifications?page=1&limit=1')
+      set({ unreadCount: result.unread_count || 0 })
+      return result.unread_count || 0
+    } catch {
+      // A failed background badge refresh must not disrupt the current page.
+      return null
     }
   },
 
@@ -34,5 +55,17 @@ export const useNotificationStore = create(set => ({
     set(state => ({ notifications: state.notifications.map(item => ({ ...item, read_at: item.read_at || now })), unreadCount: 0 }))
   },
 
-  clear: () => set({ notifications: [], unreadCount: 0, loading: false, error: null }),
+  dismiss: async id => {
+    await apiFetch(`/notifications/${id}`, { method: 'DELETE' })
+    set(state => {
+      const removed = state.notifications.find(item => item.id === id)
+      return {
+        notifications: state.notifications.filter(item => item.id !== id),
+        unreadCount: Math.max(0, state.unreadCount - (removed && !removed.read_at ? 1 : 0)),
+        total: Math.max(0, state.total - 1),
+      }
+    })
+  },
+
+  clear: () => set({ notifications: [], unreadCount: 0, total: 0, page: 1, loading: false, error: null }),
 }))

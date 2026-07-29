@@ -225,4 +225,7 @@
   body { background: white !important; }
   .report-print-area { padding: 0 !important; }
   .card { box-shadow: none !important; break-inside: avoid; }
+  .leaflet-print-map .screen-map,
+  .leaflet-print-map .leaflet-container { display: none !important; }
+  .leaflet-print-map .print-map-summary { display: block !important; }
 }

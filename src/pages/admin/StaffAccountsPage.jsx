@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,6 +7,8 @@ import { useStaffStore } from '../../store/staffStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { useAuthStore } from '../../store/authStore'
 import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/ui/Feedback'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import AppIcon from '../../components/ui/AppIcon'
 
 const ROLE_BADGE = {
   admin: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -14,7 +16,7 @@ const ROLE_BADGE = {
 }
 const ROLE_LABEL = {
   admin: 'Administrator',
-  maintenance_personnel: 'Maintenance',
+  maintenance_personnel: 'Maintenance Personnel',
 }
 
 function timeAgo(iso) {
@@ -48,6 +50,7 @@ const schema = z.object({
 
 export default function StaffAccountsPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const currentUser = useAuthStore(state => state.user)
   const staff = useStaffStore(s => s.staff)
   const loading = useStaffStore(s => s.loading)
@@ -65,18 +68,28 @@ export default function StaffAccountsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [toast, setToast] = useState({ message: '', type: 'success' })
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [accountFilter, setAccountFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('name')
+  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [roleFilter, setRoleFilter] = useState(() => searchParams.get('role') || 'all')
+  const [accountFilter, setAccountFilter] = useState(() => searchParams.get('account') || 'all')
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'name')
   const [createdCredentials, setCreatedCredentials] = useState(null)
+  const [showCredentialPassword, setShowCredentialPassword] = useState(false)
   const [actionId, setActionId] = useState(null)
   const [manageAccountId, setManageAccountId] = useState(null)
+  const [deactivationAccount, setDeactivationAccount] = useState(null)
 
   useEffect(() => {
     fetchStaff()
     fetchComplaints()
   }, [fetchStaff, fetchComplaints])
+  useEffect(() => {
+    const next = {}
+    if (search.trim()) next.q = search.trim()
+    if (roleFilter !== 'all') next.role = roleFilter
+    if (accountFilter !== 'all') next.account = accountFilter
+    if (sortBy !== 'name') next.sort = sortBy
+    setSearchParams(next, { replace: true })
+  }, [search, roleFilter, accountFilter, sortBy, setSearchParams])
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -137,6 +150,7 @@ export default function StaffAccountsPage() {
       const normalized = { ...data, email: data.email.trim().toLowerCase(), full_name: data.full_name.trim() }
       const result = await createStaff(normalized)
       setCreatedCredentials({ email: normalized.email, password: normalized.password, name: normalized.full_name })
+      setShowCredentialPassword(false)
       reset()
       setShowForm(false)
       setShowPassword(false)
@@ -182,14 +196,26 @@ export default function StaffAccountsPage() {
     setShowPassword(true)
   }
 
-  const handleAccountStatus = async account => {
+  const applyAccountStatus = async account => {
     const nextActive = account.is_active === false
-    if (!nextActive && !window.confirm(`Deactivate ${account.full_name}? They will no longer be able to sign in.`)) return
     setActionId(account.id); setError('')
     try {
       await setStaffActive(account.id, nextActive)
       showToast(`${account.full_name} ${nextActive ? 'activated' : 'deactivated'}.`)
-    } catch (err) { setError(err.message) } finally { setActionId(null) }
+      return true
+    } catch (err) {
+      setError(err.message)
+      return false
+    } finally {
+      setActionId(null)
+    }
+  }
+  const handleAccountStatus = account => {
+    if (account.is_active !== false) {
+      setDeactivationAccount(account)
+      return
+    }
+    applyAccountStatus(account)
   }
 
   const handlePasswordReset = async account => {
@@ -213,13 +239,20 @@ export default function StaffAccountsPage() {
     : null
 
   const accountActions = account => (
-    <button
-      type="button"
-      onClick={() => setManageAccountId(account.id)}
-      className="inline-flex items-center justify-center min-w-[92px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
-    >
-      Manage
-    </button>
+    <div className="flex flex-wrap justify-end gap-2">
+      {account.role === 'maintenance_personnel' ? (
+        <button type="button" onClick={() => navigate(`/admin/assign?staff=${account.id}`)} className="inline-flex items-center justify-center px-3 py-2 rounded-lg text-xs font-black text-navy-800 border border-navy-200 bg-white hover:bg-navy-50">
+          View Tasks
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => setManageAccountId(account.id)}
+        className="inline-flex items-center justify-center min-w-[92px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
+      >
+        Manage
+      </button>
+    </div>
   )
 
 
@@ -253,15 +286,31 @@ export default function StaffAccountsPage() {
       {fetchError && <ErrorBanner message={fetchError} onRetry={handleRefresh} />}
 
       {createdCredentials && (
-        <div className="card rounded-xl p-4 border-green-200 bg-green-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
+        <div className="card rounded-xl p-4 border-green-200 bg-green-50/60 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div>
             <p className="font-bold text-green-900">Temporary login ready for {createdCredentials.name}</p>
-            <p className="text-xs text-green-700 mt-1">Copy it now and send it securely. The temporary password is only shown in this notice.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={copyCredentials} className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-green-700">Copy Login Details</button>
+              <p className="text-xs text-green-700 mt-1">Copy and send these details through an approved secure channel.</p>
+            </div>
             <button onClick={() => setCreatedCredentials(null)} className="px-3 py-2 rounded-lg text-xs font-bold text-green-800 border border-green-300 bg-white">Dismiss</button>
           </div>
+          <div className="grid gap-2 rounded-lg border border-green-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Email</p>
+              <p className="mt-1 break-all text-sm font-bold text-gray-800">{createdCredentials.email}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Temporary Password</p>
+              <div className="mt-1 flex items-center gap-2">
+                <code className="min-w-0 flex-1 rounded bg-gray-50 px-2 py-1.5 text-sm font-bold text-gray-800">{showCredentialPassword ? createdCredentials.password : '••••••••••••'}</code>
+                <button type="button" onClick={() => setShowCredentialPassword(value => !value)} aria-pressed={showCredentialPassword} className="text-xs font-black text-brand-700">
+                  {showCredentialPassword ? 'Hide' : 'Reveal'}
+                </button>
+              </div>
+            </div>
+            <button onClick={copyCredentials} className="px-4 py-2.5 rounded-lg text-xs font-bold text-white bg-green-700">Copy Login Details</button>
+          </div>
+          <p className="text-[11px] text-green-800">If clipboard access is blocked, reveal and copy the password manually before dismissing this notice.</p>
         </div>
       )}
 
@@ -300,7 +349,7 @@ export default function StaffAccountsPage() {
                 <select aria-label="Role" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
                   <option value="">Select role…</option>
                   <option value="admin">Administrator</option>
-                  <option value="maintenance_personnel">Maintenance</option>
+                  <option value="maintenance_personnel">Maintenance Personnel</option>
                 </select>
                 {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
               </div>
@@ -344,7 +393,7 @@ export default function StaffAccountsPage() {
             <select name="staffaccountspage-role-filter-6" aria-label="Role Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Role</option>
               <option value="admin">Admins</option>
-              <option value="maintenance_personnel">Maintenance</option>
+              <option value="maintenance_personnel">Maintenance Personnel</option>
             </select>
             <select name="staffaccountspage-account-filter-7" aria-label="Account Filter" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Account Status</option>
@@ -366,7 +415,7 @@ export default function StaffAccountsPage() {
       {loading && staff.length === 0 ? (
         <PageLoader label="Loading staff accounts..." />
       ) : staff.length === 0 ? (
-        <EmptyState icon="👥" title="No staff accounts yet." description='Click "New Account" to create an admin or maintenance login.' />
+        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet." description='Click "New Account" to create an administrator or Maintenance Personnel login.' />
       ) : filteredStaff.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
@@ -386,7 +435,10 @@ export default function StaffAccountsPage() {
                   return (
                     <tr key={account.id} className={`hover:bg-gray-50 ${account.is_active === false ? 'bg-gray-50 opacity-75' : ''}`}>
                       <td className="px-5 py-4">
-                        <p className="font-bold text-gray-900">{account.full_name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-gray-900">{account.full_name}</p>
+                          {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')} · {stats.active} active</span> : null}
+                        </div>
                         <p className="text-xs text-gray-400 mt-1">{account.email}</p>
                       </td>
                       <td className="px-5 py-4">
@@ -429,7 +481,10 @@ export default function StaffAccountsPage() {
                 <div key={account.id} className="card rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-900">{account.full_name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-gray-900">{account.full_name}</p>
+                        {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')} · {stats.active} active</span> : null}
+                      </div>
                       <p className="text-xs text-gray-400 mt-1 truncate">{account.email}</p>
                     </div>
                     <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
@@ -561,8 +616,8 @@ export default function StaffAccountsPage() {
                         {managedAccount.is_active === false ? 'Restore this staff member\'s access to the system.' : 'Prevent this staff member from signing in.'}
                       </span>
                     </span>
-                    <span className={`font-black ${managedAccount.is_active === false ? 'text-green-700' : 'text-red-700'}`}>
-                      {managedAccount.is_active === false ? '✓' : '!' }
+                    <span className={managedAccount.is_active === false ? 'text-green-700' : 'text-red-700'}>
+                      <AppIcon name={managedAccount.is_active === false ? 'check' : 'alert'} className="w-5 h-5" />
                     </span>
                   </button>
                 )}
@@ -571,6 +626,24 @@ export default function StaffAccountsPage() {
           </section>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deactivationAccount)}
+        title="Deactivate staff account?"
+        message={deactivationAccount ? `${deactivationAccount.full_name} will no longer be able to sign in. Active assignments must be reassigned before deactivation can succeed.` : ''}
+        confirmLabel="Deactivate Account"
+        danger
+        loading={Boolean(deactivationAccount && actionId === deactivationAccount.id)}
+        onCancel={() => setDeactivationAccount(null)}
+        onConfirm={async () => {
+          const account = deactivationAccount
+          if (!account) return
+           if (await applyAccountStatus(account)) {
+             setDeactivationAccount(null)
+             setManageAccountId(null)
+           }
+        }}
+      />
 
     </div>
   )

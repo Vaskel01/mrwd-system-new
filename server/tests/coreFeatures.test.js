@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js'
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
+import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({
@@ -146,4 +147,22 @@ test('password policy rejects short or single-character-class passwords', () => 
   assert.equal(isPasswordValid('12345678'), false)
   assert.equal(isPasswordValid('Secure123'), true)
   assert.ok(passwordStrength('Secure123!').score >= passwordStrength('password1').score)
+})
+
+test('customer profile fields are trimmed, nullable, and verifiable after saving', () => {
+  const normalized = normalizeCustomerProfileInput({
+    account_number: '  MRWD-00123  ',
+    phone: ' 0917 123 4567 ',
+    service_address: '  12 Mabini Street, Roxas City  ',
+    barangay: '  Tiza ',
+  })
+  assert.deepEqual(normalized, {
+    account_number: 'MRWD-00123',
+    phone: '0917 123 4567',
+    service_address: '12 Mabini Street, Roxas City',
+    barangay: 'Tiza',
+  })
+  assert.equal(customerProfileMatches(normalized, normalized), true)
+  assert.equal(customerProfileMatches({ ...normalized, phone: null }, normalized), false)
+  assert.equal(normalizeCustomerProfileInput({ phone: '   ' }).phone, null)
 })

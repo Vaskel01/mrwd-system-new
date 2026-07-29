@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { supabaseAnonClient } from '../supabaseClient.js'
 import { writeAudit } from '../lib/activity.js'
+import { customerProfileMatches, normalizeCustomerProfileInput } from '../lib/profileUpdate.js'
 
 const router = Router()
 const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
@@ -25,27 +26,61 @@ router.patch('/me', requireAuth, async (req, res) => {
   } = req.body || {}
   if (!full_name || full_name.trim().length < 2) return res.status(400).json({ error: 'Full name must contain at least 2 characters.' })
 
-  const { data, error } = await req.supabase.rpc('update_my_profile', {
+  let expectedCustomerProfile = null
+  let rpcName = 'update_my_profile'
+  let rpcArguments = {
     p_full_name: full_name.trim(),
-    p_account_number: account_number == null ? null : String(account_number),
-    p_phone: phone == null ? null : String(phone),
-    p_service_address: service_address == null ? null : String(service_address),
-    p_barangay: barangay == null ? null : String(barangay),
     p_availability_status: availability_status || null,
     p_availability_note: availability_note || null,
     p_availability_until: availability_until || null,
-  })
+  }
+
+  if (req.user.role === 'customer') {
+    try {
+      expectedCustomerProfile = normalizeCustomerProfileInput({
+        account_number,
+        phone,
+        service_address,
+        barangay,
+      })
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message })
+    }
+    rpcName = 'update_my_customer_profile'
+    rpcArguments = {
+      p_full_name: full_name.trim(),
+      p_account_number: expectedCustomerProfile.account_number,
+      p_phone: expectedCustomerProfile.phone,
+      p_service_address: expectedCustomerProfile.service_address,
+      p_barangay: expectedCustomerProfile.barangay,
+    }
+  }
+
+  const { error } = await req.supabase.rpc(rpcName, rpcArguments)
   if (error) {
     const message = error.code === '23505'
       ? 'That account number is already assigned to another customer.'
       : error.message
     return res.status(400).json({ error: message })
   }
+
+  const { data: storedUser, error: readError } = await req.supabase
+    .from('profiles')
+    .select(PROFILE_FIELDS)
+    .eq('id', req.user.id)
+    .single()
+  if (readError || !storedUser) {
+    return res.status(500).json({ error: readError?.message || 'The saved profile could not be verified.' })
+  }
+  if (expectedCustomerProfile && !customerProfileMatches(storedUser, expectedCustomerProfile)) {
+    return res.status(500).json({ error: 'The customer information was not saved completely. Please try again.' })
+  }
+
   await writeAudit(req.supabase, req.user, 'profile.updated', 'profile', req.user.id, {
     customer_contact_updated: req.user.role === 'customer',
     availability_status: availability_status || undefined,
   })
-  res.json({ user: data })
+  res.json({ user: storedUser })
 })
 
 router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, res) => {

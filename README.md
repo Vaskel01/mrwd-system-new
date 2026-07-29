@@ -75,7 +75,9 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 10. `supabase/complete-workflow-features.sql`
 11. `supabase/migrations/20260728152348_complaint_workflow_polish.sql`
 12. `supabase/migrations/20260729101153_notification_cleanup_policy.sql`
-13. `supabase/migrations/20260729193000_announcement_lifecycle.sql` — run last
+13. `supabase/migrations/20260729193000_announcement_lifecycle.sql`
+14. `supabase/migrations/20260729204500_fix_customer_profile_persistence.sql`
+15. `supabase/migrations/20260729210000_harden_profile_update_access.sql` — run last
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 

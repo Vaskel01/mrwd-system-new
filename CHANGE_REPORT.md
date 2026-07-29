@@ -32,6 +32,7 @@
 - Reworked Maintenance > My Tasks into five task-focused columns on larger screens and clean cards below the desktop breakpoint, eliminating the narrow seven-column layout and page-level horizontal overflow.
 - Rebuilt the Administrator Dashboard around morning triage: removed repeated counters, added Today/This Week/All Time statistics and a today-versus-yesterday filing trend, combined unassigned work with live Maintenance Personnel availability, and separated urgency-sorted **Needs Attention** records from the non-duplicated **Recently Filed** feed.
 - Standardized the dashboard Operational Overview cards to the compact rounded-card design used by Assign Tasks.
+- Fixed Customer My Profile persistence by introducing a dedicated customer-profile RPC, normalizing and verifying the stored account number, phone, service address, and barangay before reporting success, and refreshing the authoritative profile state after saving.
 - Changed Assign Tasks notices to fixed overlays to prevent page jumps.
 - Completed Assign Tasks URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
 - Added quick task acknowledgment from Maintenance > My Tasks without removing access to the full task details.
@@ -68,15 +69,19 @@ Run these migrations after the earlier project migrations, in this order:
 
 `supabase/migrations/20260729193000_announcement_lifecycle.sql`
 
-They add complaint references, customer profile fields, Important announcement state, priority-override metadata, completion acknowledgments, user-scoped notification dismissal, and the announcement lifecycle fields.
+`supabase/migrations/20260729204500_fix_customer_profile_persistence.sql`
+
+`supabase/migrations/20260729210000_harden_profile_update_access.sql`
+
+They add complaint references, customer profile fields, Important announcement state, priority-override metadata, completion acknowledgments, user-scoped notification dismissal, the announcement lifecycle fields, verified Customer profile saving, and least-privilege profile-update access.
 
 ## Verification
 
 - `npm run verify`: passed
 - Production frontend build: passed
 - ESLint: passed with three React Hook Form compiler advisory warnings and no errors
-- Server JavaScript syntax: 18 files passed
-- Automated backend/core-feature tests: 11/11 passed
+- Server JavaScript syntax: 19 files passed
+- Automated backend/core-feature tests: 12/12 passed
 - Desktop and mobile browser checks: passed; original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were verified
 - Classifier development cases:
   - Category: 25/25

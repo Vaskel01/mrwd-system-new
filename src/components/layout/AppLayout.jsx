@@ -68,12 +68,6 @@ function ProfileIcon({ className }) {
 function SignOutIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
 }
-function SunIcon({ className }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="4"/><path strokeLinecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
-}
-function MoonIcon({ className }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M20.5 15.2A8.5 8.5 0 018.8 3.5 8.5 8.5 0 1020.5 15.2Z"/></svg>
-}
 
 // Water droplet seal
 function WaterSeal({ size = 40 }) {
@@ -114,11 +108,6 @@ export default function AppLayout({ children }) {
   const config   = ROLE_CONFIG[role]
   const navItems = NAV[role] || []
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [theme, setTheme] = useState(() => {
-    const storedTheme = window.localStorage.getItem('mrwd-theme')
-    if (storedTheme === 'dark' || storedTheme === 'light') return storedTheme
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
   const unreadCount = useNotificationStore(state => state.unreadCount)
   const fetchUnreadCount = useNotificationStore(state => state.fetchUnreadCount)
   const clearNotifications = useNotificationStore(state => state.clear)
@@ -128,13 +117,6 @@ export default function AppLayout({ children }) {
     const interval = window.setInterval(fetchUnreadCount, 60000)
     return () => window.clearInterval(interval)
   }, [fetchUnreadCount])
-
-  useEffect(() => {
-    const dark = theme === 'dark'
-    document.documentElement.classList.toggle('dark', dark)
-    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
-    window.localStorage.setItem('mrwd-theme', theme)
-  }, [theme])
 
   const handleSignOut = () => { clearNotifications(); signOut(); navigate('/', { replace: true }) }
   const closeSidebar  = () => setSidebarOpen(false)
@@ -215,7 +197,7 @@ export default function AppLayout({ children }) {
   )
 
   return (
-    <div className="app-shell min-h-screen flex font-sans">
+    <div className="min-h-screen flex font-sans" style={{ background: '#f4f7fb' }}>
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
       {/* ── Mobile overlay ── */}
@@ -225,10 +207,10 @@ export default function AppLayout({ children }) {
 
       {/* ── Sidebar ── */}
       <aside id="primary-navigation" aria-label="Primary navigation" className={`
-        page-band wave-sidebar fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
+        fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
         lg:translate-x-0 transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `} style={{ width: 240 }}>
+      `} style={{ width: 240, background: 'linear-gradient(180deg, #0f2240 0%, #1b3366 60%, #0f2240 100%)' }}>
         {sidebarContent}
       </aside>
 
@@ -237,7 +219,8 @@ export default function AppLayout({ children }) {
         <div className="lg:ml-60 flex flex-col min-h-screen">
 
           {/* ── Top bar ── */}
-          <header className="app-topbar sticky top-0 z-20 h-14 flex items-center justify-between px-4 sm:px-6">
+          <header className="sticky top-0 z-20 h-14 flex items-center justify-between px-4 sm:px-6"
+            style={{ background: 'rgba(244,247,251,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,.06)', boxShadow: '0 1px 0 rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04)' }}>
 
             {/* Left: hamburger + breadcrumb */}
             <div className="flex items-center gap-3">
@@ -270,16 +253,6 @@ export default function AppLayout({ children }) {
               <span className="hidden sm:block text-xs text-gray-400">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <button
-                type="button"
-                onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}
-                className="theme-toggle w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white"
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                aria-pressed={theme === 'dark'}
-                title={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
-              >
-                {theme === 'dark' ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
-              </button>
               <button onClick={() => navigate('/notifications')} className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white"
                 aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
                 <BellIcon className="w-4 h-4" />
@@ -293,7 +266,7 @@ export default function AppLayout({ children }) {
           </header>
 
           {/* ── Page content ── */}
-          <main id="main-content" tabIndex={-1} className="app-main flex-1 overflow-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
               {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
@@ -301,7 +274,7 @@ export default function AppLayout({ children }) {
           </main>
 
           {/* ── Footer ── */}
-          <footer className="app-footer px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
+          <footer className="px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
             Metro Roxas Water District © {new Date().getFullYear()} · All rights reserved
           </footer>
         </div>

@@ -43,8 +43,6 @@
 
 - Preserved the established MRWD navy, blue, gold, and water-themed palette.
 - Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
-- Added a persistent, accessible light/dark theme toggle that retains the MRWD navy-and-gold identity and follows the device preference on first use.
-- Extended the same patterned navy background and layered water-wave artwork used by page headers across the primary sidebar.
 - Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
 - Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.

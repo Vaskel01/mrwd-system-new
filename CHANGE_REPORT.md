@@ -30,6 +30,7 @@
 - Standardized the Assign Tasks purpose panel to the same white card treatment used by All Complaints.
 - Reorganized Staff Accounts into five readable columns, combined related account and workload information, and restored one **Manage** action per row.
 - Reworked Maintenance > My Tasks into five task-focused columns on larger screens and clean cards below the desktop breakpoint, eliminating the narrow seven-column layout and page-level horizontal overflow.
+- Rebuilt the Administrator Dashboard around morning triage: removed repeated counters, added Today/This Week/All Time statistics and a today-versus-yesterday filing trend, combined unassigned work with live Maintenance Personnel availability, and separated urgency-sorted **Needs Attention** records from the non-duplicated **Recently Filed** feed.
 - Changed Assign Tasks notices to fixed overlays to prevent page jumps.
 - Completed Assign Tasks URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
 - Added quick task acknowledgment from Maintenance > My Tasks without removing access to the full task details.

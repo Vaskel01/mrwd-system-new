@@ -28,6 +28,8 @@
 - Reused each Customer's saved service address in Submit Complaint while keeping GPS and map pinning available for issues at another location.
 - Added clear purpose panels to distinguish **All Complaints** (records and review) from **Assign Tasks** (dispatch and batch assignment).
 - Standardized the Assign Tasks purpose panel to the same white card treatment used by All Complaints.
+- Reorganized Staff Accounts into five readable columns, combined related account and workload information, and restored one **Manage** action per row.
+- Reworked Maintenance > My Tasks into five task-focused columns on larger screens and clean cards below the desktop breakpoint, eliminating the narrow seven-column layout and page-level horizontal overflow.
 - Changed Assign Tasks notices to fixed overlays to prevent page jumps.
 - Completed Assign Tasks URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
 - Added quick task acknowledgment from Maintenance > My Tasks without removing access to the full task details.

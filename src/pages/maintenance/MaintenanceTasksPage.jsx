@@ -246,47 +246,54 @@ export default function MaintenanceTasksPage() {
       ) : (
         <>
           <div className="hidden lg:block card rounded-xl overflow-x-auto p-2">
-            <table className="w-full min-w-[980px] table-fixed text-sm">
+            <table className="w-full min-w-[780px] table-fixed text-sm">
               <colgroup>
-                <col className="w-[34%]" />
-                <col className="w-[13%]" />
-                <col className="w-[10%]" />
-                <col className="w-[12%]" />
-                <col className="w-[16%]" />
-                <col className="w-[15%]" />
-                <col className="w-[120px]" />
+                <col className="w-[33%]" />
+                <col className="w-[24%]" />
+                <col className="w-[17%]" />
+                <col className="w-[14%]" />
+                <col className="w-[124px]" />
               </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assigned On</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer & Location</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Progress</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assignment</th>
                   <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
+                  <tr><td colSpan={5} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
                 ) : paged.map(task => (
                   <tr key={task.id}
                     className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                     <td className="px-4 py-3 align-top">
-                      <p className="font-bold text-gray-900 truncate">{task.complaint_type}</p>
-                      <p className="text-xs text-gray-400 truncate">{task.description}</p>
-                      <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{task.reference_number}</p>
-                      {task.task_notes && <p className="text-xs text-amber-700 mt-1 truncate"><b>Instructions:</b> {task.task_notes}</p>}
-                      {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="text-[10px] font-bold text-brand-700 mt-1">Needs acknowledgement</p>}
-                      {task.status === 'blocked' && <p className="text-xs font-bold text-orange-700 mt-1 truncate">Administrator attention requested</p>}
+                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
+                      <p className="mt-1 font-mono text-[10px] font-bold text-gray-500">{task.reference_number}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-400">{task.description}</p>
+                      {task.task_notes && <p className="mt-2 line-clamp-2 text-xs text-amber-700"><b>Instructions:</b> {task.task_notes}</p>}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 align-top truncate">{task.customer_name}</td>
-                    <td className="px-4 py-3 align-top"><PriorityBadge priority={task.priority} /></td>
-                    <td className="px-4 py-3 align-top"><StatusBadge status={task.status} /></td>
-                    <td className="px-4 py-3 text-gray-500 align-top truncate">{task.address}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs align-top whitespace-nowrap">{formatAssignedDate(task.assigned_at || task.task_created_at)}</td>
-                    <td className="px-4 py-3 pr-6 align-top">{renderAction(task)}</td>
+                    <td className="px-4 py-3 align-top">
+                      <p className="truncate text-sm font-semibold text-gray-700">{task.customer_name}</p>
+                      <p className="mt-1 flex min-w-0 items-start gap-1 text-xs text-gray-500">
+                        <AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="line-clamp-2">{task.address}</span>
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-col items-start gap-2">
+                        <PriorityBadge priority={task.priority} />
+                        <StatusBadge status={task.status} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <p className="whitespace-nowrap text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
+                      {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="mt-2 text-[10px] font-bold text-brand-700">Needs acknowledgement</p>}
+                      {task.status === 'blocked' && <p className="mt-2 text-[10px] font-bold text-orange-700">Attention requested</p>}
+                    </td>
+                    <td className="px-4 py-3 align-top">{renderAction(task)}</td>
                   </tr>
                 ))}
               </tbody>

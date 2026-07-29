@@ -241,12 +241,7 @@ export default function StaffAccountsPage() {
     : null
 
   const accountActions = account => (
-    <div className="flex flex-wrap justify-end gap-2">
-      {account.role === 'maintenance_personnel' ? (
-        <button type="button" onClick={() => navigate(`/admin/assign?staff=${account.id}`)} className="inline-flex items-center justify-center px-3 py-2 rounded-lg text-xs font-black text-navy-800 border border-navy-200 bg-white hover:bg-navy-50">
-          View Tasks
-        </button>
-      ) : null}
+    <div className="flex justify-end">
       <button
         type="button"
         onClick={() => setManageAccountId(account.id)}
@@ -422,11 +417,18 @@ export default function StaffAccountsPage() {
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
         <>
-          <div className="hidden md:block card rounded-xl overflow-hidden p-2">
-            <table className="w-full table-fixed text-sm">
+          <div className="hidden lg:block card rounded-xl overflow-x-auto p-2">
+            <table className="w-full min-w-[820px] table-fixed text-sm">
+              <colgroup>
+                <col className="w-[25%]" />
+                <col className="w-[21%]" />
+                <col className="w-[18%]" />
+                <col className="w-[25%]" />
+                <col className="w-[110px]" />
+              </colgroup>
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                  {['Staff Member', 'Role', 'Account', 'Availability', 'Workload', 'Completion', 'Created', 'Action'].map(header => (
+                  {['Staff Member', 'Role & Access', 'Availability', 'Workload & Completion', 'Action'].map(header => (
                     <th key={header} className="px-5 py-3 font-black text-gray-400 uppercase tracking-wider text-xs">{header}</th>
                   ))}
                 </tr>
@@ -436,39 +438,47 @@ export default function StaffAccountsPage() {
                   const stats = workload[account.id] || { total: 0, active: 0, completed: 0, rejected: 0, rate: 0 }
                   return (
                     <tr key={account.id} className={`hover:bg-gray-50 ${account.is_active === false ? 'bg-gray-50 opacity-75' : ''}`}>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-bold text-gray-900">{account.full_name}</p>
-                          {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')} · {stats.active} active</span> : null}
+                      <td className="px-5 py-4 align-top">
+                        <p className="font-bold text-gray-900">{account.full_name}</p>
+                        <p className="mt-1 truncate text-xs text-gray-500">{account.email}</p>
+                        <p className="mt-1.5 text-[10px] font-medium text-gray-400">Created {timeAgo(account.created_at)}</p>
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex flex-col items-start gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                            {ROLE_LABEL[account.role] || account.role}
+                          </span>
+                          <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                            {account.is_active === false ? 'Inactive' : 'Active'}
+                          </span>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">{account.email}</p>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-black uppercase tracking-wide border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                          {ROLE_LABEL[account.role] || account.role}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4"><span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span></td>
-                      <td className="px-5 py-4">{account.role === 'maintenance_personnel' ? <div><p className="text-xs font-bold text-gray-700 capitalize">{String(account.availability_status || 'available').replace('_', ' ')}</p>{account.availability_note && <p className="text-[10px] text-gray-400 mt-1 max-w-[160px] truncate">{account.availability_note}</p>}</div> : <span className="text-gray-300">—</span>}</td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 align-top">
                         {account.role === 'maintenance_personnel' ? (
-                          <div className="flex gap-3 text-xs">
-                            <span className="font-bold text-brand-700">{stats.active} active</span>
-                            <span className="font-bold text-green-700">{stats.completed} done</span>
-                            {stats.rejected > 0 && <span className="font-bold text-red-600">{stats.rejected} rejected</span>}
+                          <div>
+                            <p className="text-xs font-bold capitalize text-gray-700">{String(account.availability_status || 'available').replace('_', ' ')}</p>
+                            <p className="mt-1 text-[10px] text-gray-400">{account.availability_note || 'No availability note'}</p>
                           </div>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 align-top">
                         {account.role === 'maintenance_personnel' ? (
-                          <div className="min-w-[120px]">
-                            <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Rate</span><b className="text-navy-800">{stats.rate}%</b></div>
-                            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden"><div className="h-full bg-brand-500" style={{ width: `${stats.rate}%` }} /></div>
+                          <div className="max-w-[210px]">
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                              <span className="font-bold text-brand-700">{stats.active} active</span>
+                              <span className="font-bold text-green-700">{stats.completed} completed</span>
+                              {stats.rejected > 0 && <span className="font-bold text-red-600">{stats.rejected} rejected</span>}
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                <div className="h-full bg-brand-500" style={{ width: `${stats.rate}%` }} />
+                              </div>
+                              <span className="shrink-0 text-[11px] font-black text-navy-800">{stats.rate}%</span>
+                            </div>
                           </div>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-5 py-4 text-gray-400 whitespace-nowrap">{timeAgo(account.created_at)}</td>
-                      <td className="px-5 py-4 pr-7">{accountActions(account)}</td>
+                      <td className="px-5 py-4 align-top">{accountActions(account)}</td>
                     </tr>
                   )
                 })}
@@ -476,7 +486,7 @@ export default function StaffAccountsPage() {
             </table>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div className="lg:hidden space-y-3">
             {filteredStaff.map(account => {
               const stats = workload[account.id] || { active: 0, completed: 0, rejected: 0, rate: 0 }
               return (

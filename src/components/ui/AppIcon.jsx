@@ -8,6 +8,7 @@ const PATHS = {
   chart: <><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></>,
   check: <path d="m5 12 4 4L19 6"/>,
   clipboard: <><path d="M9 4h6"/><path d="M9 8h6"/><path d="M8 2h8a2 2 0 0 1 2 2v18H6V4a2 2 0 0 1 2-2Z"/></>,
+  close: <><path d="m6 6 12 12"/><path d="M18 6 6 18"/></>,
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   copy: <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></>,
   document: <><path d="M6 2h8l4 4v16H6V2Z"/><path d="M14 2v5h5"/><path d="M9 12h6"/><path d="M9 16h6"/></>,

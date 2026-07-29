@@ -81,6 +81,28 @@ export default function BillingPage() {
         </div>
       )}
 
+      {unpaidBills.length > 0 && (
+        <section className="card rounded-xl overflow-hidden" aria-labelledby="how-to-pay-title">
+          <div className="border-l-4 border-gold-500 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gold-700">Payment Guidance</p>
+                <h2 id="how-to-pay-title" className="mt-1 font-display font-bold text-navy-900">How to settle your bill</h2>
+                <ol className="mt-3 space-y-2 text-sm text-gray-700">
+                  <li><b>1.</b> Bring your MRWD account number or latest billing statement.</li>
+                  <li><b>2.</b> Pay at the Metro Roxas Water District cashier or authorized payment center during office hours.</li>
+                  <li><b>3.</b> Keep the official receipt for your records. Payment posting times may vary.</li>
+                </ol>
+                <p className="mt-3 text-xs text-gray-500">To confirm currently authorized digital or bank payment channels, contact the Billing Office before sending funds.</p>
+              </div>
+              <a href="tel:+63331234567" className="btn-primary shrink-0 rounded-lg text-center">
+                Call Billing Office
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Summary strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="stat-card accent-navy rounded-xl">

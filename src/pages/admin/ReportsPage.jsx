@@ -12,6 +12,19 @@ function escapeCsv(value) {
   return `"${text.replaceAll('"', '""')}"`
 }
 
+function toDateInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
+function thisMonthRange() {
+  const today = new Date()
+  return {
+    from: toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)),
+    to: toDateInput(today),
+  }
+}
+
 function BarList({ data, total }) {
   const entries = Object.entries(data || {}).sort((a, b) => b[1] - a[1])
   return <div className="space-y-3">{entries.length === 0 ? <p className="text-sm text-gray-400">No data yet.</p> : entries.map(([label, count]) => <div key={label}><div className="flex justify-between text-xs mb-1"><span className="font-bold text-gray-700">{titleCase(label)}</span><span className="text-gray-400">{count}</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-brand-500 rounded-full" style={{ width: `${total ? Math.max(3, count / total * 100) : 0}%` }} /></div></div>)}</div>
@@ -23,17 +36,22 @@ export default function ReportsPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [initialRange] = useState(() => thisMonthRange())
+  const [fromDate, setFromDate] = useState(initialRange.from)
+  const [toDate, setToDate] = useState(initialRange.to)
 
   const load = async () => {
     setLoading(true); setError('')
     try {
-      const [result] = await Promise.all([apiFetch('/reports/summary'), fetchComplaints()])
+      const params = new URLSearchParams({ from: fromDate, to: toDate })
+      const [result] = await Promise.all([apiFetch(`/reports/summary?${params}`), fetchComplaints()])
       setData(result)
     } catch (err) { setError(err.message) } finally { setLoading(false) }
   }
   useEffect(() => {
     let active = true
-    Promise.all([apiFetch('/reports/summary'), fetchComplaints()])
+    const params = new URLSearchParams({ from: fromDate, to: toDate })
+    Promise.all([apiFetch(`/reports/summary?${params}`), fetchComplaints()])
       .then(([result]) => {
         if (active) setData(result)
       })
@@ -44,19 +62,48 @@ export default function ReportsPage() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [fetchComplaints])
+  }, [fetchComplaints, fromDate, toDate])
 
-  const csvRows = useMemo(() => complaints.map(item => [
+  const scopedComplaints = useMemo(() => complaints.filter(item => {
+    const filed = new Date(item.created_at)
+    const from = new Date(`${fromDate}T00:00:00`)
+    const to = new Date(`${toDate}T23:59:59.999`)
+    return filed >= from && filed <= to
+  }), [complaints, fromDate, toDate])
+
+  const csvRows = useMemo(() => scopedComplaints.map(item => [
     item.reference_number, item.complaint_type, item.customer_name, item.status, item.priority,
     item.assigned_name || '', item.address, item.created_at, item.completed_at || '', item.description,
-  ]), [complaints])
+  ]), [scopedComplaints])
 
   const exportCsv = () => {
     const headers = ['Complaint Reference', 'Category', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Filed', 'Completed', 'Description']
     const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-    const link = document.createElement('a'); link.href = url; link.download = `mrwd-complaints-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url)
+    const link = document.createElement('a'); link.href = url; link.download = `mrwd-complaints-${fromDate}-to-${toDate}.csv`; link.click(); URL.revokeObjectURL(url)
+  }
+
+  const selectPreset = preset => {
+    const today = new Date()
+    if (preset === 'month') {
+      const range = thisMonthRange()
+      setFromDate(range.from)
+      setToDate(range.to)
+      return
+    }
+    if (preset === '30days') {
+      const from = new Date(today)
+      from.setDate(from.getDate() - 29)
+      setFromDate(toDateInput(from))
+      setToDate(toDateInput(today))
+      return
+    }
+    if (preset === 'quarter') {
+      const quarterStartMonth = Math.floor(today.getMonth() / 3) * 3
+      setFromDate(toDateInput(new Date(today.getFullYear(), quarterStartMonth, 1)))
+      setToDate(toDateInput(today))
+    }
   }
 
   if (loading && !data) return <PageLoader label="Preparing reports..." />
@@ -79,6 +126,26 @@ export default function ReportsPage() {
       </div>
       <div className="hidden print:block"><h1 className="font-display font-black text-2xl">Metro Roxas Water District Complaint Report</h1><p className="text-sm text-gray-500">Generated {new Date().toLocaleString('en-PH')}</p></div>
       {error && <ErrorBanner message={error} onRetry={load} />}
+      <div className="card rounded-xl p-4 no-print">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 flex-1">
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">From</label>
+              <input type="date" value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} className="input-field rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">To</label>
+              <input type="date" value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} className="input-field rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button type="button" onClick={() => selectPreset('month')} className="btn-secondary rounded-lg text-xs">This Month</button>
+            <button type="button" onClick={() => selectPreset('30days')} className="btn-secondary rounded-lg text-xs">Last 30 Days</button>
+            <button type="button" onClick={() => selectPreset('quarter')} className="btn-secondary rounded-lg text-xs">This Quarter</button>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-gray-500">All cards, charts, workload counts, and the CSV export use this filing-date range.</p>
+      </div>
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3">
         {[['Total Complaints', summary.total ?? 0, 'text-navy-900'], ['Active Cases', summary.active ?? 0, 'text-brand-700'], ['Completed', summary.completed ?? 0, 'text-green-700'], ['Average Rating', summary.average_rating ? `${summary.average_rating}/5` : '—', 'text-amber-600']].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display font-black text-3xl ${color}`}>{value}</p><p className="text-xs font-bold text-gray-500 mt-1">{label}</p></div>)}
       </div>

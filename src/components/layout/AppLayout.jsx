@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
+import CustomerInterruptionBanner from '../ui/CustomerInterruptionBanner'
 
 const NAV = {
   customer: [
@@ -267,6 +268,7 @@ export default function AppLayout({ children }) {
           {/* ── Page content ── */}
           <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+              {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
             </div>
           </main>

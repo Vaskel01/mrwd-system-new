@@ -44,7 +44,9 @@ function createPassword(length = 12) {
 const schema = z.object({
   full_name: z.string().min(2, 'Enter a full name'),
   email: z.string().email('Enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Za-z]/, 'Password must include a letter')
+    .regex(/\d/, 'Password must include a number'),
   role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select a role' }) }),
 })
 

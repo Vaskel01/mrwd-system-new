@@ -147,8 +147,14 @@ export default function SubmitComplaintPage() {
 
   const { register, handleSubmit, watch, reset, trigger, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { complaint_type: '', description: '', address: '' },
+    defaultValues: { complaint_type: '', description: '', address: user?.service_address || '' },
   })
+
+  useEffect(() => {
+    if (user?.service_address) {
+      setValue('address', user.service_address, { shouldValidate: false })
+    }
+  }, [setValue, user?.service_address])
 
   const watchedType = watch('complaint_type')
   const watchedDesc = watch('description')
@@ -203,7 +209,7 @@ export default function SubmitComplaintPage() {
     setGpsCoords(null)
     setGpsError(null)
     setLocationMode(null)
-    setValue('address', '', { shouldValidate: false })
+    setValue('address', user?.service_address || '', { shouldValidate: false })
   }
   // ────────────────────────────────────────────────────────────────────────
 
@@ -399,6 +405,24 @@ export default function SubmitComplaintPage() {
               {/* Mode chooser — shown until a mode is active */}
               {!locationMode && !gpsCoords && (
                 <div className="grid grid-cols-2 gap-3">
+                  {user?.service_address && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('address', user.service_address, { shouldValidate: true })
+                        setLocationMode('saved')
+                        setGpsCoords(null)
+                      }}
+                      className="col-span-2 flex items-start gap-3 rounded-xl border-2 border-navy-200 bg-navy-50 p-4 text-left transition-colors hover:border-gold-400"
+                    >
+                      <AppIcon name="location" className="h-5 w-5 shrink-0 text-navy-700" />
+                      <span>
+                        <span className="block text-sm font-bold text-navy-900">Use Saved Service Address</span>
+                        <span className="mt-1 block text-xs text-gray-600">{user.service_address}</span>
+                        <span className="mt-1 block text-[11px] text-gray-500">Choose Pin on Map instead when the issue is elsewhere or needs a more exact location.</span>
+                      </span>
+                    </button>
+                  )}
                   {/* GPS button */}
                   <button
                     type="button"
@@ -452,6 +476,21 @@ export default function SubmitComplaintPage() {
                       </div>
                     </div>
                     <button type="button" onClick={clearGPS} className="text-xs text-red-500 hover:text-red-700 font-bold shrink-0">Change</button>
+                  </div>
+                </div>
+              )}
+
+              {locationMode === 'saved' && (
+                <div className="border border-navy-200 bg-navy-50 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <AppIcon name="location" className="mt-0.5 h-5 w-5 text-navy-700" />
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-navy-800">Saved Service Address</p>
+                        <p className="mt-1 text-xs text-gray-700">{user.service_address}</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={clearGPS} className="text-xs font-bold text-red-600">Change</button>
                   </div>
                 </div>
               )}

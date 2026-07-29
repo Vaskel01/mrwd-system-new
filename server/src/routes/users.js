@@ -75,7 +75,9 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   if (!email || !password || !full_name || !['admin', 'maintenance_personnel'].includes(role)) {
     return res.status(400).json({ error: 'full_name, email, password, and a valid staff role are required.' })
   }
-  if (password.length < 8) return res.status(400).json({ error: 'Temporary password must be at least 8 characters.' })
+  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+    return res.status(400).json({ error: 'Temporary password must use at least 8 characters with at least one letter and one number.' })
+  }
 
   const client = supabaseAnonClient()
   const { data, error } = await client.auth.signUp({

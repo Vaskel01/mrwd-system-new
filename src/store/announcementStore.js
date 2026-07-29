@@ -6,14 +6,25 @@ export const useAnnouncementStore = create((set) => ({
   loading: false,
   error: null,
 
-  fetchAnnouncements: async () => {
+  fetchAnnouncements: async ({ includeExpired = false } = {}) => {
     set({ loading: true, error: null })
     try {
-      const { announcements } = await apiFetch('/announcements')
+      const { announcements } = await apiFetch(`/announcements${includeExpired ? '?include_expired=true' : ''}`)
       set({ announcements, loading: false })
     } catch (err) {
       set({ loading: false, error: err.message })
     }
+  },
+
+  updateAnnouncement: async (id, data) => {
+    const { announcement } = await apiFetch(`/announcements/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+    set(state => ({
+      announcements: state.announcements.map(item => item.id === id ? announcement : item),
+    }))
+    return announcement
   },
 
   // Admin: post a new announcement

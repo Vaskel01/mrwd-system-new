@@ -5,11 +5,16 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 import AppIcon from '../../components/ui/AppIcon'
+import { isPasswordValid } from '../../lib/passwordPolicy'
+import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your full name'),
   email:     z.string().email('Enter a valid email address'),
-  password:  z.string().min(6, 'Password must be at least 6 characters'),
+  password:  z.string().refine(
+    isPasswordValid,
+    'Use at least 8 characters with at least one letter and one number'
+  ),
   confirm:   z.string(),
 }).refine(data => data.password === data.confirm, {
   message: "Passwords don't match",
@@ -40,9 +45,10 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   })
+  const watchedPassword = watch('password', '')
 
   const onSubmit = async ({ full_name, email, password }) => {
     setError('')
@@ -184,7 +190,7 @@ export default function RegisterPage() {
                   <div className="relative">
                     <input aria-label="Password"
                       type={showPass ? 'text' : 'password'}
-                      placeholder="At least 6 characters"
+                      placeholder="At least 8 characters"
                       autoComplete="new-password"
                       {...register('password')}
                       className={`input-field pr-11 ${errors.password ? 'input-error' : ''}`}
@@ -199,6 +205,7 @@ export default function RegisterPage() {
                       }
                     </button>
                   </div>
+                  <PasswordStrengthMeter password={watchedPassword} />
                   {errors.password && <p className="mt-1.5 text-xs text-red-600 font-medium">{errors.password.message}</p>}
                 </div>
 

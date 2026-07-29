@@ -8,7 +8,7 @@ const PATTERNS = [
   [/no profile found/i,
     "This account isn't fully set up yet. Contact the district office."],
   [/password must be at least/i,
-    'Password needs to be at least 6 characters.'],
+    'Use at least 8 characters with at least one letter and one number.'],
   [/duplicate key value|already registered|user already exists/i,
     'That email is already in use.'],
   [/violates row-level security/i,

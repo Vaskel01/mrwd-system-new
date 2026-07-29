@@ -18,6 +18,7 @@ This folder contains incremental migrations for the existing MRWD database. It d
 | 10 | `complete-workflow-features.sql` | Final workflow, notification, audit, assignment-history, profile, and storage migration. Run last. |
 | 11 | `migrations/20260728152348_complaint_workflow_polish.sql` | Adds complaint references, expanded customer profiles, important announcements, audited priority overrides, and completion acknowledgments. |
 | 12 | `migrations/20260729101153_notification_cleanup_policy.sql` | Allows each authenticated user to dismiss only notifications addressed to that account. |
+| 13 | `migrations/20260729193000_announcement_lifecycle.sql` | Adds optional announcement expiry and edit timestamps while preserving existing RLS policies. |
 
 Many statements are safe to rerun, but always back up the database and review the SQL before executing it.
 

@@ -38,6 +38,9 @@ export default function MaintenanceTasksPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
+  const acknowledgeTask = useComplaintStore(s => s.acknowledgeTask)
+  const [acknowledgingId, setAcknowledgingId] = useState(null)
+  const [notice, setNotice] = useState(null)
 
   const [view, setView] = useState(() => searchParams.get('view') || 'active')
   const [search, setSearch] = useState(() => searchParams.get('q') || '')
@@ -101,17 +104,50 @@ export default function MaintenanceTasksPage() {
     setPage(1)
   }
 
-  const renderAction = task => (
-    <button
-      onClick={event => {
-        event.stopPropagation()
-        navigate(`/complaints/${task.id}`)
-      }}
-      className={TABLE_ACTION_CLASS}
-    >
-      Open
-    </button>
-  )
+  const quickAcknowledge = async (event, task) => {
+    event.stopPropagation()
+    setAcknowledgingId(task.id)
+    try {
+      await acknowledgeTask(task.id)
+      setNotice({ type: 'success', message: `${task.reference_number} acknowledged.` })
+      window.setTimeout(() => setNotice(null), 3000)
+    } catch (acknowledgeError) {
+      setNotice({
+        type: 'error',
+        message: acknowledgeError?.message || 'The task could not be acknowledged. Please try again.',
+      })
+      window.setTimeout(() => setNotice(null), 5000)
+    } finally {
+      setAcknowledgingId(null)
+    }
+  }
+
+  const renderAction = task => {
+    const needsAcknowledgement = !task.acknowledged_at && ['assigned', 'en_route', 'in_progress'].includes(task.status)
+    return (
+      <div className="flex flex-col items-start gap-1.5">
+        {needsAcknowledgement && (
+          <button
+            type="button"
+            onClick={event => quickAcknowledge(event, task)}
+            disabled={acknowledgingId === task.id}
+            className="inline-flex w-28 items-center justify-center rounded-lg bg-gold-500 px-3 py-2 text-xs font-black text-navy-950 hover:bg-gold-400 disabled:opacity-50"
+          >
+            {acknowledgingId === task.id ? 'Saving…' : 'Acknowledge'}
+          </button>
+        )}
+        <button
+          onClick={event => {
+            event.stopPropagation()
+            navigate(`/complaints/${task.id}`)
+          }}
+          className={needsAcknowledgement ? 'text-xs font-bold text-navy-700 underline underline-offset-2' : TABLE_ACTION_CLASS}
+        >
+          {needsAcknowledgement ? 'Open details' : 'Open'}
+        </button>
+      </div>
+    )
+  }
 
   const completionRate = counts.active + counts.completed > 0
     ? Math.round(counts.completed / (counts.active + counts.completed) * 100)
@@ -136,6 +172,18 @@ export default function MaintenanceTasksPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
+      {notice && (
+        <div
+          role={notice.type === 'error' ? 'alert' : 'status'}
+          className={`fixed right-4 top-20 z-50 max-w-sm rounded-xl border-l-4 p-4 text-sm font-bold shadow-xl ${
+            notice.type === 'error'
+              ? 'border-red-500 bg-red-50 text-red-800'
+              : 'border-green-500 bg-green-50 text-green-800'
+          }`}
+        >
+          {notice.message}
+        </div>
+      )}
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your task list changed since this page was loaded." />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

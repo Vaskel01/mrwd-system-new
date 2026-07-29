@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
+import { isPasswordValid } from '../../lib/passwordPolicy'
+import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
 
 export default function ProfilePage() {
   const currentUser = useAuthStore(s => s.user)
   const updateStoredUser = useAuthStore(s => s.updateStoredUser)
+  const changeAccountPassword = useAuthStore(s => s.changePassword)
   const [profile, setProfile] = useState(null)
   const [fullName, setFullName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -19,6 +22,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     apiFetch('/users/me').then(({ user }) => {
@@ -50,6 +59,28 @@ export default function ProfilePage() {
     } catch (err) { setError(err.message) } finally { setSaving(false) }
   }
 
+  const changePassword = async event => {
+    event.preventDefault()
+    setPasswordError('')
+    setPasswordMessage('')
+    if (!currentPassword) return setPasswordError('Enter your current password.')
+    if (!isPasswordValid(newPassword)) return setPasswordError('Use at least 8 characters with at least one letter and one number.')
+    if (newPassword !== confirmPassword) return setPasswordError('New passwords do not match.')
+
+    setChangingPassword(true)
+    try {
+      const result = await changeAccountPassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage(result.message || 'Password changed successfully.')
+    } catch (err) {
+      setPasswordError(err.message)
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   if (loading) return <PageLoader label="Loading your profile..." />
 
   return (
@@ -79,6 +110,35 @@ export default function ProfilePage() {
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Availability Note</label><textarea name="profilepage-example-field-inspection-until-3-pm-6" aria-label="Example: Field inspection until 3 PM" rows={3} value={note} onChange={e => setNote(e.target.value)} className="input-field rounded-lg resize-none" placeholder="Example: Field inspection until 3 PM" /></div>
         </div>}
         <div className="flex justify-end"><button disabled={saving} className="btn-primary rounded-lg disabled:opacity-50">{saving ? <><Spinner className="w-4 h-4 border-2 border-white" /> Saving…</> : 'Save Profile'}</button></div>
+      </form>
+
+      <form onSubmit={changePassword} className="card rounded-xl p-5 sm:p-6 space-y-4 max-w-2xl">
+        <div>
+          <h2 className="font-display font-bold text-navy-900">Password & Security</h2>
+          <p className="text-xs text-gray-500 mt-1">Change your password without leaving your account.</p>
+        </div>
+        {passwordError && <ErrorBanner message={passwordError} />}
+        {passwordMessage && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{passwordMessage}</div>}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Current Password</label>
+            <input aria-label="Current Password" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} className="input-field rounded-lg" required />
+          </div>
+          <div>
+            <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">New Password</label>
+            <input aria-label="New Password" type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} className="input-field rounded-lg" required />
+          </div>
+          <div>
+            <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Confirm New Password</label>
+            <input aria-label="Confirm New Password" type="password" autoComplete="new-password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} className="input-field rounded-lg" required />
+          </div>
+        </div>
+        <PasswordStrengthMeter password={newPassword} />
+        <div className="flex justify-end">
+          <button disabled={changingPassword} className="btn-secondary rounded-lg disabled:opacity-50">
+            {changingPassword ? <><Spinner className="w-4 h-4 border-2 border-navy-700" /> Updating…</> : 'Change Password'}
+          </button>
+        </div>
       </form>
     </div>
   )

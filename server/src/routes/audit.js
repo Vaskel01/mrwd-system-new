@@ -24,12 +24,28 @@ function normalizeDetails(details) {
 }
 
 router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 150, 1), 500)
-  const { data, error } = await req.supabase
+  const page = Math.max(Number(req.query.page) || 1, 1)
+  const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100)
+  const offset = (page - 1) * limit
+  const fromDate = req.query.from ? new Date(`${req.query.from}T00:00:00.000+08:00`) : null
+  const toDate = req.query.to ? new Date(`${req.query.to}T23:59:59.999+08:00`) : null
+  if ((fromDate && Number.isNaN(fromDate.getTime())) || (toDate && Number.isNaN(toDate.getTime()))) {
+    return res.status(400).json({ error: 'Use valid audit dates in YYYY-MM-DD format.' })
+  }
+  if (fromDate && toDate && fromDate > toDate) {
+    return res.status(400).json({ error: 'The audit start date must be before the end date.' })
+  }
+
+  let query = req.supabase
     .from('audit_logs')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
+
+  if (fromDate) query = query.gte('created_at', fromDate.toISOString())
+  if (toDate) query = query.lte('created_at', toDate.toISOString())
+
+  const { data, error, count } = await query
 
   if (error) return res.status(400).json({ error: error.message })
 
@@ -53,7 +69,16 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
     }
   }
 
-  res.json({ logs: data || [], profiles })
+  res.json({
+    logs: data || [],
+    profiles,
+    pagination: {
+      page,
+      page_size: limit,
+      total: count || 0,
+      total_pages: Math.max(1, Math.ceil((count || 0) / limit)),
+    },
+  })
 })
 
 export default router

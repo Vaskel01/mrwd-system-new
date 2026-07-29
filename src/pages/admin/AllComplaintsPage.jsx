@@ -101,6 +101,15 @@ export default function AllComplaintsPage() {
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Complaint records changed since this page was loaded." />
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex items-start gap-3">
+          <AppIcon name="search" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
+          <div>
+            <p className="font-display font-bold text-navy-900">Records and review</p>
+            <p className="mt-1 text-sm text-gray-600">Use this page to find and inspect any complaint. Open a record for its complete timeline and actions; use <b>Assign Tasks</b> for dispatch and bulk assignment work.</p>
+          </div>
+        </div>
+      </div>
 
       <div className="card rounded-xl p-4 space-y-3">
         <div className="relative">

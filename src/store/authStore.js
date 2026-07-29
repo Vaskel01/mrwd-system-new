@@ -41,7 +41,7 @@ async function applySession(set, user, access_token, refresh_token) {
   set({ user, loading: false })
 }
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   // Restored synchronously so a page refresh doesn't bounce a signed-in
   // user back to /login before the app has a chance to render.
   user: storedAccessToken ? loadStoredUser() : null,
@@ -100,6 +100,17 @@ export const useAuthStore = create((set) => ({
     const { error } = await supabase.auth.updateUser({ password })
     if (error) throw new Error(error.message)
     return true
+  },
+
+  changePassword: async (currentPassword, password) => {
+    const result = await apiFetch('/auth/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ current_password: currentPassword, password }),
+    })
+    if (result.access_token && result.refresh_token) {
+      await applySession(set, get().user, result.access_token, result.refresh_token)
+    }
+    return result
   },
 
   updateStoredUser: user => {

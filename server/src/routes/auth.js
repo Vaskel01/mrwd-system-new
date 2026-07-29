@@ -1,9 +1,15 @@
 import { Router } from 'express'
 import { supabaseAnonClient } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
+import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
 const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
+const PASSWORD_ERROR = 'Use at least 8 characters with at least one letter and one number.'
+
+function isPasswordValid(password = '') {
+  return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password)
+}
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body || {}
@@ -31,7 +37,7 @@ router.post('/login', async (req, res) => {
 router.post('/signup', async (req, res) => {
   const { email, password, full_name } = req.body || {}
   if (!email || !password || !full_name) return res.status(400).json({ error: 'Full name, email, and password are required.' })
-  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' })
+  if (!isPasswordValid(password)) return res.status(400).json({ error: PASSWORD_ERROR })
 
   const client = supabaseAnonClient()
   const { data, error } = await client.auth.signUp({
@@ -70,6 +76,34 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/logout', requireAuth, async (req, res) => {
   await req.supabase.auth.signOut()
   res.json({ ok: true })
+})
+
+router.patch('/password', requireAuth, async (req, res) => {
+  const { current_password, password } = req.body || {}
+  if (!current_password) return res.status(400).json({ error: 'Enter your current password.' })
+  if (!isPasswordValid(password)) return res.status(400).json({ error: PASSWORD_ERROR })
+  if (current_password === password) return res.status(400).json({ error: 'Choose a new password that is different from your current password.' })
+
+  const client = supabaseAnonClient()
+  const { data: signInData, error: signInError } = await client.auth.signInWithPassword({
+    email: req.user.email,
+    password: current_password,
+  })
+  if (signInError || signInData?.user?.id !== req.user.id) {
+    return res.status(400).json({ error: 'Current password is incorrect.' })
+  }
+
+  const { error } = await client.auth.updateUser({ password })
+  if (error) return res.status(400).json({ error: error.message })
+
+  await writeAudit(req.supabase, req.user, 'account.password_changed', 'profile', req.user.id)
+  const { data: sessionData } = await client.auth.getSession()
+  res.json({
+    ok: true,
+    message: 'Password changed successfully.',
+    access_token: sessionData?.session?.access_token || signInData.session?.access_token,
+    refresh_token: sessionData?.session?.refresh_token || signInData.session?.refresh_token,
+  })
 })
 
 router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }))

@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js'
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
+import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({
@@ -137,4 +138,12 @@ test('priority thresholds include exact boundary values', () => {
   assert.equal(priorityFromScore(30), 'medium')
   assert.equal(priorityFromScore(59), 'medium')
   assert.equal(priorityFromScore(60), 'high')
+})
+
+test('password policy rejects short or single-character-class passwords', () => {
+  assert.equal(isPasswordValid('short1'), false)
+  assert.equal(isPasswordValid('onlyletters'), false)
+  assert.equal(isPasswordValid('12345678'), false)
+  assert.equal(isPasswordValid('Secure123'), true)
+  assert.ok(passwordStrength('Secure123!').score >= passwordStrength('password1').score)
 })

@@ -107,6 +107,23 @@ where status = 'completed'
 | UI-11 | Print a complaint containing GPS information | The unreliable interactive Leaflet map is replaced by a readable coordinate/location summary. |
 | UI-12 | Use Notifications with more than one page of records | Pagination works, individual notifications can be dismissed, and one account cannot delete another account's notifications. |
 
+## Follow-up workflow checks
+
+| ID | Test | Expected result |
+|---|---|---|
+| QOL-01 | Open Billing with an unpaid bill | Payment guidance and a Billing Office call action appear near the balance. |
+| QOL-02 | Change the Reports date range and export CSV | Cards, charts, workload data, and exported complaints use the selected filing dates. |
+| QOL-03 | Filter Announcements to Billing while an Important interruption exists | Only Billing announcements, including Important Billing notices, are shown. |
+| QOL-04 | Publish an active interruption and visit Customer pages | A dismissible interruption banner appears until dismissed for the session. |
+| QOL-05 | Browse Audit Log pages and apply a date range | The exact total, older pages, and high-stakes/review/routine action styles are visible. |
+| QOL-06 | Change a password in My Profile using an incorrect and then correct current password | The incorrect password is rejected; the valid change succeeds and creates an audit event. |
+| QOL-07 | Open Submit Complaint as a Customer with a saved service address | The address is prefilled and can still be replaced with GPS or a map pin. |
+| QOL-08 | Set Assign Tasks filters, open a record, and use browser Back | View, search, priority, status, personnel, sort, and page are restored from the URL. |
+| QOL-09 | Click Reset Filters on the Resolved dispatch view | The page returns to the default Unassigned dispatch queue. |
+| QOL-10 | Acknowledge an assignment from Maintenance > My Tasks | The task is acknowledged without opening details and the list updates immediately. |
+| QOL-11 | Edit an announcement | Its content changes without replacing its original author or posting timestamp; an audit event is recorded. |
+| QOL-12 | Set an announcement Active Until time in the past | Customers and Maintenance Personnel no longer see it; Administrators see it marked Expired. |
+
 ## Classifier evaluation
 
 The included 25 cases are development checks. Final research results should use a separate, blinded set of 50–100 anonymized complaints labeled by MRWD personnel. Do not tune the dataset using the final test set.

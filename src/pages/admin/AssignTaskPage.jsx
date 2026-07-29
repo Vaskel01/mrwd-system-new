@@ -57,12 +57,12 @@ export default function AssignTaskPage() {
 
   const [staffList, setStaffList] = useState([])
   const [staffError, setStaffError] = useState('')
-  const [view, setView] = useState(searchParams.get('staff') ? 'active' : 'unassigned')
-  const [search, setSearch] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [view, setView] = useState(searchParams.get('view') || (searchParams.get('staff') ? 'active' : 'unassigned'))
+  const [search, setSearch] = useState(searchParams.get('q') || '')
+  const [priorityFilter, setPriorityFilter] = useState(searchParams.get('priority') || 'all')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all')
   const [staffFilter, setStaffFilter] = useState(searchParams.get('staff') || 'all')
-  const [sortBy, setSortBy] = useState('priority')
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'priority')
   const [checked, setChecked] = useState(new Set())
   const [assignTarget, setAssignTarget] = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
@@ -76,7 +76,7 @@ export default function AssignTaskPage() {
   const [rejecting, setRejecting] = useState(false)
   const [restoringId, setRestoringId] = useState(null)
   const [toast, setToast] = useState({ message: '', type: 'success' })
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(Math.max(1, Number(searchParams.get('page')) || 1))
   const pageSize = 10
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
@@ -85,6 +85,17 @@ export default function AssignTaskPage() {
       .then(({ staff }) => setStaffList(staff))
       .catch(err => setStaffError(err.message))
   }, [])
+  useEffect(() => {
+    const next = {}
+    if (view !== 'unassigned') next.view = view
+    if (search.trim()) next.q = search.trim()
+    if (priorityFilter !== 'all') next.priority = priorityFilter
+    if (statusFilter !== 'all') next.status = statusFilter
+    if (staffFilter !== 'all') next.staff = staffFilter
+    if (sortBy !== 'priority') next.sort = sortBy
+    if (page > 1) next.page = String(page)
+    setSearchParams(next, { replace: true })
+  }, [view, search, priorityFilter, statusFilter, staffFilter, sortBy, page, setSearchParams])
 
   const counts = useMemo(() => ({
     all: complaints.length,
@@ -126,10 +137,7 @@ export default function AssignTaskPage() {
 
   const changeStaffFilter = value => {
     setStaffFilter(value)
-    const next = new URLSearchParams(searchParams)
-    if (value === 'all') next.delete('staff')
-    else next.set('staff', value)
-    setSearchParams(next, { replace: true })
+    setPage(1)
   }
 
   const toggleChecked = id => setChecked(previous => {
@@ -217,11 +225,13 @@ export default function AssignTaskPage() {
 
 
   const resetFilters = () => {
+    setView('unassigned')
     setSearch('')
     setPriorityFilter('all')
     setStatusFilter('all')
     changeStaffFilter('all')
     setSortBy('priority')
+    setPage(1)
   }
 
   const renderActions = complaint => {
@@ -263,12 +273,22 @@ export default function AssignTaskPage() {
       </div>
 
       {toast.message && (
-        <div className={`p-3 rounded-xl border-l-4 text-sm font-bold ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>
+        <div role="status" aria-live="polite" className={`fixed right-4 top-20 z-50 max-w-sm rounded-xl border-l-4 p-4 text-sm font-bold shadow-xl ${toast.type === 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-green-50 border-green-500 text-green-800'}`}>
           {toast.message}
         </div>
       )}
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
       {staffError && <ErrorBanner message={staffError} />}
+
+      <div className="rounded-xl border border-navy-200 bg-navy-50 p-4">
+        <div className="flex items-start gap-3">
+          <AppIcon name="assignment" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
+          <div>
+            <p className="font-display font-bold text-navy-900">Dispatch workspace</p>
+            <p className="mt-1 text-sm text-gray-600">Use this page to assign, reassign, or batch-dispatch complaints. Use <b>All Complaints</b> when you only need to search, review, or open a complaint record.</p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -277,7 +297,7 @@ export default function AssignTaskPage() {
           ['resolved', 'Completed', counts.resolved, 'text-green-600'],
           ['all', 'All Records', counts.all, 'text-navy-800'],
         ].map(([value, label, count, color]) => (
-          <button key={value} onClick={() => setView(value)}
+          <button key={value} onClick={() => { setView(value); setPage(1) }}
             className={`card rounded-xl p-4 text-left transition-all ${view === value ? 'ring-2 ring-navy-700 border-navy-300' : 'hover:border-navy-200'}`}>
             <p className={`font-display font-black text-3xl ${color}`}>{count}</p>
             <p className="text-xs font-bold text-gray-500 mt-1">{label}</p>
@@ -290,18 +310,18 @@ export default function AssignTaskPage() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input name="assigntaskpage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." value={search} onChange={event => setSearch(event.target.value)}
+          <input name="assigntaskpage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
             placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
             className="input-field pl-9 rounded-lg" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-          <select name="assigntaskpage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
             <option value="high">High Priority</option>
             <option value="medium">Medium Priority</option>
             <option value="low">Low Priority</option>
           </select>
-          <select name="assigntaskpage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Status</option>
             <option value="pending">Pending</option>
             <option value="assigned">Assigned</option>
@@ -315,7 +335,7 @@ export default function AssignTaskPage() {
             <option value="all">Any Maintenance Personnel</option>
             {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
           </select>
-          <select name="assigntaskpage-sort-by-5" aria-label="Sort By" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field rounded-lg text-sm">
+          <select name="assigntaskpage-sort-by-5" aria-label="Sort By" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="priority">Priority</option>
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>

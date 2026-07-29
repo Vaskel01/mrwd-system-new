@@ -17,6 +17,22 @@
 - Added customer completion acknowledgment with timeline, notifications, and audit history.
 - Added classifier synonym and suggestive-phrase matching without double-counting one dataset entry.
 
+## Follow-up usability and accountability updates
+
+- Added a prominent **How to settle your bill** panel beside unpaid/overdue billing information. It directs customers to the MRWD cashier or authorized payment center and avoids publishing unverified digital-payment details.
+- Added filing-date scoping to Reports with **This Month**, **Last 30 Days**, and **This Quarter** presets. Summary cards, charts, workload measures, feedback measures, and CSV exports use the selected date range.
+- Confirmed that Important announcements respect the active category filter.
+- Added a dismissible active service-interruption banner across Customer pages to reduce duplicate reports during announced outages.
+- Replaced the Audit Log's silent 500-row cap with server-side pagination, exact totals, date filters, and visible paging. High-stakes, review-needed, and routine actions now use distinct badges.
+- Added authenticated in-app password changes to My Profile with current-password verification, audit logging, an eight-character letter-and-number policy, and a strength meter.
+- Reused each Customer's saved service address in Submit Complaint while keeping GPS and map pinning available for issues at another location.
+- Added clear purpose panels to distinguish **All Complaints** (records and review) from **Assign Tasks** (dispatch and batch assignment).
+- Changed Assign Tasks notices to fixed overlays to prevent page jumps.
+- Completed Assign Tasks URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
+- Added quick task acknowledgment from Maintenance > My Tasks without removing access to the full task details.
+- Added announcement editing with preserved author/original posting date, audit history, optional **Active Until**, automatic customer/staff hiding after expiry, and an Administrator-visible Expired state.
+- Kept the original MRWD navy/gold palette, wave headers, role layouts, terminology, and existing complaint workflow behavior.
+
 ## Interface and accessibility
 
 - Preserved the established MRWD navy, blue, gold, and water-themed palette.
@@ -45,15 +61,17 @@ Run these migrations after the earlier project migrations, in this order:
 
 `supabase/migrations/20260729101153_notification_cleanup_policy.sql`
 
-They add complaint references, customer profile fields, Important announcement state, priority-override metadata, completion acknowledgments, and user-scoped notification dismissal.
+`supabase/migrations/20260729193000_announcement_lifecycle.sql`
+
+They add complaint references, customer profile fields, Important announcement state, priority-override metadata, completion acknowledgments, user-scoped notification dismissal, and the announcement lifecycle fields.
 
 ## Verification
 
 - `npm run verify`: passed
 - Production frontend build: passed
-- ESLint: passed with two React Hook Form compiler advisory warnings and no errors
-- Server JavaScript syntax: 17 files passed
-- Automated backend/classifier tests: 10/10 passed
+- ESLint: passed with three React Hook Form compiler advisory warnings and no errors
+- Server JavaScript syntax: 18 files passed
+- Automated backend/core-feature tests: 11/11 passed
 - Desktop and mobile browser checks: passed; original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were verified
 - Classifier development cases:
   - Category: 25/25

@@ -47,6 +47,7 @@ const schema = z.object({
   content:  z.string().min(20, 'Content must be at least 20 characters'),
   category: z.string().min(1, 'Select a category'),
   is_important: z.boolean(),
+  active_until: z.string().optional(),
 })
 
 export default function AdminAnnouncementsPage() {
@@ -56,10 +57,11 @@ export default function AdminAnnouncementsPage() {
   const error               = useAnnouncementStore(s => s.error)
   const fetchAnnouncements = useAnnouncementStore(s => s.fetchAnnouncements)
   const postAnnouncement   = useAnnouncementStore(s => s.postAnnouncement)
+  const updateAnnouncement = useAnnouncementStore(s => s.updateAnnouncement)
   const setAnnouncementImportance = useAnnouncementStore(s => s.setAnnouncementImportance)
   const deleteAnnouncement = useAnnouncementStore(s => s.deleteAnnouncement)
 
-  useEffect(() => { fetchAnnouncements() }, [fetchAnnouncements])
+  useEffect(() => { fetchAnnouncements({ includeExpired: true }) }, [fetchAnnouncements])
 
   const [posting, setPosting]             = useState(false)
   const [postError, setPostError]         = useState('')
@@ -67,10 +69,11 @@ export default function AdminAnnouncementsPage() {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [deleting, setDeleting]           = useState(false)
   const [showForm, setShowForm]           = useState(false)
+  const [editing, setEditing]             = useState(null)
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', content: '', category: '', is_important: false },
+    defaultValues: { title: '', content: '', category: '', is_important: false, active_until: '' },
   })
 
   const watchedCategory = watch('category')
@@ -81,15 +84,48 @@ export default function AdminAnnouncementsPage() {
     setPosting(true)
     setPostError('')
     try {
-      await postAnnouncement(data, user.full_name)
+      const payload = {
+        ...data,
+        active_until: data.active_until ? new Date(data.active_until).toISOString() : null,
+      }
+      if (editing) await updateAnnouncement(editing.id, payload)
+      else await postAnnouncement(payload, user.full_name)
       reset()
+      setEditing(null)
       setShowForm(false)
-      showToast('Announcement posted.')
+      showToast(editing ? 'Announcement updated.' : 'Announcement posted.')
     } catch (err) {
       setPostError(err.message)
     } finally {
       setPosting(false)
     }
+  }
+
+  const openNewForm = () => {
+    setEditing(null)
+    reset({ title: '', content: '', category: '', is_important: false, active_until: '' })
+    setShowForm(true)
+  }
+
+  const openEditForm = announcement => {
+    setEditing(announcement)
+    reset({
+      title: announcement.title || '',
+      content: announcement.content || '',
+      category: announcement.category || '',
+      is_important: Boolean(announcement.is_important),
+      active_until: announcement.active_until
+        ? new Date(announcement.active_until).toISOString().slice(0, 16)
+        : '',
+    })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const closeForm = () => {
+    setEditing(null)
+    setShowForm(false)
+    reset({ title: '', content: '', category: '', is_important: false, active_until: '' })
   }
 
   const handleDelete = async () => {
@@ -130,7 +166,7 @@ export default function AdminAnnouncementsPage() {
         <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>
-          <button onClick={() => setShowForm(v => !v)}
+          <button onClick={() => showForm ? closeForm() : openNewForm()}
             className={`text-xs font-black px-4 py-2 border transition-colors ${
               showForm ? 'bg-white text-navy border-white' : 'border-white/40 text-white hover:bg-white/10'
             }`}>
@@ -153,7 +189,7 @@ export default function AdminAnnouncementsPage() {
       {showForm && (
         <div className="bg-white border border-gray-200 mb-5 overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-200 px-5 py-3">
-            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">New Announcement</p>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{editing ? 'Edit Announcement' : 'New Announcement'}</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
             {postError && <ErrorBanner message={postError} />}
@@ -190,12 +226,17 @@ export default function AdminAnnouncementsPage() {
               <input type="checkbox" {...register('is_important')} className="mt-0.5 h-4 w-4 accent-amber-500" />
               <span><span className="block text-sm font-bold text-navy-900">Mark as important</span><span className="block text-xs text-gray-500 mt-0.5">Pins this notice above regular announcements for every user.</span></span>
             </label>
+            <div>
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Active Until <span className="normal-case font-medium text-gray-400">(optional)</span></label>
+              <input aria-label="Active Until" type="datetime-local" {...register('active_until')} className="input-field" />
+              <p className="mt-1.5 text-xs text-gray-500">After this date, customers and Maintenance Personnel will no longer see the notice. Administrators can still review it here.</p>
+            </div>
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={posting}
                 className="btn-primary flex items-center gap-2">
                 {posting
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Posting...</>
-                  : <><AppIcon name="announcement" className="h-4 w-4" />Publish Announcement</>
+                  : <><AppIcon name="announcement" className="h-4 w-4" />{editing ? 'Save Changes' : 'Publish Announcement'}</>
                 }
               </button>
             </div>
@@ -217,16 +258,22 @@ export default function AdminAnnouncementsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       {a.is_important && <span className="inline-flex items-center gap-1 text-xs font-black text-navy-800 bg-gold-100 px-2 py-0.5 uppercase tracking-widest"><AppIcon name="alert" className="h-3.5 w-3.5" />Important</span>}
+                      {a.is_expired && <span className="inline-flex text-xs font-black text-gray-600 bg-gray-100 px-2 py-0.5 uppercase tracking-widest">Expired</span>}
                       <h2 className="font-black text-gray-900 text-sm tracking-tight">{a.title}</h2>
                       <CategoryBadge category={a.category} />
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-2 leading-relaxed">{a.content}</p>
                     <p className="text-xs text-gray-400">
                       <span className="font-semibold text-gray-500">{a.created_by_name}</span> · {timeAgo(a.created_at)}
+                      {a.active_until && <> · Active until {new Date(a.active_until).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</>}
                     </p>
                   </div>
 
                   <div className="shrink-0 flex items-center gap-1">
+                    <button onClick={() => openEditForm(a)}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-bold border border-gray-200 text-navy-700 hover:border-navy-300">
+                      Edit
+                    </button>
                     <button onClick={() => handleImportance(a)}
                       title={a.is_important ? 'Remove important pin' : 'Mark as important'}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold border ${a.is_important ? 'border-gold-300 bg-gold-50 text-navy-800' : 'border-gray-200 text-gray-500 hover:border-gold-300'}`}>

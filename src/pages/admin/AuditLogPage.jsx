@@ -56,6 +56,19 @@ function label(value) {
     .replace(/\b\w/g, character => character.toUpperCase())
 }
 
+function actionSeverity(action = '') {
+  if (/(deleted|deactivated|priority_overridden|rejected|cancelled|password_changed)/i.test(action)) return 'high'
+  if (/(reassigned|restored|blocked|unable|reset_requested|updated)/i.test(action)) return 'review'
+  return 'routine'
+}
+
+function actionClass(action) {
+  const severity = actionSeverity(action)
+  if (severity === 'high') return 'border border-red-200 bg-red-50 text-red-700'
+  if (severity === 'review') return 'border border-amber-200 bg-amber-50 text-amber-800'
+  return 'border border-navy-100 bg-navy-50 text-navy-700'
+}
+
 function detailLabel(key) {
   return DETAIL_LABELS[key] || label(key)
 }
@@ -210,15 +223,22 @@ export default function AuditLogPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const pageSize = 15
+  const [total, setTotal] = useState(0)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const pageSize = 25
 
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const response = await apiFetch('/audit?limit=500')
+      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) })
+      if (fromDate) params.set('from', fromDate)
+      if (toDate) params.set('to', toDate)
+      const response = await apiFetch(`/audit?${params}`)
       setLogs(response.logs || [])
       setProfileDirectory(response.profiles || {})
+      setTotal(response.pagination?.total || 0)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -228,11 +248,15 @@ export default function AuditLogPage() {
 
   useEffect(() => {
     let active = true
-    apiFetch('/audit?limit=500')
+    const params = new URLSearchParams({ page: String(page), limit: String(pageSize) })
+    if (fromDate) params.set('from', fromDate)
+    if (toDate) params.set('to', toDate)
+    apiFetch(`/audit?${params}`)
       .then(response => {
         if (!active) return
         setLogs(response.logs || [])
         setProfileDirectory(response.profiles || {})
+        setTotal(response.pagination?.total || 0)
       })
       .catch(err => {
         if (active) setError(err.message)
@@ -241,7 +265,7 @@ export default function AuditLogPage() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [])
+  }, [page, fromDate, toDate])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -264,8 +288,8 @@ export default function AuditLogPage() {
     })
   }, [logs, profileDirectory, search])
 
-  const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
-  const shown = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
+  const effectivePage = page
+  const shown = filtered
 
   if (loading && logs.length === 0) return <PageLoader label="Loading audit history..." />
 
@@ -278,19 +302,34 @@ export default function AuditLogPage() {
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Audit Log</h1>
             <p className="text-navy-300 text-sm mt-1">Who performed each important complaint, task, and staff action.</p>
           </div>
-          <p className="font-display font-black text-4xl sm:text-5xl text-gold-400 shrink-0">{filtered.length}</p>
+          <p className="font-display font-black text-4xl sm:text-5xl text-gold-400 shrink-0">{total}</p>
         </div>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div className="card rounded-xl p-4">
+      <div className="card rounded-xl p-4 space-y-3">
         <input name="auditlogpage-search-actor-action-complaint-reference-user-or-details-1" aria-label="Search actor, action, complaint reference, user, or details..."
           value={search}
-          onChange={event => setSearch(event.target.value)}
+          onChange={event => { setSearch(event.target.value); setPage(1) }}
           className="input-field rounded-lg"
           placeholder="Search actor, action, complaint reference, user, or details..."
         />
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-2">
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">From</label>
+            <input type="date" value={fromDate} max={toDate || undefined} onChange={event => { setFromDate(event.target.value); setPage(1) }} className="input-field rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">To</label>
+            <input type="date" value={toDate} min={fromDate || undefined} onChange={event => { setToDate(event.target.value); setPage(1) }} className="input-field rounded-lg" />
+          </div>
+          <button type="button" onClick={() => { setFromDate(''); setToDate(''); setSearch(''); setPage(1) }} className="btn-secondary rounded-lg self-end">Reset Filters</button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+          <span>Showing {logs.length} of {total} audit entries. Use the pages below to review older activity.</span>
+          <span><b className="text-red-700">High-stakes</b> · <b className="text-amber-700">Review</b> · <b className="text-navy-700">Routine</b></span>
+        </div>
       </div>
 
       <div className="hidden lg:block card rounded-xl overflow-hidden p-2">
@@ -316,7 +355,7 @@ export default function AuditLogPage() {
               <tr key={item.id} className="align-top hover:bg-gray-50/70 transition-colors">
                 <td className="px-3 py-4 text-xs text-gray-500">{formatDate(item.created_at)}</td>
                 <td className="px-3 py-4 font-bold text-gray-900 break-words">{item.actor_name || 'System'}</td>
-                <td className="px-3 py-4"><span className="inline-flex rounded-full bg-navy-50 text-navy-700 px-2.5 py-1 text-xs font-bold">{label(item.action)}</span></td>
+                <td className="px-3 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${actionClass(item.action)}`}>{label(item.action)}</span></td>
                 <td className="px-3 py-4 text-xs"><p className="font-bold text-gray-700 capitalize break-words">{item.entity_type}</p><p className="font-mono text-gray-400 mt-1" title={item.entity_id || ''}>{item.entity_id ? shortId(item.entity_id) : 'Multiple records'}</p></td>
                 <td className="px-3 py-4 pr-5 text-xs"><DetailsCell details={item.details} profileDirectory={profileDirectory} /></td>
               </tr>
@@ -335,7 +374,7 @@ export default function AuditLogPage() {
                 <p className="font-bold text-gray-900 break-words">{item.actor_name || 'System'}</p>
                 <p className="text-xs text-gray-400 mt-1">{formatDate(item.created_at)}</p>
               </div>
-              <span className="self-start shrink-0 inline-flex rounded-full bg-navy-50 text-navy-700 px-2.5 py-1 text-xs font-bold">{label(item.action)}</span>
+              <span className={`self-start shrink-0 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${actionClass(item.action)}`}>{label(item.action)}</span>
             </div>
             <div className="rounded-lg bg-gray-50 p-3">
               <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Record</p>
@@ -353,7 +392,7 @@ export default function AuditLogPage() {
       <Pagination
         page={effectivePage}
         pageSize={pageSize}
-        total={filtered.length}
+        total={total}
         onPageChange={setPage}
         label="audit entries"
       />

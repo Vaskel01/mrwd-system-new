@@ -12,9 +12,24 @@ function countBy(items, keyFn) {
   }, {})
 }
 
+function parseRange(fromValue, toValue) {
+  const from = fromValue ? new Date(`${fromValue}T00:00:00.000+08:00`) : null
+  const to = toValue ? new Date(`${toValue}T23:59:59.999+08:00`) : null
+  if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) {
+    throw new Error('Use valid report dates in YYYY-MM-DD format.')
+  }
+  if (from && to && from > to) throw new Error('The report start date must be before the end date.')
+  return { from, to }
+}
+
 router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
   try {
-    const complaints = await fetchShapedComplaints(req.supabase)
+    const { from, to } = parseRange(req.query.from, req.query.to)
+    const allComplaints = await fetchShapedComplaints(req.supabase)
+    const complaints = allComplaints.filter(item => {
+      const filed = new Date(item.created_at)
+      return (!from || filed >= from) && (!to || filed <= to)
+    })
     const [{ data: feedback, error: feedbackError }, { data: staff, error: staffError }] = await Promise.all([
       req.supabase.from('feedback').select('complaint_id, rating, created_at'),
       req.supabase.from('profiles').select('id, full_name, role, is_active, availability_status').eq('role', 'maintenance_personnel'),
@@ -29,7 +44,11 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
         : null)
       .filter(value => Number.isFinite(value) && value >= 0)
 
-    const ratings = (feedback || []).map(item => Number(item.rating)).filter(Number.isFinite)
+    const complaintIds = new Set(complaints.map(item => item.id))
+    const ratings = (feedback || [])
+      .filter(item => complaintIds.has(item.complaint_id))
+      .map(item => Number(item.rating))
+      .filter(Number.isFinite)
     const technicianWorkload = (staff || []).map(person => {
       const assigned = complaints.filter(item => item.assigned_to === person.id)
       const active = assigned.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status)).length
@@ -47,6 +66,10 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
     })
 
     res.json({
+      range: {
+        from: req.query.from || null,
+        to: req.query.to || null,
+      },
       summary: {
         total: complaints.length,
         pending: complaints.filter(item => item.status === 'pending').length,

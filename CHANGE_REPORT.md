@@ -47,6 +47,7 @@
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
 - Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.
 - Made completed complaint-submission steps directly navigable and clarified that reverse-geocoded addresses remain editable.
+- Made Saved Address, Device Location, and Map Pin equal first-class location choices with one consistent selected treatment, while showing the confirmed address only in the address field.
 - Added subtle high-priority/pending emphasis, active-filter counts, and a single clear table-row action.
 - Simplified Maintenance Personnel task actions into one dominant next step, location tools, and a More actions disclosure.
 - Preserved complaint, task, and staff filters in the URL so browser Back returns users to the same working view.

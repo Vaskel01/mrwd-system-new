@@ -140,21 +140,15 @@ export default function SubmitComplaintPage() {
   const [submitted, setSubmitted] = useState(null)
 
   // GPS / location state
-  const [locationMode, setLocationMode] = useState(null) // null | 'gps' | 'pin'
+  const [locationMode, setLocationMode] = useState(null) // null | 'saved' | 'gps' | 'pin'
   const [gpsCoords, setGpsCoords] = useState(null)       // { lat, lng, accuracy }
   const [gpsLoading, setGpsLoading] = useState(false)
   const [gpsError, setGpsError] = useState(null)
 
   const { register, handleSubmit, watch, reset, trigger, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { complaint_type: '', description: '', address: user?.service_address || '' },
+    defaultValues: { complaint_type: '', description: '', address: '' },
   })
-
-  useEffect(() => {
-    if (user?.service_address) {
-      setValue('address', user.service_address, { shouldValidate: false })
-    }
-  }, [setValue, user?.service_address])
 
   const watchedType = watch('complaint_type')
   const watchedDesc = watch('description')
@@ -175,6 +169,9 @@ export default function SubmitComplaintPage() {
       setGpsError('Geolocation is not supported by your browser.')
       return
     }
+    setLocationMode('gps')
+    setGpsCoords(null)
+    setValue('address', '', { shouldValidate: false })
     setGpsLoading(true)
     setGpsError(null)
     navigator.geolocation.getCurrentPosition(
@@ -402,58 +399,73 @@ export default function SubmitComplaintPage() {
             </div>
             <div className="p-5 space-y-4">
 
-              {/* Mode chooser — shown until a mode is active */}
-              {!locationMode && !gpsCoords && (
-                <div className="grid grid-cols-2 gap-3">
+              {/* Location methods remain equally visible; only the chosen method receives emphasis. */}
+              <div className={`grid grid-cols-1 gap-3 ${user?.service_address ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                   {user?.service_address && (
                     <button
                       type="button"
+                      aria-pressed={locationMode === 'saved'}
                       onClick={() => {
                         setValue('address', user.service_address, { shouldValidate: true })
                         setLocationMode('saved')
                         setGpsCoords(null)
+                        setGpsError(null)
                       }}
-                      className="col-span-2 flex items-start gap-3 rounded-xl border-2 border-navy-200 bg-navy-50 p-4 text-left transition-colors hover:border-gold-400"
+                      className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border-2 p-4 text-center text-sm font-bold transition-colors ${
+                        locationMode === 'saved'
+                          ? 'border-navy-700 bg-navy-50 text-navy-900'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-navy-400 hover:text-navy-800'
+                      }`}
                     >
-                      <AppIcon name="location" className="h-5 w-5 shrink-0 text-navy-700" />
-                      <span>
-                        <span className="block text-sm font-bold text-navy-900">Use Saved Service Address</span>
-                        <span className="mt-1 block text-xs text-gray-600">{user.service_address}</span>
-                        <span className="mt-1 block text-[11px] text-gray-500">Choose Pin on Map instead when the issue is elsewhere or needs a more exact location.</span>
-                      </span>
+                      <AppIcon name="location" className="h-6 w-6 shrink-0" />
+                      <span className="text-xs leading-tight">Use Saved Service Address</span>
+                      {locationMode === 'saved' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                     </button>
                   )}
                   {/* GPS button */}
                   <button
                     type="button"
+                    aria-pressed={locationMode === 'gps'}
                     onClick={requestGPS}
                     disabled={gpsLoading}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gold-500 text-navy-800 font-bold text-sm hover:bg-gold-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border-2 p-4 text-center text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      locationMode === 'gps'
+                        ? 'border-navy-700 bg-navy-50 text-navy-900'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-navy-400 hover:text-navy-800'
+                    }`}
                   >
                     {gpsLoading ? (
-                      <div className="w-6 h-6 border-2 border-gold-500 border-t-transparent animate-spin rounded-full" />
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-navy-700 border-t-transparent" />
                     ) : (
-                      <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      </svg>
+                      <AppIcon name="location" className="h-6 w-6 shrink-0" />
                     )}
                     <span className="text-xs text-center leading-tight">{gpsLoading ? 'Getting location…' : 'Use My Location'}</span>
+                    {locationMode === 'gps' && !gpsLoading && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                   </button>
 
                   {/* Pin on map button */}
                   <button
                     type="button"
-                    onClick={() => setLocationMode('pin')}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-300 text-gray-600 font-bold text-sm hover:border-gold-400 hover:text-navy-800 hover:bg-gold-50 transition-colors"
+                    aria-pressed={locationMode === 'pin'}
+                    onClick={() => {
+                      setLocationMode('pin')
+                      setGpsCoords(null)
+                      setGpsError(null)
+                      setValue('address', '', { shouldValidate: false })
+                    }}
+                    className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border-2 p-4 text-center text-sm font-bold transition-colors ${
+                      locationMode === 'pin'
+                        ? 'border-navy-700 bg-navy-50 text-navy-900'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-navy-400 hover:text-navy-800'
+                    }`}
                   >
-                    <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                     </svg>
                     <span className="text-xs text-center leading-tight">Pin on Map</span>
+                    {locationMode === 'pin' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                   </button>
-                </div>
-              )}
+              </div>
 
               {gpsError && (
                 <p className="text-xs text-red-600 font-semibold flex items-start gap-1">
@@ -476,21 +488,6 @@ export default function SubmitComplaintPage() {
                       </div>
                     </div>
                     <button type="button" onClick={clearGPS} className="text-xs text-red-500 hover:text-red-700 font-bold shrink-0">Change</button>
-                  </div>
-                </div>
-              )}
-
-              {locationMode === 'saved' && (
-                <div className="border border-navy-200 bg-navy-50 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2">
-                      <AppIcon name="location" className="mt-0.5 h-5 w-5 text-navy-700" />
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-navy-800">Saved Service Address</p>
-                        <p className="mt-1 text-xs text-gray-700">{user.service_address}</p>
-                      </div>
-                    </div>
-                    <button type="button" onClick={clearGPS} className="text-xs font-bold text-red-600">Change</button>
                   </div>
                 </div>
               )}

@@ -37,17 +37,11 @@ function timeAgo(iso) {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-function StatCard({ label, value, sub, accent, icon }) {
+function StatCard({ label, value, color }) {
   return (
-    <div className={`stat-card ${accent}`}>
-      <div className="mb-3 flex items-start justify-between">
-        <p className="text-xs font-bold uppercase leading-tight tracking-widest text-gray-400">{label}</p>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/[.04]">
-          <AppIcon name={icon} className="h-4 w-4 text-navy-700" />
-        </div>
-      </div>
-      <p className="font-display text-4xl font-black leading-none text-navy-900">{value}</p>
-      {sub && <p className="mt-1.5 text-xs text-gray-400">{sub}</p>}
+    <div className="card rounded-xl p-4 text-left">
+      <p className={`font-display text-3xl font-black ${color}`}>{value}</p>
+      <p className="mt-1 text-xs font-bold text-gray-500">{label}</p>
     </div>
   )
 }
@@ -243,11 +237,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Filed" value={total} sub={RANGE_LABELS[range]} accent="accent-navy" icon="clipboard" />
-          <StatCard label="In Progress" value={inProgress} sub="currently active" accent="accent-amber" icon="tool" />
-          <StatCard label="High Priority" value={high} sub="filed in period" accent="accent-red" icon="alert" />
-          <StatCard label="Completed" value={completed} sub={`${resolveRate}% of filed`} accent="accent-green" icon="check" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard label="Filed" value={total} color="text-navy-800" />
+          <StatCard label="In Progress" value={inProgress} color="text-brand-600" />
+          <StatCard label="High Priority" value={high} color="text-red-600" />
+          <StatCard label="Completed" value={completed} color="text-green-600" />
         </div>
       </section>
 

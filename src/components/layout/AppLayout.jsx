@@ -197,7 +197,7 @@ export default function AppLayout({ children }) {
   )
 
   return (
-    <div className="min-h-screen flex font-sans" style={{ background: '#f4f7fb' }}>
+    <div className="app-shell min-h-screen flex font-sans">
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
       {/* ── Mobile overlay ── */}
@@ -207,10 +207,10 @@ export default function AppLayout({ children }) {
 
       {/* ── Sidebar ── */}
       <aside id="primary-navigation" aria-label="Primary navigation" className={`
-        fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
+        page-band wave-sidebar fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
         lg:translate-x-0 transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `} style={{ width: 240, background: 'linear-gradient(180deg, #0f2240 0%, #1b3366 60%, #0f2240 100%)' }}>
+      `} style={{ width: 240 }}>
         {sidebarContent}
       </aside>
 
@@ -219,8 +219,7 @@ export default function AppLayout({ children }) {
         <div className="lg:ml-60 flex flex-col min-h-screen">
 
           {/* ── Top bar ── */}
-          <header className="sticky top-0 z-20 h-14 flex items-center justify-between px-4 sm:px-6"
-            style={{ background: 'rgba(244,247,251,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,.06)', boxShadow: '0 1px 0 rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04)' }}>
+          <header className="app-topbar sticky top-0 z-20 h-14 flex items-center justify-between px-4 sm:px-6">
 
             {/* Left: hamburger + breadcrumb */}
             <div className="flex items-center gap-3">
@@ -266,7 +265,7 @@ export default function AppLayout({ children }) {
           </header>
 
           {/* ── Page content ── */}
-          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">
+          <main id="main-content" tabIndex={-1} className="app-main flex-1 overflow-auto">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
               {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
@@ -274,7 +273,7 @@ export default function AppLayout({ children }) {
           </main>
 
           {/* ── Footer ── */}
-          <footer className="px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
+          <footer className="app-footer px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
             Metro Roxas Water District © {new Date().getFullYear()} · All rights reserved
           </footer>
         </div>

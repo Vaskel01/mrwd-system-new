@@ -17,19 +17,19 @@ const schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
-function LeafPattern() {
+function LoginWaveArtwork() {
   return (
-    <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-      {[
-        [60,  80,  40], [180, 140, 55], [80,  260, 35],
-        [300, 80,  45], [240, 220, 50], [140, 380, 40],
-        [320, 340, 38], [60,  460, 52], [260, 480, 43],
-        [180, 540, 36], [340, 540, 47],
-      ].map(([cx, cy, r], i) => (
-        <ellipse key={i} cx={cx} cy={cy} rx={r * 0.6} ry={r} fill="white"
-          transform={`rotate(${i * 30} ${cx} ${cy})`} />
-      ))}
-    </svg>
+    <div className="login-wave-art" aria-hidden="true">
+      <svg className="login-wave-layer login-wave-back" viewBox="0 0 1200 320" preserveAspectRatio="none">
+        <path d="M0 90C145 28 270 32 410 96s272 62 425 4 248-51 365 3v217H0Z" fill="currentColor" />
+      </svg>
+      <svg className="login-wave-layer login-wave-middle" viewBox="0 0 1200 320" preserveAspectRatio="none">
+        <path d="M0 150c170-65 312-58 470 5s298 55 438-7 220-42 292 1v171H0Z" fill="currentColor" />
+      </svg>
+      <svg className="login-wave-layer login-wave-front" viewBox="0 0 1200 320" preserveAspectRatio="none">
+        <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
+      </svg>
+    </div>
   )
 }
 
@@ -60,8 +60,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex font-sans">
 
       {/* ── Left panel ── */}
-      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band">
-        <LeafPattern />
+      <div className="auth-info-panel hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band">
+        <LoginWaveArtwork />
 
         {/* Logo */}
         <Link to="/" className="relative flex items-center gap-3 group">

@@ -195,6 +195,47 @@
     z-index: 1;
   }
 
+  /* Animated water layers for the login information panel. The artwork is
+     intentionally limited to the lower 35% so the upper content stays calm. */
+  .auth-info-panel > :not(.login-wave-art) {
+    position: relative;
+    z-index: 2;
+  }
+  .login-wave-art {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 35%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .login-wave-layer {
+    position: absolute;
+    bottom: 0;
+    left: -10%;
+    width: 120%;
+    height: 100%;
+    transform-origin: center bottom;
+    will-change: transform;
+  }
+  .login-wave-back {
+    color: #ffffff;
+    opacity: .09;
+    animation: login-wave-drift 15s ease-in-out infinite;
+  }
+  .login-wave-middle {
+    color: #88aadc;
+    opacity: .18;
+    animation: login-wave-drift-reverse 11s ease-in-out infinite;
+  }
+  .login-wave-front {
+    color: #e6b020;
+    opacity: .1;
+    animation: login-wave-drift 8s ease-in-out infinite;
+  }
+
   .app-shell {
     background: #f4f7fb;
     color: #111827;
@@ -232,6 +273,16 @@
   .badge-en_route    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 2px; }
   .badge-in_progress { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 2px; }
   .badge-completed   { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 2px; }
+}
+
+@keyframes login-wave-drift {
+  0%, 100% { transform: translate3d(-2%, 0, 0) scaleY(1); }
+  50% { transform: translate3d(2%, 0, 0) scaleY(.96); }
+}
+
+@keyframes login-wave-drift-reverse {
+  0%, 100% { transform: translate3d(2%, 0, 0) scaleY(.97); }
+  50% { transform: translate3d(-2%, 0, 0) scaleY(1.02); }
 }
 
 @media (prefers-reduced-motion: reduce) {

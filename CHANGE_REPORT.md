@@ -44,6 +44,7 @@
 - Preserved the established MRWD navy, blue, gold, and water-themed palette.
 - Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
 - Extended the page headers' navy pattern to the primary sidebar and anchored one matching layered water-wave treatment at its bottom.
+- Replaced the login information panel's decorative bubbles with three subtle animated water layers contained within its lower 35%, including reduced-motion support.
 - Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
 - Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.

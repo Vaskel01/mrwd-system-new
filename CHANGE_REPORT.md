@@ -7,7 +7,7 @@
 - Expanded Customer My Profile with account number, phone, barangay, and service address.
 - Replaced automatic latest-announcement pinning with explicit Important notices.
 - Removed Submit Complaint from the sidebar and added the action to My Complaints.
-- Made Pending the default All Complaints view and sorted it by priority, then date.
+- Made Pending the default All Complaints view and sorted it by priority, then oldest filing date within each priority group.
 - Reduced All Complaints row actions to one Open action.
 - Added audited administrator priority overrides while preserving the classifier score.
 - Simplified Maintenance Personnel My Tasks and added assignment dates.
@@ -27,7 +27,8 @@
 - Made completed complaint-submission steps directly navigable and clarified that reverse-geocoded addresses remain editable.
 - Added subtle high-priority/pending emphasis, active-filter counts, and a single clear table-row action.
 - Simplified Maintenance Personnel task actions into one dominant next step, location tools, and a More actions disclosure.
-- Preserved complaint, task, and staff filters in the URL and remembered the administrator's last status view.
+- Preserved complaint, task, and staff filters in the URL so browser Back returns users to the same working view.
+- Standardized the All Complaints filter panel to the same search-and-dropdown layout used by the task lists.
 - Added optional refresh notices to complaint lists/details instead of silently replacing data while a user is working.
 - Added paginated notifications with per-item dismissal and account-scoped deletion security.
 - Added a visible masked/reveal fallback for temporary staff passwords when clipboard access is unavailable.

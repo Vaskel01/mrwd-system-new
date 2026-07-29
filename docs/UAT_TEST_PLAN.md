@@ -46,6 +46,7 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | A-13 | Restore the classifier priority | Operational priority returns to the stored classifier score and the reset is audited. |
 | A-14 | Mark an announcement important | Important notice is pinned above regular notices for every role; unpinning restores normal date ordering. |
 | A-15 | Review classifier | Full evidence is visible only to admin accounts. |
+| A-16 | Open All Complaints without URL filters | Pending is selected, records are grouped High → Medium → Low, and the oldest record appears first within each priority group. |
 
 ## Maintenance workflow
 

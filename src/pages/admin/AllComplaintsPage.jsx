@@ -5,7 +5,6 @@ import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
-import PriorityScoreHelp from '../../components/ui/PriorityScoreHelp'
 import RefreshNotice from '../../components/ui/RefreshNotice'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
@@ -35,10 +34,13 @@ export default function AllComplaintsPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || localStorage.getItem('mrwd-admin-status-filter') || 'pending')
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || 'pending')
   const [filterPriority, setFilterPriority] = useState(() => searchParams.get('priority') || 'all')
   const [search, setSearch] = useState(() => searchParams.get('q') || '')
-  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority_date')
+  const [sortBy, setSortBy] = useState(() => {
+    const storedSort = searchParams.get('sort')
+    return storedSort === 'priority_date' ? 'priority_oldest' : storedSort || 'priority_oldest'
+  })
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
   const pageSize = 12
 
@@ -48,10 +50,9 @@ export default function AllComplaintsPage() {
     if (filterStatus !== 'pending') next.status = filterStatus
     if (filterPriority !== 'all') next.priority = filterPriority
     if (search.trim()) next.q = search.trim()
-    if (sortBy !== 'priority_date') next.sort = sortBy
+    if (sortBy !== 'priority_oldest') next.sort = sortBy
     if (page > 1) next.page = String(page)
     setSearchParams(next, { replace: true })
-    localStorage.setItem('mrwd-admin-status-filter', filterStatus)
   }, [filterStatus, filterPriority, search, sortBy, page, setSearchParams])
 
   const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
@@ -66,8 +67,8 @@ export default function AllComplaintsPage() {
         c.reference_number, c.complaint_type, c.description, c.customer_name,
         c.address, c.assigned_name, c.status, c.rejection_reason,
       ].some(value => String(value || '').toLowerCase().includes(query)))
-      .sort((a, b) => sortBy === 'priority_date'
-        ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || new Date(b.created_at) - new Date(a.created_at)
+      .sort((a, b) => sortBy === 'priority_oldest'
+        ? PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || new Date(a.created_at) - new Date(b.created_at)
         : sortBy === 'score'
         ? b.priority_score - a.priority_score || new Date(b.created_at) - new Date(a.created_at)
         : sortBy === 'priority'
@@ -81,8 +82,6 @@ export default function AllComplaintsPage() {
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
-  const activeFilterCount = [filterStatus !== 'all', filterPriority !== 'all', Boolean(search.trim()), sortBy !== 'priority_date'].filter(Boolean).length
-
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
 
   return (
@@ -107,31 +106,34 @@ export default function AllComplaintsPage() {
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <input name="allcomplaintspage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." type="text" placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
-            value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-9 rounded-lg" />
+            value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} className="input-field pl-9 rounded-lg" />
         </div>
-        <div className="flex flex-wrap gap-2 items-center justify-between">
-          <div className="flex gap-1 flex-wrap">
-            {[['pending','Pending'], ['all','All'], ['assigned','Assigned'], ['in_progress','In Progress'], ['blocked','Needs Attention'], ['completed','Completed'], ['rejected','Rejected'], ['cancelled','Cancelled']].map(([v, l]) => (
-              <button key={v} onClick={() => { setFilterStatus(v); setPage(1) }}
-                aria-pressed={filterStatus === v}
-                className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
-                style={filterStatus === v ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>{l}</button>
-            ))}
-          </div>
-          <div className="flex gap-2 flex-wrap items-center">
-            <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
-              <option value="all">Any Priority</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
-            </select>
-            <select name="allcomplaintspage-sort-by-3" aria-label="Sort By" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} className="text-xs border border-gray-200 px-3 py-1.5 text-gray-600 bg-white font-bold rounded-full">
-              <option value="priority_date">Priority, then Date</option><option value="score">Score</option><option value="priority">Priority</option><option value="type">Type A–Z</option><option value="date">Newest</option><option value="oldest">Oldest</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-50 px-2.5 py-1 font-bold text-navy-700">
-            {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} applied · {filtered.length} results
-          </span>
-          <button type="button" onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setSearch(''); setSortBy('priority_date'); setPage(1) }} className="font-bold text-brand-700 hover:underline">Clear filters</button>
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
+            <option value="all">Any Priority</option>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+          <select name="allcomplaintspage-filter-status-3" aria-label="Filter Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
+            <option value="all">Any Status</option>
+            <option value="pending">Pending</option>
+            <option value="assigned">Assigned</option>
+            <option value="in_progress">In Progress</option>
+            <option value="blocked">Needs Attention</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select name="allcomplaintspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
+            <option value="priority_oldest">Priority, Oldest First</option>
+            <option value="score">Highest Score</option>
+            <option value="priority">Priority, Highest Score</option>
+            <option value="type">Complaint Type A–Z</option>
+            <option value="date">Newest Filed</option>
+            <option value="oldest">Oldest Filed</option>
+          </select>
+          <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
         </div>
       </div>
 
@@ -147,7 +149,7 @@ export default function AllComplaintsPage() {
             <col className="w-[136px]" />
           </colgroup>
           <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h === 'Priority' ? <span className="inline-flex items-center gap-1">Priority <PriorityScoreHelp /></span> : h}</th>)}
+            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (

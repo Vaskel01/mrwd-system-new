@@ -276,6 +276,59 @@
     filter: drop-shadow(0 0 5px rgba(255,255,255,.22));
     animation: login-wave-spray 7.25s ease-in-out infinite;
   }
+
+  /* ── The barrier: a vertical seam at the panel's white edge that the
+     wave visibly slams against, rather than fading out ambiguously. ── */
+  .login-wave-barrier {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    top: 8%;
+    width: 4px;
+    z-index: 5;
+    background: linear-gradient(to bottom,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,.55) 55%,
+      rgba(255,255,255,.9) 100%);
+  }
+  .login-wave-barrier-glow {
+    position: absolute;
+    inset: 0 -1px;
+    background: inherit;
+    filter: blur(6px);
+    opacity: .6;
+    animation: login-wave-barrier-pulse 7.25s ease-in-out infinite;
+  }
+
+  /* ── Foam kicked off the barrier on impact ── */
+  .login-wave-splash {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 45%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .login-wave-splash-particle {
+    position: absolute;
+    right: 0;
+    bottom: 26%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px 1px rgba(255,255,255,.8);
+    opacity: 0;
+    animation: login-wave-particle-burst 7.25s ease-out infinite;
+  }
+  .login-wave-splash-particle.p1 { bottom: 22%; width: 8px; height: 8px; --lp-x: -18px; --lp-y: -46px; animation-delay: -.05s; }
+  .login-wave-splash-particle.p2 { bottom: 30%; width: 5px; height: 5px; --lp-x: -34px; --lp-y: -60px; animation-delay: .08s; }
+  .login-wave-splash-particle.p3 { bottom: 18%; width: 6px; height: 6px; --lp-x: -8px;  --lp-y: -30px; animation-delay: .16s; }
+  .login-wave-splash-particle.p4 { bottom: 36%; width: 4px; height: 4px; --lp-x: -26px; --lp-y: -74px; animation-delay: -.12s; }
+  .login-wave-splash-particle.p5 { bottom: 14%; width: 6px; height: 6px; --lp-x: -44px; --lp-y: -38px; animation-delay: .22s; }
+  .login-wave-splash-particle.p6 { bottom: 40%; width: 3px; height: 3px; --lp-x: -14px; --lp-y: -84px; animation-delay: -.2s; }
+  .login-wave-splash-particle.p7 { bottom: 24%; width: 5px; height: 5px; --lp-x: -52px; --lp-y: -52px; animation-delay: .3s; }
   .auth-feature-row {
     width: fit-content;
     border-radius: .625rem;
@@ -364,6 +417,31 @@
   45% { opacity: .55; transform: translate3d(1px, 2px, 0); }
   55% { opacity: 1; transform: translate3d(-3px, -7px, 0); }
   72% { opacity: 0; transform: translate3d(-6px, -13px, 0); }
+}
+
+@keyframes login-wave-barrier-pulse {
+  0%, 38%, 100% { opacity: .4; filter: blur(6px); }
+  52% { opacity: 1; filter: blur(9px); }
+  68% { opacity: .55; filter: blur(6px); }
+}
+
+@keyframes login-wave-particle-burst {
+  0%, 40% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(.4);
+  }
+  48% {
+    opacity: 1;
+    transform: translate3d(calc(var(--lp-x) * .3), calc(var(--lp-y) * .25), 0) scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: translate3d(var(--lp-x), var(--lp-y), 0) scale(.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--lp-x), var(--lp-y), 0) scale(.5);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -49,6 +49,23 @@ function LoginWaveArtwork() {
         <path className="login-wave-impact-spray" d="M292 145c3-6 7-7 10-3 2 4 0 8-5 10-5 2-8-1-5-7Z" />
         <path className="login-wave-impact-spray" d="M254 146c3-7 10-9 14-4 3 5 0 10-6 13-6 3-10-1-8-9Z" />
       </svg>
+
+      {/* The vertical seam where the panel meets the white login area —
+          treated as a physical barrier the wave slams into. */}
+      <div className="login-wave-barrier">
+        <span className="login-wave-barrier-glow" />
+      </div>
+
+      {/* Foam that kicks off the barrier on impact, timed to the wave crest. */}
+      <div className="login-wave-splash">
+        <span className="login-wave-splash-particle p1" />
+        <span className="login-wave-splash-particle p2" />
+        <span className="login-wave-splash-particle p3" />
+        <span className="login-wave-splash-particle p4" />
+        <span className="login-wave-splash-particle p5" />
+        <span className="login-wave-splash-particle p6" />
+        <span className="login-wave-splash-particle p7" />
+      </div>
     </div>
   )
 }

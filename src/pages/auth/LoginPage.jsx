@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -20,20 +20,25 @@ const schema = z.object({
 function LoginWaveArtwork() {
   return (
     <div className="login-wave-art" aria-hidden="true">
-      <svg className="login-wave-layer login-wave-back" viewBox="0 0 1200 320" preserveAspectRatio="none">
-        <path d="M0 90C145 28 270 32 410 96s272 62 425 4 248-51 365 3v217H0Z" fill="currentColor" />
-      </svg>
-      <svg className="login-wave-layer login-wave-middle" viewBox="0 0 1200 320" preserveAspectRatio="none">
-        <path d="M0 150c170-65 312-58 470 5s298 55 438-7 220-42 292 1v171H0Z" fill="currentColor" />
-      </svg>
-      <svg className="login-wave-layer login-wave-front" viewBox="0 0 1200 320" preserveAspectRatio="none">
-        <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
-      </svg>
+      <div className="login-wave-parallax">
+        <svg className="login-wave-layer login-wave-back" viewBox="0 0 1200 320" preserveAspectRatio="none">
+          <path d="M0 90C145 28 270 32 410 96s272 62 425 4 248-51 365 3v217H0Z" fill="currentColor" />
+        </svg>
+        <svg className="login-wave-layer login-wave-middle" viewBox="0 0 1200 320" preserveAspectRatio="none">
+          <path d="M0 150c170-65 312-58 470 5s298 55 438-7 220-42 292 1v171H0Z" fill="currentColor" />
+        </svg>
+        <svg className="login-wave-layer login-wave-front" viewBox="0 0 1200 320" preserveAspectRatio="none">
+          <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
+          <path className="login-wave-crest" d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3" fill="none" />
+        </svg>
+        <span className="login-wave-shimmer" />
+      </div>
     </div>
   )
 }
 
 export default function LoginPage() {
+  const infoPanelRef = useRef(null)
   const navigate = useNavigate()
   const signIn   = useAuthStore(s => s.signIn)
   const loading  = useAuthStore(s => s.loading)
@@ -54,13 +59,43 @@ export default function LoginPage() {
     }
   }
 
+  const handlePanelPointerMove = event => {
+    if (event.pointerType && event.pointerType !== 'mouse') return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const panel = infoPanelRef.current
+    if (!panel) return
+
+    const bounds = panel.getBoundingClientRect()
+    const horizontal = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
+    const vertical = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
+
+    panel.style.setProperty('--login-wave-x', `${(horizontal - 0.5) * 18}px`)
+    panel.style.setProperty('--login-wave-y', `${(vertical - 0.5) * 8}px`)
+    panel.style.setProperty('--login-glow-x', `${horizontal * 100}%`)
+    panel.style.setProperty('--login-glow-y', `${Math.max(64, vertical * 100)}%`)
+  }
+
+  const resetPanelPointer = () => {
+    const panel = infoPanelRef.current
+    if (!panel) return
+    panel.style.setProperty('--login-wave-x', '0px')
+    panel.style.setProperty('--login-wave-y', '0px')
+    panel.style.setProperty('--login-glow-x', '55%')
+    panel.style.setProperty('--login-glow-y', '78%')
+  }
 
 
   return (
     <div className="min-h-screen flex font-sans">
 
       {/* ── Left panel ── */}
-      <div className="auth-info-panel hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band">
+      <div
+        ref={infoPanelRef}
+        onPointerMove={handlePanelPointerMove}
+        onPointerLeave={resetPanelPointer}
+        className="auth-info-panel hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band"
+      >
         <LoginWaveArtwork />
 
         {/* Logo */}
@@ -99,8 +134,8 @@ export default function LoginPage() {
               { icon: 'announcement', text: 'Real-time announcements' },
               { icon: 'droplet', text: 'View your billing statement' },
             ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
+              <div key={i} className="auth-feature-row flex items-center gap-3">
+                <div className="auth-feature-icon w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
                   <AppIcon name={f.icon} className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-gold-300 text-sm font-medium">{f.text}</span>

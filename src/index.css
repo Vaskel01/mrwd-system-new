@@ -211,6 +211,27 @@
     pointer-events: none;
     z-index: 0;
   }
+  .login-wave-art::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    z-index: 2;
+    opacity: .55;
+    background: radial-gradient(
+      circle at var(--login-glow-x, 55%) var(--login-glow-y, 78%),
+      rgba(255,255,255,.2) 0,
+      rgba(125,211,252,.1) 18%,
+      transparent 43%
+    );
+    transition: background-position .25s ease, opacity .25s ease;
+  }
+  .login-wave-parallax {
+    position: absolute;
+    inset: -8px -18px -8px;
+    transform: translate3d(var(--login-wave-x, 0), var(--login-wave-y, 0), 0);
+    transition: transform .55s cubic-bezier(.22, .8, .32, 1);
+    will-change: transform;
+  }
   .login-wave-layer {
     position: absolute;
     bottom: 0;
@@ -222,18 +243,55 @@
   }
   .login-wave-back {
     color: #ffffff;
-    opacity: .09;
-    animation: login-wave-drift 15s ease-in-out infinite;
+    opacity: .14;
+    filter: blur(.2px);
+    animation: login-wave-drift 13s ease-in-out infinite;
   }
   .login-wave-middle {
     color: #88aadc;
-    opacity: .18;
-    animation: login-wave-drift-reverse 11s ease-in-out infinite;
+    opacity: .27;
+    animation: login-wave-drift-reverse 9.5s ease-in-out infinite;
   }
   .login-wave-front {
     color: #e6b020;
-    opacity: .1;
-    animation: login-wave-drift 8s ease-in-out infinite;
+    opacity: .17;
+    animation: login-wave-drift 7.25s ease-in-out infinite;
+  }
+  .login-wave-crest {
+    stroke: rgba(255, 225, 128, .75);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 5px rgba(230,176,32,.35));
+  }
+  .login-wave-shimmer {
+    position: absolute;
+    z-index: 3;
+    bottom: -22%;
+    left: -38%;
+    width: 34%;
+    height: 150%;
+    opacity: .55;
+    transform: skewX(-14deg);
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.25), transparent);
+    filter: blur(8px);
+    animation: login-wave-shimmer 8.5s ease-in-out infinite;
+  }
+  .auth-feature-row {
+    width: fit-content;
+    border-radius: .625rem;
+    transition: transform .25s ease, color .25s ease;
+  }
+  .auth-feature-icon {
+    border: 1px solid transparent;
+    transition: transform .25s ease, background-color .25s ease, border-color .25s ease;
+  }
+  .auth-feature-row:hover {
+    transform: translateX(5px);
+  }
+  .auth-feature-row:hover .auth-feature-icon {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,.22);
+    border-color: rgba(230,176,32,.5);
   }
 
   .app-shell {
@@ -276,13 +334,22 @@
 }
 
 @keyframes login-wave-drift {
-  0%, 100% { transform: translate3d(-2%, 0, 0) scaleY(1); }
-  50% { transform: translate3d(2%, 0, 0) scaleY(.96); }
+  0%, 100% { transform: translate3d(-3.5%, 1%, 0) scaleY(.98); }
+  35% { transform: translate3d(1.5%, -2.5%, 0) scaleY(1.035); }
+  68% { transform: translate3d(3.5%, 1.5%, 0) scaleY(.965); }
 }
 
 @keyframes login-wave-drift-reverse {
-  0%, 100% { transform: translate3d(2%, 0, 0) scaleY(.97); }
-  50% { transform: translate3d(-2%, 0, 0) scaleY(1.02); }
+  0%, 100% { transform: translate3d(3.5%, -1%, 0) scaleY(1.02); }
+  42% { transform: translate3d(-3%, 2%, 0) scaleY(.955); }
+  72% { transform: translate3d(-1%, -2%, 0) scaleY(1.045); }
+}
+
+@keyframes login-wave-shimmer {
+  0%, 12% { transform: translate3d(0, 0, 0) skewX(-14deg); opacity: 0; }
+  28% { opacity: .55; }
+  55% { transform: translate3d(440%, -4%, 0) skewX(-14deg); opacity: .42; }
+  72%, 100% { transform: translate3d(440%, -4%, 0) skewX(-14deg); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

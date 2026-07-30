@@ -45,6 +45,7 @@
 - Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
 - Extended the page headers' navy pattern to the primary sidebar and anchored one matching layered water-wave treatment at its bottom.
 - Replaced the login information panel's decorative bubbles with three subtle animated water layers contained within its lower 35%, including reduced-motion support.
+- Refined the login water artwork with clearer independent wave motion, a restrained gold crest, a periodic light shimmer, and gentle pointer-following parallax. Feature rows now provide a small hover response, while reduced-motion users receive a static treatment.
 - Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
 - Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.
@@ -91,6 +92,7 @@ They add complaint references, customer profile fields, Important announcement s
 - Automated backend/core-feature tests: 12/12 passed
 - Responsive browser audit: 100/100 route-and-viewport combinations passed at 320, 375, 768, 1024, and 1366 pixels with no page-level horizontal overflow or off-screen form controls
 - Mobile Staff Accounts dialog check: passed at 320 × 700, including the taller Maintenance Personnel action dialog
+- Login motion check: passed in the production preview; the wave artwork remains contained within the lower 35%, pointer movement updates the parallax variables, and reduced-motion disables both animation and pointer response
 - Original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were preserved
 - Classifier development cases:
   - Category: 25/25

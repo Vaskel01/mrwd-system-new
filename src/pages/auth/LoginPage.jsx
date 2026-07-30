@@ -31,7 +31,17 @@ function LoginWaveArtwork() {
           <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
           <path className="login-wave-crest" d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3" fill="none" />
         </svg>
-        <span className="login-wave-shimmer" />
+        <svg className="login-wave-impact" viewBox="0 0 260 320" preserveAspectRatio="none">
+          <path
+            d="M0 255c65-40 111-33 150-3 28 22 51 16 65-9 16-28 14-63-5-90-15-21-37-33-62-37 33-16 66-4 91 23 15 16 21 35 21 55v126H0Z"
+            fill="currentColor"
+          />
+          <path
+            className="login-wave-impact-foam"
+            d="M0 255c65-40 111-33 150-3 28 22 51 16 65-9 16-28 14-63-5-90-15-21-37-33-62-37 33-16 66-4 91 23 15 16 21 35 21 55"
+            fill="none"
+          />
+        </svg>
       </div>
     </div>
   )
@@ -72,8 +82,6 @@ export default function LoginPage() {
 
     panel.style.setProperty('--login-wave-x', `${(horizontal - 0.5) * 18}px`)
     panel.style.setProperty('--login-wave-y', `${(vertical - 0.5) * 8}px`)
-    panel.style.setProperty('--login-glow-x', `${horizontal * 100}%`)
-    panel.style.setProperty('--login-glow-y', `${Math.max(64, vertical * 100)}%`)
   }
 
   const resetPanelPointer = () => {
@@ -81,8 +89,6 @@ export default function LoginPage() {
     if (!panel) return
     panel.style.setProperty('--login-wave-x', '0px')
     panel.style.setProperty('--login-wave-y', '0px')
-    panel.style.setProperty('--login-glow-x', '55%')
-    panel.style.setProperty('--login-glow-y', '78%')
   }
 
 

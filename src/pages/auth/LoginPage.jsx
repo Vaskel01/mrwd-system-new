@@ -31,18 +31,24 @@ function LoginWaveArtwork() {
           <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
           <path className="login-wave-crest" d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3" fill="none" />
         </svg>
-        <svg className="login-wave-impact" viewBox="0 0 260 320" preserveAspectRatio="none">
-          <path
-            d="M0 255c65-40 111-33 150-3 28 22 51 16 65-9 16-28 14-63-5-90-15-21-37-33-62-37 33-16 66-4 91 23 15 16 21 35 21 55v126H0Z"
-            fill="currentColor"
-          />
-          <path
-            className="login-wave-impact-foam"
-            d="M0 255c65-40 111-33 150-3 28 22 51 16 65-9 16-28 14-63-5-90-15-21-37-33-62-37 33-16 66-4 91 23 15 16 21 35 21 55"
-            fill="none"
-          />
-        </svg>
       </div>
+      <svg className="login-wave-impact" viewBox="0 0 300 320" preserveAspectRatio="none">
+        <path
+          className="login-wave-impact-body"
+          d="M0 264c70-36 130-40 182-14 33 17 61 9 82-15 18-21 27-47 23-73 9 10 13 25 13 42v116H0Z"
+        />
+        <path
+          className="login-wave-impact-undertow"
+          d="M0 294c80-36 145-34 194-12 36 16 71 5 106-31v69H0Z"
+        />
+        <path
+          className="login-wave-impact-foam-fill"
+          d="M199 218c18 8 34 5 46-6 3-10 12-16 22-13 3-11 12-18 22-15-1-10 3-19 11-24v31c-6 7-8 17-6 28-10-1-18 5-21 16-10-4-20 1-25 11-17 8-34 0-49-28Z"
+        />
+        <path className="login-wave-impact-spray" d="M275 129c5-9 13-11 18-5 3 5-1 12-8 16-7 4-13 0-10-11Z" />
+        <path className="login-wave-impact-spray" d="M292 145c3-6 7-7 10-3 2 4 0 8-5 10-5 2-8-1-5-7Z" />
+        <path className="login-wave-impact-spray" d="M254 146c3-7 10-9 14-4 3 5 0 10-6 13-6 3-10-1-8-9Z" />
+      </svg>
     </div>
   )
 }

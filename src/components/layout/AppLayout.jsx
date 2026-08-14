@@ -29,10 +29,12 @@ function adminNavigation(user) {
   }
 
   add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System Dashboard' })
-  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Department', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Department', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
-  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Department', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Customer Accounts & Billing' })
-  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Department', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial Dashboard' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Customer Accounts & Billing' })
+  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
+  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dashboard', icon: DashIcon, label: 'ECMD Dashboard' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint Dispatch' })
   add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field Operations' })
   add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & Access' })

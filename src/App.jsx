@@ -14,10 +14,12 @@ import MyComplaintsPage from './pages/customer/MyComplaintsPage'
 import BillingPage from './pages/customer/BillingPage'
 
 // Department-specific staff pages
+import CommercialDashboardPage from './pages/commercial/CommercialDashboardPage'
 import CommercialComplaintReviewPage from './pages/commercial/CommercialComplaintReviewPage'
 import CommercialReportsPage from './pages/commercial/CommercialReportsPage'
 import CommercialAccountsBillingPage from './pages/commercial/CommercialAccountsBillingPage'
 import CommercialAdvisoriesPage from './pages/commercial/CommercialAdvisoriesPage'
+import EcmdDashboardPage from './pages/ecmd/EcmdDashboardPage'
 import EcmdDispatchPage from './pages/ecmd/EcmdDispatchPage'
 import EcmdFieldOperationsPage from './pages/ecmd/EcmdFieldOperationsPage'
 import SystemDashboardPage from './pages/system/SystemDashboardPage'
@@ -94,7 +96,12 @@ export default function App() {
           </ProtectedRoute>
         }/>
 
-        {/* ── Commercial Department ── */}
+        {/* ── Commercial Services Department ── */}
+        <Route path="/commercial/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_COMPLAINTS]}>
+            <AppLayout><CommercialDashboardPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
         <Route path="/commercial/complaints" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_COMPLAINTS]}>
             <AppLayout><CommercialComplaintReviewPage /></AppLayout>
@@ -117,6 +124,11 @@ export default function App() {
         }/>
 
         {/* ── Engineering, Construction and Maintenance Department ── */}
+        <Route path="/ecmd/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
+            <AppLayout><EcmdDashboardPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
         <Route path="/ecmd/dispatch" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
             <AppLayout><EcmdDispatchPage /></AppLayout>

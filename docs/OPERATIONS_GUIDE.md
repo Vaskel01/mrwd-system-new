@@ -1,22 +1,22 @@
 # Department Modules and Operations Guide
 
-Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, followed by `supabase/migrations/20260814100000_department_module_access.sql`. Staff work is then divided into three independently protected page families rather than one shared workspace.
+Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, followed by `supabase/migrations/20260814100000_department_module_access.sql`. Complaint handling is divided between two operational departments, with System Administration retained only as a support and oversight workspace.
 
 ## Department access matrix
 
 | Module | Intended accounts | Main functions |
 |---|---|---|
-| Commercial Department | Commercial Department Staff (`COMMERCIAL`) | Complaint review and classifier evidence, audited priority overrides, complaint reports, customer accounts, billing imports, Important advisories, and archival requests |
-| ECMD | ECMD Staff (`ECMD`) and assigned Maintenance Personnel | Complaint dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
+| Commercial Services Department | Commercial Department Staff (`COMMERCIAL`) | Department dashboard, complaint review and classifier evidence, audited priority overrides, complaint reports, customer accounts/billing concerns, Important advisories, and archival requests |
+| ECMD | ECMD Staff (`ECMD`) and assigned Maintenance Personnel | Department dashboard, complaint dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
 | System Administration | System Supervisor (`Supervisor` or `Manager`) | Cross-department dashboard, departments and staff access, approvals, approved archival, delivery records, and audit logs |
 
 The sidebar is only the visible navigation layer. The same separation is enforced by protected frontend routes, Express API capability checks, PostgreSQL triggers, grants, and Row Level Security policies. An unassigned Department Staff account receives no department capabilities until a System Supervisor assigns access. A System Supervisor retains cross-department oversight.
 
-Canonical page families are `/commercial/*`, `/ecmd/*`, and `/system/*`. Older `/admin/*` links exist only as compatibility redirects and still pass through the destination page's capability checks.
+The two operational department page families are `/commercial/*` and `/ecmd/*`. `/system/*` is the supporting administration area, not another operational department. Older `/admin/*` links exist only as compatibility redirects and still pass through the destination page's capability checks.
 
 ## Departments, positions, crews, and team leaders
 
-- Seeded departments: **Commercial Department** and **Engineering, Construction and Maintenance Department (ECMD)**.
+- Seeded operational departments: **Commercial Services Department** and **Engineering, Construction and Maintenance Department (ECMD)**. No Finance, Administrative Services, Production, HR, or other department module is part of this complaint system.
 - A staff account keeps its internal security role (`admin` or `maintenance_personnel`) and may also receive an operational access designation such as System Supervisor, Commercial Department Staff, ECMD Staff, Team Leader, or Maintenance Crew member.
 - Team Leader is an operational position, not a new authentication role. Access remains protected by the ECMD module and the existing Maintenance Personnel role.
 - A Maintenance Crew can have one active Team Leader and multiple members. ECMD Staff may assign an individual Maintenance Personnel account, an optional crew, or both to a complaint.

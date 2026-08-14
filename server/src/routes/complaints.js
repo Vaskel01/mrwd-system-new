@@ -2,15 +2,15 @@ import { Router } from 'express'
 import { requireAuth, requireCapability, requireRole } from '../middleware/auth.js'
 import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
-import { calculateServiceDueAt } from '../lib/serviceTargets.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
 import { getDepartmentAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
+import { writeComplaintEvent } from '../lib/complaintEvents.js'
 
 const router = Router()
-const STATUS_VALUES = ['pending', 'assigned', 'en_route', 'in_progress', 'completed', 'rejected', 'cancelled', 'blocked']
+const STATUS_VALUES = ['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification', 'resolved', 'rejected', 'cancelled']
 const STATUS_LABEL = {
-  pending: 'Pending', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
-  completed: 'Completed', rejected: 'Rejected', cancelled: 'Cancelled', blocked: 'Needs Attention',
+  pending: 'Pending Review', forwarded: 'Forwarded to ECMD', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
+  blocked: 'Needs Attention', awaiting_verification: 'Awaiting ECMD Verification', resolved: 'Resolved', completed: 'Resolved', rejected: 'Rejected', cancelled: 'Cancelled',
 }
 
 async function logTaskUpdate(supabase, taskId, userId, message) {
@@ -32,7 +32,7 @@ async function getTaskForComplaint(supabase, complaintId, { current = true } = {
 async function getComplaintRow(supabase, id) {
   const { data } = await supabase
     .from('complaints')
-    .select('id, reference_number, resident_id, category_id, description, address_text, status, priority, priority_score, algorithm_priority_score, priority_overridden_at, customer_acknowledged_at, submitted_at')
+    .select('id, reference_number, resident_id, category_id, description, address_text, zone, lat, lng, status, priority, priority_score, algorithm_priority_score, priority_overridden_at, submitted_at, forwarded_to_ecmd_at, forwarded_to_ecmd_by, verified_at, verified_by, resolution_code, resolution_notes')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -56,13 +56,33 @@ async function respondWithComplaint(req, res, id, statusCode = 200) {
   }
 }
 
-async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
+async function assignOne(req, complaintId, assignedTo, notes, crewId = null, reasonCode = null) {
   const previous = await getTaskForComplaint(req.supabase, complaintId)
   const complaintRow = await getComplaintRow(req.supabase, complaintId)
   if (!complaintRow) throw new Error('Complaint not found.')
-  if (['completed', 'cancelled', 'rejected'].includes(complaintRow.status)) {
-    throw new Error('A completed, cancelled, or rejected complaint cannot be assigned until it is reopened or restored.')
+  if (['resolved', 'completed', 'cancelled', 'rejected', 'awaiting_verification'].includes(complaintRow.status)) {
+    throw new Error('This complaint cannot be assigned in its current status. Reopen or return it to field work first.')
   }
+  if (!['forwarded', 'assigned', 'in_progress', 'blocked'].includes(complaintRow.status)) {
+    throw new Error('The complaint must be forwarded to ECMD before dispatch.')
+  }
+
+  const isReassignment = Boolean(previous?.assigned_staff_id && previous.assigned_staff_id !== assignedTo)
+  let reassignmentReason = null
+  if (isReassignment) {
+    if (!reasonCode) throw new Error('Choose a reassignment reason before changing Maintenance Personnel.')
+    const { data: reasonRow, error: reasonError } = await req.supabase
+      .from('complaint_reason_codes')
+      .select('code, label')
+      .eq('code', reasonCode)
+      .eq('action_type', 'reassignment')
+      .eq('is_active', true)
+      .maybeSingle()
+    if (reasonError) throw reasonError
+    if (!reasonRow) throw new Error('Choose a valid reassignment reason.')
+    reassignmentReason = reasonRow
+  }
+  const effectiveNotes = [reassignmentReason ? `Reason: ${reassignmentReason.label}` : '', String(notes || '').trim()].filter(Boolean).join('. ')
 
   // Validate the optional crew before changing the active assignment so a bad
   // crew selection cannot leave a complaint partially assigned.
@@ -82,7 +102,7 @@ async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
   const { data: task, error } = await req.supabase.rpc('assign_complaint_task', {
     p_complaint_id: complaintId,
     p_staff_id: assignedTo,
-    p_notes: notes || null,
+    p_notes: effectiveNotes || null,
   })
   if (error) throw error
 
@@ -94,25 +114,21 @@ async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
     if (taskError) throw taskError
   }
 
-  const { data: target } = await req.supabase
-    .from('service_targets')
-    .select('resolution_hours')
-    .eq('priority', complaintRow.priority)
-    .eq('is_active', true)
-    .maybeSingle()
-  if (target?.resolution_hours) {
-    const dueAt = calculateServiceDueAt(complaintRow.submitted_at, target.resolution_hours)
-    await req.supabase.from('complaints').update({ service_target_due_at: dueAt }).eq('id', complaintId)
-  }
-
+  // No SLA/response-time target is created on assignment.
   const maintenancePerson = await getProfile(req.supabase, assignedTo)
-  const isReassignment = Boolean(previous?.assigned_staff_id && previous.assigned_staff_id !== assignedTo)
   await logTaskUpdate(
     req.supabase,
     task.id,
     req.user.id,
-    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${maintenancePerson?.full_name || 'Maintenance Personnel'}${crew ? ` with ${crew.name}` : ''}${notes ? `. Instructions: ${notes}` : '.'}`
+    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${maintenancePerson?.full_name || 'Maintenance Personnel'}${crew ? ` with ${crew.name}` : ''}${effectiveNotes ? `. ${effectiveNotes}` : '.'}`
   )
+  await writeComplaintEvent(req.supabase, req.user, complaintId, {
+    eventType: isReassignment ? 'reassigned' : 'assigned',
+    title: isReassignment ? 'Maintenance assignment changed' : 'Maintenance Personnel assigned',
+    message: `${maintenancePerson?.full_name || 'Maintenance Personnel'}${crew ? ` · ${crew.name}` : ''}${effectiveNotes ? ` · ${effectiveNotes}` : ''}`,
+    customerVisible: true,
+    metadata: { assigned_to: assignedTo, previous_assignee: previous?.assigned_staff_id || null, crew_id: crew?.id || null, reassignment_reason_code: reassignmentReason?.code || null },
+  })
 
   await notifyUsers(req.supabase, req.user, [assignedTo], {
     title: isReassignment ? 'Task reassigned to you' : 'New maintenance task',
@@ -134,7 +150,8 @@ async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
   await writeAudit(req.supabase, req.user, isReassignment ? 'complaint.reassigned' : 'complaint.assigned', 'complaint', complaintId, {
     assigned_to: assignedTo,
     previous_assignee: previous?.assigned_staff_id || null,
-    notes: notes || null,
+    notes: effectiveNotes || null,
+    reassignment_reason_code: reassignmentReason?.code || null,
     assigned_crew_id: crew?.id || null,
     assigned_crew_name: crew?.name || null,
   })
@@ -314,6 +331,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   await notifyUsers(req.supabase, req.user, admins, {
     title: 'New complaint filed', message: `${req.user.full_name} submitted a ${complaint_type} complaint.`, type: 'new', complaintId: inserted.id,
   })
+  await writeComplaintEvent(req.supabase, req.user, inserted.id, { eventType: 'submitted', title: 'Complaint submitted', message: `${complaint_type} complaint received by MRWD.`, customerVisible: true })
   await writeAudit(req.supabase, req.user, 'complaint.created', 'complaint', inserted.id, { complaint_type })
   return respondWithComplaint(req, res, inserted.id, 201)
 })
@@ -388,7 +406,7 @@ router.patch('/:id/cancel', requireAuth, requireRole('customer'), async (req, re
 router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, res) => {
   const row = await getComplaintRow(req.supabase, req.params.id)
   if (!row || row.resident_id !== req.user.id) return res.status(404).json({ error: 'Complaint not found.' })
-  if (row.status !== 'completed') return res.status(400).json({ error: 'Only a completed complaint can be reopened.' })
+  if (!['resolved', 'completed'].includes(row.status)) return res.status(400).json({ error: 'Only a resolved complaint can be reopened.' })
   const reason = String(req.body?.reason || '').trim()
   if (reason.length < 5) return res.status(400).json({ error: 'Please explain why the issue is not resolved.' })
 
@@ -401,8 +419,6 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
     status: 'pending',
     reopened_at: new Date().toISOString(),
     reopen_reason: reason,
-    customer_acknowledged_at: null,
-    customer_acknowledgment_note: null,
     updated_at: new Date().toISOString(),
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
@@ -411,53 +427,37 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
   await notifyUsers(req.supabase, req.user, admins, {
     title: 'Completed complaint reopened', message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'reopened', title: 'Complaint reopened', message: reason, customerVisible: true })
   await writeAudit(req.supabase, req.user, 'complaint.reopened', 'complaint', req.params.id, { reason })
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// Customer: confirm that the completion report and result were reviewed.
-router.patch('/:id/acknowledge-completion', requireAuth, requireRole('customer'), async (req, res) => {
+// Commercial Services: explicit handoff to ECMD after review.
+router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
-  if (!complaint || complaint.resident_id !== req.user.id) {
-    return res.status(404).json({ error: 'Complaint not found.' })
-  }
-  if (complaint.status !== 'completed') {
-    return res.status(400).json({ error: 'Only a completed complaint can be acknowledged.' })
-  }
-  if (complaint.customer_acknowledged_at) {
-    return respondWithComplaint(req, res, req.params.id)
-  }
-
+  if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
+  if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial review can be forwarded to ECMD.' })
   const note = String(req.body?.note || '').trim()
   const now = new Date().toISOString()
   const { error } = await req.supabase.from('complaints').update({
-    customer_acknowledged_at: now,
-    customer_acknowledgment_note: note || null,
-    updated_at: now,
+    status: 'forwarded', forwarded_to_ecmd_at: now, forwarded_to_ecmd_by: req.user.id,
+    rejection_reason: null, rejected_at: null, updated_at: now,
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
-
-  const task = await getTaskForComplaint(req.supabase, req.params.id)
-  await logTaskUpdate(req.supabase, task?.id, req.user.id, 'Customer acknowledged the completed work.')
-  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
-  await notifyUsers(req.supabase, req.user, [...admins, task?.assigned_staff_id], {
-    title: 'Completion acknowledged',
-    message: `${req.user.full_name} confirmed that the completion report was reviewed.`,
-    type: 'completed',
-    complaintId: req.params.id,
-  })
-  await writeAudit(req.supabase, req.user, 'complaint.completion_acknowledged', 'complaint', req.params.id, {
-    note: note || null,
-  })
+  const ecmd = await getDepartmentAdminIds(req.supabase, 'ECMD')
+  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint forwarded by Commercial', message: `${complaint.reference_number} is ready for ECMD dispatch.`, type: 'assignment', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint forwarded to ECMD', message: 'Commercial Services completed its review and forwarded your complaint for field handling.', type: 'status', complaintId: req.params.id })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'forwarded_to_ecmd', title: 'Forwarded to ECMD', message: note || 'Commercial Services completed complaint review.', customerVisible: true })
+  await writeAudit(req.supabase, req.user, 'complaint.forwarded_to_ecmd', 'complaint', req.params.id, { note: note || null })
   return respondWithComplaint(req, res, req.params.id)
 })
 
 // Assignment / reassignment
 router.patch('/:id/assign', requireAuth, requireCapability(CAPABILITIES.ECMD_DISPATCH), async (req, res) => {
-  const { assigned_to, notes, crew_id } = req.body || {}
+  const { assigned_to, notes, crew_id, reason_code } = req.body || {}
   if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required.' })
   try {
-    await assignOne(req, req.params.id, assigned_to, String(notes || '').trim(), crew_id || null)
+    await assignOne(req, req.params.id, assigned_to, String(notes || '').trim(), crew_id || null, reason_code || null)
     return respondWithComplaint(req, res, req.params.id)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -465,7 +465,11 @@ router.patch('/:id/assign', requireAuth, requireCapability(CAPABILITIES.ECMD_DIS
 })
 
 // Admin: override or restore the classifier-generated operational priority.
-router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
+router.patch('/:id/priority', requireAuth, requireRole('admin'), async (req, res, next) => {
+  const allowed = hasCapability(req.user, CAPABILITIES.COMMERCIAL_COMPLAINTS) || hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)
+  if (!allowed) return res.status(403).json({ error: 'Priority changes are restricted to Commercial Services or ECMD.' })
+  return next()
+}, async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
 
@@ -474,15 +478,27 @@ router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMER
     return res.status(400).json({ error: 'A reason of at least 5 characters is required for the audit trail.' })
   }
 
+  const isCommercial = hasCapability(req.user, CAPABILITIES.COMMERCIAL_COMPLAINTS)
   const resetToAlgorithm = req.body?.reset_to_algorithm === true
+  const requestedPriority = String(req.body?.priority || '').trim().toLowerCase()
   const numericScore = Number(req.body?.score)
-  if (!resetToAlgorithm && (!Number.isInteger(numericScore) || numericScore < 0 || numericScore > 100)) {
+
+  if (!isCommercial && !['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(complaint.status)) {
+    return res.status(400).json({ error: 'ECMD can change operational priority only after a complaint has been forwarded for field handling.' })
+  }
+  if (!isCommercial && resetToAlgorithm) {
+    return res.status(403).json({ error: 'Restoring the classifier recommendation is restricted to Commercial Services.' })
+  }
+  if (isCommercial && !resetToAlgorithm && (!Number.isInteger(numericScore) || numericScore < 0 || numericScore > 100)) {
     return res.status(400).json({ error: 'Priority score must be a whole number from 0 to 100.' })
+  }
+  if (!isCommercial && !['low', 'medium', 'high'].includes(requestedPriority)) {
+    return res.status(400).json({ error: 'ECMD must choose Low, Medium, or High operational priority.' })
   }
 
   const algorithmScore = Number(complaint.algorithm_priority_score ?? complaint.priority_score)
-  const nextScore = resetToAlgorithm ? algorithmScore : numericScore
-  const nextPriority = priorityFromScore(nextScore)
+  const nextScore = isCommercial ? (resetToAlgorithm ? algorithmScore : numericScore) : Number(complaint.priority_score)
+  const nextPriority = isCommercial ? priorityFromScore(nextScore) : requestedPriority
   const previous = {
     score: complaint.priority_score,
     priority: complaint.priority,
@@ -499,7 +515,7 @@ router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMER
         updated_at: now,
       }
     : {
-        priority_score: nextScore,
+        ...(isCommercial ? { priority_score: nextScore } : {}),
         priority: nextPriority,
         priority_override_reason: reason,
         priority_overridden_by: req.user.id,
@@ -526,6 +542,7 @@ router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMER
       complaintId: req.params.id,
     })
   }
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: resetToAlgorithm ? 'priority_restored' : 'priority_overridden', title: resetToAlgorithm ? 'Priority restored to classifier recommendation' : 'Priority manually changed', message: reason, customerVisible: false, metadata: { new_priority: nextPriority, new_score: nextScore } })
   await writeAudit(
     req.supabase,
     req.user,
@@ -545,7 +562,7 @@ router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMER
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// General status progression. Completion uses /complete so proof is captured.
+// General status progression. Completion uses /complete; ECMD verification uses /verify.
 router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
   if (req.user.role === 'admin') {
     const requestedStatus = req.body?.status === 'en_route' ? 'in_progress' : req.body?.status
@@ -567,7 +584,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
   // Legacy clients may still send en_route. New activity is stored as the
   // unified in_progress state while existing en_route rows remain readable.
   const status = requestedStatus === 'en_route' ? 'in_progress' : requestedStatus
-  if (status === 'completed') return res.status(400).json({ error: 'Use the completion report to mark this task completed.' })
+  if (['awaiting_verification','resolved'].includes(status)) return res.status(400).json({ error: 'Use the completion and ECMD verification actions for these workflow states.' })
   if (req.user.role === 'admin' && status !== 'rejected') {
     return res.status(400).json({ error: 'Department Staff must use the designated review, dispatch, restoration, or completion actions instead of forcing a workflow status.' })
   }
@@ -578,6 +595,9 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
 
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
+  if (status === 'rejected' && complaint.status !== 'pending') {
+    return res.status(400).json({ error: 'Commercial Services can reject a complaint only while it is pending review.' })
+  }
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   if (req.user.role === 'maintenance_personnel' && (!task || task.assigned_staff_id !== req.user.id)) {
     return res.status(403).json({ error: 'This complaint is not assigned to you.' })
@@ -606,6 +626,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
     ? `Complaint rejected. Reason: ${rejection_reason.trim()}`
     : `Status changed to ${STATUS_LABEL[status] || status}.`
   await logTaskUpdate(req.supabase, task?.id, req.user.id, message)
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: status === 'rejected' ? 'rejected' : 'status_changed', title: status === 'rejected' ? 'Complaint rejected' : `Status changed to ${STATUS_LABEL[status] || status}`, message: status === 'rejected' ? rejection_reason.trim() : null, customerVisible: true, metadata: { status } })
   await notifyUsers(req.supabase, req.user, [complaint.resident_id], {
     title: status === 'rejected' ? 'Complaint rejected' : 'Complaint progress updated',
     message: status === 'rejected' ? rejection_reason.trim() : `Your complaint is now ${STATUS_LABEL[status] || status}.`,
@@ -636,57 +657,35 @@ router.patch('/:id/restore', requireAuth, requireCapability(CAPABILITIES.COMMERC
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// Maintenance: acknowledge receipt of an assignment.
-router.patch('/:id/task/acknowledge', requireAuth, requireRole('maintenance_personnel'), async (req, res) => {
-  const task = await getTaskForComplaint(req.supabase, req.params.id)
-  if (!task || task.assigned_staff_id !== req.user.id) return res.status(403).json({ error: 'This task is not assigned to you.' })
-  if (task.acknowledged_at) return respondWithComplaint(req, res, req.params.id)
-  const now = new Date().toISOString()
-  const { error } = await req.supabase.from('maintenance_tasks').update({ acknowledged_at: now }).eq('id', task.id)
-  if (error) return res.status(400).json({ error: error.message })
-  await logTaskUpdate(req.supabase, task.id, req.user.id, 'Maintenance Personnel acknowledged the assignment.')
-  await writeAudit(req.supabase, req.user, 'task.acknowledged', 'complaint', req.params.id)
-  return respondWithComplaint(req, res, req.params.id)
-})
-
-// Maintenance: save ETA, materials, or work-plan notes without completing.
+// Maintenance: update materials/work-plan notes without any acknowledgement or response-time step.
 router.patch('/:id/task/plan', requireAuth, requireRole('maintenance_personnel'), async (req, res) => {
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   if (!task || task.assigned_staff_id !== req.user.id) return res.status(403).json({ error: 'This task is not assigned to you.' })
-  const { estimated_completion_at, materials_used } = req.body || {}
+  const { materials_used } = req.body || {}
   const { error } = await req.supabase.from('maintenance_tasks').update({
-    estimated_completion_at: estimated_completion_at || null,
     materials_used: String(materials_used || '').trim() || null,
   }).eq('id', task.id)
   if (error) return res.status(400).json({ error: error.message })
-  await logTaskUpdate(req.supabase, task.id, req.user.id,
-    `Work plan updated${estimated_completion_at ? `; estimated completion ${new Date(estimated_completion_at).toLocaleString('en-PH')}` : ''}.`)
+  await logTaskUpdate(req.supabase, task.id, req.user.id, 'Work plan / materials updated.')
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'work_plan_updated', title: 'Work plan updated', message: String(materials_used || '').trim() || null, customerVisible: false })
   await writeAudit(req.supabase, req.user, 'task.plan_updated', 'complaint', req.params.id)
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// Maintenance: completion report with required resolution notes and proof photo; materials are optional.
-router.patch('/:id/complete', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
-  if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
-    return res.status(403).json({ error: 'Maintenance completion is restricted to ECMD.' })
-  }
-  return next()
-}, async (req, res) => {
+// Maintenance: completion report with resolution notes. No acceptance step or proof photo is required.
+router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'), async (req, res) => {
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   if (!task) return res.status(400).json({ error: 'This complaint has no current maintenance task.' })
   if (req.user.role === 'maintenance_personnel' && task.assigned_staff_id !== req.user.id) {
     return res.status(403).json({ error: 'This task is not assigned to you.' })
   }
   const completionNotes = String(req.body?.completion_notes || '').trim()
-  const completionPhotoUrl = String(req.body?.completion_photo_url || '').trim()
   if (completionNotes.length < 5) return res.status(400).json({ error: 'Resolution notes of at least 5 characters are required.' })
-  if (!completionPhotoUrl) return res.status(400).json({ error: 'A completion proof photo is required.' })
   const now = new Date().toISOString()
   const { error: taskError } = await req.supabase.from('maintenance_tasks').update({
     status: 'completed',
     completed_at: now,
     completion_notes: completionNotes,
-    completion_photo_url: completionPhotoUrl,
     materials_used: String(req.body?.materials_used || task.materials_used || '').trim() || null,
     unable_reason: null,
     reassignment_requested_at: null,
@@ -695,18 +694,57 @@ router.patch('/:id/complete', requireAuth, requireRole('admin', 'maintenance_per
     assistance_reason: null,
   }).eq('id', task.id)
   if (taskError) return res.status(400).json({ error: taskError.message })
-  const { error } = await req.supabase.from('complaints').update({ status: 'completed', updated_at: now }).eq('id', req.params.id)
+  const { error } = await req.supabase.from('complaints').update({ status: 'awaiting_verification', updated_at: now }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
 
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task.id, req.user.id, `Task completed. Resolution: ${completionNotes}`)
-  await notifyUsers(req.supabase, req.user, [complaint?.resident_id], {
-    title: 'Complaint completed', message: 'The assigned Maintenance Personnel submitted a completion report. Please review and acknowledge the completed work.', type: 'completed', complaintId: req.params.id,
-  })
-  await writeAudit(req.supabase, req.user, 'task.completed', 'complaint', req.params.id, {
-    has_photo: true,
-    materials_used: req.body?.materials_used || null,
-  })
+  const ecmd = await getDepartmentAdminIds(req.supabase, 'ECMD')
+  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Maintenance work ready for verification', message: `${complaint?.reference_number || 'Complaint'} was marked complete by Maintenance Personnel.`, type: 'completed', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, [complaint?.resident_id], { title: 'Field work completed', message: 'Maintenance Personnel completed the field work. ECMD is reviewing the resolution before closure.', type: 'status', complaintId: req.params.id })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'maintenance_completed', title: 'Field work completed', message: completionNotes, customerVisible: true })
+  await writeAudit(req.supabase, req.user, 'task.completed', 'complaint', req.params.id, { materials_used: req.body?.materials_used || null })
+  return respondWithComplaint(req, res, req.params.id)
+})
+
+// ECMD: verify Maintenance completion before the complaint is resolved/closed.
+router.patch('/:id/verify', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
+  const complaint = await getComplaintRow(req.supabase, req.params.id)
+  if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
+  if (complaint.status !== 'awaiting_verification') return res.status(400).json({ error: 'This complaint is not awaiting ECMD verification.' })
+  const resolutionCode = String(req.body?.resolution_code || 'resolved').trim()
+  const notes = String(req.body?.resolution_notes || '').trim()
+  const returnToField = req.body?.return_to_field === true
+  const now = new Date().toISOString()
+  const task = await getTaskForComplaint(req.supabase, req.params.id)
+
+  if (returnToField) {
+    if (notes.length < 5) return res.status(400).json({ error: 'Explain what additional field work is required.' })
+    if (task) await req.supabase.from('maintenance_tasks').update({ status: 'in_progress', completed_at: null }).eq('id', task.id)
+    const { error } = await req.supabase.from('complaints').update({ status: 'in_progress', verified_at: null, verified_by: null, resolution_code: null, resolution_notes: notes || null, updated_at: now }).eq('id', req.params.id)
+    if (error) return res.status(400).json({ error: error.message })
+    if (task?.assigned_staff_id) await notifyUsers(req.supabase, req.user, [task.assigned_staff_id], { title: 'Complaint returned for additional work', message: notes || 'ECMD requested additional field work.', type: 'warning', complaintId: req.params.id })
+    await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'verification_returned', title: 'Returned for additional field work', message: notes || null, customerVisible: true })
+    await writeAudit(req.supabase, req.user, 'complaint.verification_returned', 'complaint', req.params.id, { notes: notes || null })
+    return respondWithComplaint(req, res, req.params.id)
+  }
+
+  const { data: reasonCode } = await req.supabase
+    .from('complaint_reason_codes')
+    .select('code')
+    .eq('code', resolutionCode)
+    .eq('action_type', 'resolution')
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!reasonCode) return res.status(400).json({ error: 'Choose a valid resolution code.' })
+
+  const { error } = await req.supabase.from('complaints').update({ status: 'resolved', verified_at: now, verified_by: req.user.id, resolution_code: resolutionCode, resolution_notes: notes || null, updated_at: now }).eq('id', req.params.id)
+  if (error) return res.status(400).json({ error: error.message })
+  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint resolved', message: notes || 'ECMD verified the completed field work and closed the complaint as resolved.', type: 'completed', complaintId: req.params.id })
+  const commercial = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
+  await notifyUsers(req.supabase, req.user, commercial, { title: 'Complaint resolved by ECMD', message: `${complaint.reference_number} has been verified and resolved.`, type: 'completed', complaintId: req.params.id })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'verified_resolved', title: 'ECMD verified resolution', message: notes || null, customerVisible: true, metadata: { resolution_code: resolutionCode } })
+  await writeAudit(req.supabase, req.user, 'complaint.verified_resolved', 'complaint', req.params.id, { resolution_code: resolutionCode, notes: notes || null })
   return respondWithComplaint(req, res, req.params.id)
 })
 
@@ -755,31 +793,39 @@ router.post('/:id/comment', requireAuth, requireRole('admin', 'maintenance_perso
   if (req.user.role === 'maintenance_personnel' && task.assigned_staff_id !== req.user.id) return res.status(403).json({ error: 'This task is not assigned to you.' })
   const { data, error } = await req.supabase.from('task_updates').insert({ task_id: task.id, updated_by: req.user.id, message }).select().single()
   if (error) return res.status(400).json({ error: error.message })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'field_update', title: 'Field update posted', message, customerVisible: true })
   await writeAudit(req.supabase, req.user, 'task.comment_added', 'complaint', req.params.id)
   res.status(201).json({ update: data })
 })
 
-// Full timeline across every historical assignment.
+// Complete complaint timeline across Commercial, ECMD, Maintenance, and customer actions.
 router.get('/:id/updates', requireAuth, async (req, res) => {
-  const { data: tasks, error: taskError } = await req.supabase
-    .from('maintenance_tasks')
-    .select('id, assigned_staff_id, created_at, is_active')
+  const { data: events, error: eventError } = await req.supabase
+    .from('complaint_events')
+    .select('*')
     .eq('complaint_id', req.params.id)
     .order('created_at', { ascending: true })
+
+  if (!eventError) {
+    return res.json({ updates: (events || []).map(event => ({
+      id: event.id,
+      message: event.message ? `${event.title}: ${event.message}` : event.title,
+      updated_by: event.actor_id,
+      author_name: event.actor_name || 'MRWD',
+      created_at: event.created_at,
+      event_type: event.event_type,
+      department_code: event.department_code,
+    })) })
+  }
+
+  // Compatibility fallback if the operational migration has not been applied.
+  const { data: tasks, error: taskError } = await req.supabase.from('maintenance_tasks').select('id').eq('complaint_id', req.params.id)
   if (taskError) return res.status(400).json({ error: taskError.message })
   if (!tasks?.length) return res.json({ updates: [] })
-
-  const { data: updates, error } = await req.supabase
-    .from('task_updates')
-    .select('*')
-    .in('task_id', tasks.map(task => task.id))
-    .order('created_at', { ascending: true })
+  const { data: updates, error } = await req.supabase.from('task_updates').select('*').in('task_id', tasks.map(task => task.id)).order('created_at', { ascending: true })
   if (error) return res.status(400).json({ error: error.message })
-
   const authorIds = [...new Set((updates || []).map(item => item.updated_by).filter(Boolean))]
-  const { data: profiles } = authorIds.length
-    ? await req.supabase.from('profiles').select('id, full_name').in('id', authorIds)
-    : { data: [] }
+  const { data: profiles } = authorIds.length ? await req.supabase.from('profiles').select('id, full_name').in('id', authorIds) : { data: [] }
   const nameMap = Object.fromEntries((profiles || []).map(profile => [profile.id, profile.full_name]))
   res.json({ updates: (updates || []).map(item => ({ ...item, author_name: nameMap[item.updated_by] || 'Unknown' })) })
 })
@@ -791,7 +837,7 @@ router.post('/:id/feedback', requireAuth, requireRole('customer'), async (req, r
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
   if (complaint.resident_id !== req.user.id) return res.status(403).json({ error: 'Not your complaint.' })
-  if (complaint.status !== 'completed') return res.status(400).json({ error: 'Feedback can only be left once the complaint is completed.' })
+  if (!['resolved', 'completed'].includes(complaint.status)) return res.status(400).json({ error: 'Feedback can only be left once the complaint is resolved.' })
 
   const { data, error } = await req.supabase.from('feedback').insert({
     complaint_id: req.params.id, resident_id: req.user.id, rating, comment: comment || null,

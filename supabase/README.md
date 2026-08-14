@@ -23,7 +23,8 @@ This folder contains incremental migrations for the existing MRWD database. It d
 | 15 | `migrations/20260729210000_harden_profile_update_access.sql` | Runs profile updates with the authenticated user's permissions, limits editable columns, and adds an ownership `WITH CHECK` policy. |
 | 16 | `migrations/20260813110000_client_operations_expansion.sql` | Adds departments, crews, team leaders, shifts, service targets, escalations, approvals, account validation, billing imports, inventory, external-notification queues, and archival controls. |
 | 17 | `migrations/20260814100000_department_module_access.sql` | Adds the original department capability and ownership layer. |
-| 18 | `migrations/20260814122500_separate_department_workspaces.sql` | Makes Commercial Services, ECMD, and System Administration truly separate workspaces by removing inherited department access from System Supervisors and keeping routine department notifications department-only. Run last. |
+| 18 | `migrations/20260814122500_separate_department_workspaces.sql` | Makes Commercial Services, ECMD, and System Administration truly separate workspaces by removing inherited department access from System Supervisors and keeping routine department notifications department-only. |
+| 19 | `migrations/20260814133000_operational_complaint_features.sql` | Adds the complaint timeline, Commercial-to-ECMD handoff, dispatch/verification workflow, operational priority overrides, reason codes, internal notes, communication logs, duplicate/related complaint links, incident grouping, and operational RLS. No response-time/SLA tracking, maintenance acceptance step, or completion-photo evidence is used. Run last. |
 
 Many statements are safe to rerun, but always back up the database and review the SQL before executing it.
 

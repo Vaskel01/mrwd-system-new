@@ -17,7 +17,7 @@
 // Statuses still considered "active work" for duplicate-detection
 // purposes — no point flagging two reports as duplicates of each
 // other if one's already closed out.
-const ACTIVE_STATUSES = new Set(['pending', 'assigned', 'en_route', 'in_progress', 'blocked'])
+const ACTIVE_STATUSES = new Set(['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
 const DUPLICATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
@@ -118,6 +118,14 @@ export function presentComplaintForRole(complaint, role, { canViewClassifier = r
 
   for (const field of internalFields) delete presented[field]
 
+  // ECMD can see the operational override state/reason without receiving the
+  // classifier's internal score breakdown or model evidence.
+  if (role === 'admin' && !canViewClassifier) {
+    presented.priority_override_reason = complaint.priority_override_reason || null
+    presented.priority_overridden_at = complaint.priority_overridden_at || null
+    presented.priority_is_overridden = Boolean(complaint.priority_overridden_at)
+  }
+
   if (role === 'customer') {
     delete presented.priority
     delete presented.classified_category
@@ -172,10 +180,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     assigned_at: task ? task.created_at : null,
     task_updated_at: task ? task.updated_at : null,
     task_is_active: task ? task.is_active !== false : false,
-    acknowledged_at: task ? task.acknowledged_at : null,
-    estimated_completion_at: task ? task.estimated_completion_at : null,
     completion_notes: task ? task.completion_notes : null,
-    completion_photo_url: task ? task.completion_photo_url : null,
     materials_used: task ? task.materials_used : null,
     unable_reason: task ? task.unable_reason : null,
     reassignment_requested_at: task ? task.reassignment_requested_at : null,
@@ -187,10 +192,12 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     cancellation_reason: row.cancellation_reason || null,
     reopened_at: row.reopened_at || null,
     reopen_reason: row.reopen_reason || null,
-    customer_acknowledged_at: row.customer_acknowledged_at || null,
-    customer_acknowledgment_note: row.customer_acknowledgment_note || null,
-    service_target_due_at: row.service_target_due_at || null,
-    escalated_at: row.escalated_at || null,
+    forwarded_to_ecmd_at: row.forwarded_to_ecmd_at || null,
+    forwarded_to_ecmd_by: row.forwarded_to_ecmd_by || null,
+    verified_at: row.verified_at || null,
+    verified_by: row.verified_by || null,
+    resolution_code: row.resolution_code || null,
+    resolution_notes: row.resolution_notes || null,
     archived_at: row.archived_at || null,
     archive_reason: row.archive_reason || null,
     created_at: row.submitted_at,
@@ -205,26 +212,36 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
 // the free-text address when no zone is set, since the current
 // submission form doesn't collect a zone value.
 function flagPossibleDuplicates(shaped) {
-  const groups = {}
-  for (const c of shaped) {
-    if (!ACTIVE_STATUSES.has(c.status)) continue
-    const locationKey = (c.zone || c.address || '').toLowerCase().trim()
-    if (!locationKey) continue
-    const key = `${c.complaint_type}::${locationKey}`
-    ;(groups[key] ||= []).push(c)
-  }
+  const active = shaped.filter(c => ACTIVE_STATUSES.has(c.status))
 
-  for (const group of Object.values(groups)) {
-    if (group.length < 2) continue
-    for (const c of group) {
-      const related = group.filter(o =>
-        o.id !== c.id &&
-        Math.abs(new Date(o.created_at) - new Date(c.created_at)) <= DUPLICATE_WINDOW_MS
-      )
-      if (related.length > 0) {
-        c.similar_count = related.length
-        c.similar_ids = related.map(r => r.id)
+  for (const complaint of active) {
+    const related = active.filter(other => {
+      if (other.id === complaint.id) return false
+      if (other.complaint_type !== complaint.complaint_type) return false
+      if (Math.abs(new Date(other.created_at) - new Date(complaint.created_at)) > DUPLICATE_WINDOW_MS) return false
+
+      // Prefer GPS proximity when both records have coordinates. Roughly 250 m
+      // is enough to flag a likely shared leak/interruption without automatically
+      // declaring it a duplicate.
+      if (complaint.gps && other.gps) {
+        const latKm = (complaint.gps.lat - other.gps.lat) * 111
+        const lngKm = (complaint.gps.lng - other.gps.lng) * 111 * Math.cos((complaint.gps.lat * Math.PI) / 180)
+        return Math.sqrt(latKm * latKm + lngKm * lngKm) <= 0.25
       }
+
+      const a = String(complaint.zone || complaint.address || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+      const b = String(other.zone || other.address || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+      if (!a || !b) return false
+      if (a === b || a.includes(b) || b.includes(a)) return true
+      const aw = new Set(a.split(' ').filter(word => word.length > 2))
+      const bw = new Set(b.split(' ').filter(word => word.length > 2))
+      const overlap = [...aw].filter(word => bw.has(word)).length
+      return overlap >= 2
+    })
+
+    if (related.length) {
+      complaint.similar_count = related.length
+      complaint.similar_ids = related.map(item => item.id)
     }
   }
 

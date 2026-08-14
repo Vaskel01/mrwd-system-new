@@ -20,14 +20,17 @@ function timeAgo(iso) {
 }
 
 const STATUS_CONFIG = {
-  pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending Review', message: 'Your complaint is queued for review.' },
+  pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending Review', message: 'Your complaint is queued for Commercial Services review.' },
+  forwarded: { bar: 25, color: '#2563eb', icon: 'assignment', label: 'Forwarded to ECMD', message: 'Commercial Services forwarded your complaint to ECMD for field handling.' },
   assigned: { bar: 35, color: '#7c3aed', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned.' },
   en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
-  completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Completed', message: 'The reported work has been completed.' },
+  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Awaiting Verification', message: 'Field work is complete and ECMD is verifying the resolution.' },
+  resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'ECMD verified the completed field work and resolved the complaint.' },
+  completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
   rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Department.' },
   cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
-  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs Attention', message: 'Maintenance Personnel requested administrative assistance.' },
+  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs Attention', message: 'Maintenance Personnel requested ECMD assistance.' },
 }
 
 function ComplaintCard({ complaint, onView }) {
@@ -105,8 +108,8 @@ export default function MyComplaintsPage() {
   const counts = {
     all: complaints.length,
     pending: complaints.filter(complaint => complaint.status === 'pending').length,
-    active: complaints.filter(complaint => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length,
-    completed: complaints.filter(complaint => complaint.status === 'completed').length,
+    active: complaints.filter(complaint => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(complaint.status)).length,
+    resolved: complaints.filter(complaint => ['resolved', 'completed'].includes(complaint.status)).length,
     rejected: complaints.filter(complaint => complaint.status === 'rejected').length,
     cancelled: complaints.filter(complaint => complaint.status === 'cancelled').length,
   }
@@ -115,7 +118,9 @@ export default function MyComplaintsPage() {
     const query = search.trim().toLowerCase()
     return complaints.filter(complaint => {
       const matchesStatus = filter === 'all'
-        || (filter === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status) : complaint.status === filter)
+        || (filter === 'active' ? ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(complaint.status)
+          : filter === 'resolved' ? ['resolved', 'completed'].includes(complaint.status)
+          : complaint.status === filter)
       const matchesSearch = !query || [complaint.reference_number, complaint.complaint_type, complaint.description, complaint.address, complaint.status, complaint.assigned_name, complaint.rejection_reason]
         .some(value => String(value || '').toLowerCase().includes(query))
       return matchesStatus && matchesSearch
@@ -154,7 +159,7 @@ export default function MyComplaintsPage() {
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {[['all', 'All'], ['pending', 'Pending'], ['active', 'Active'], ['completed', 'Completed'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+            {[['all', 'All'], ['pending', 'Pending'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
               <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="px-4 py-2 rounded-full text-sm font-semibold"
                 style={filter === value ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>

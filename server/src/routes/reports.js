@@ -42,7 +42,7 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       .select('complaint_id, rating, created_at')
     if (feedbackError) throw feedbackError
 
-    const completed = complaints.filter(item => item.status === 'completed')
+    const completed = complaints.filter(item => ['resolved', 'completed'].includes(item.status))
     const monthlyMap = new Map()
     const ensureMonth = key => {
       if (!monthlyMap.has(key)) monthlyMap.set(key, { month: key, filed: 0, completed: 0 })
@@ -56,11 +56,6 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
         if ((!from || completedAt >= from) && (!to || completedAt <= to)) ensureMonth(monthKey(item.completed_at)).completed += 1
       }
     }
-    const resolutionHours = completed
-      .map(item => item.completed_at && item.created_at
-        ? (new Date(item.completed_at) - new Date(item.created_at)) / 3600000
-        : null)
-      .filter(value => Number.isFinite(value) && value >= 0)
 
     const complaintIds = new Set(complaints.map(item => item.id))
     const ratings = (feedback || [])
@@ -75,13 +70,11 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       summary: {
         total: complaints.length,
         pending: complaints.filter(item => item.status === 'pending').length,
-        active: complaints.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status)).length,
+        active: complaints.filter(item => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(item.status)).length,
+        resolved: completed.length,
         completed: completed.length,
         rejected: complaints.filter(item => item.status === 'rejected').length,
         cancelled: complaints.filter(item => item.status === 'cancelled').length,
-        average_resolution_hours: resolutionHours.length
-          ? Math.round((resolutionHours.reduce((sum, value) => sum + value, 0) / resolutionHours.length) * 10) / 10
-          : null,
         average_rating: ratings.length
           ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 100) / 100
           : null,

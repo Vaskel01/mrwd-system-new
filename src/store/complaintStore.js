@@ -93,32 +93,25 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
-  acknowledgeCompletion: async (complaintId, note = '') => {
-    const { complaint } = await apiFetch(`/complaints/${complaintId}/acknowledge-completion`, {
-      method: 'PATCH',
-      body: JSON.stringify({ note: note || undefined }),
-    })
-    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
-    return complaint
-  },
 
   // Assign complaint to maintenance (admin only). notes is optional —
   // instructions for Maintenance Personnel, shown on the task and timeline.
-  assignComplaint: async (complaintId, staffId, notes, crewId = '') => {
+  assignComplaint: async (complaintId, staffId, notes, crewId = '', reasonCode = '') => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/assign`, {
       method: 'PATCH',
-      body: JSON.stringify({ assigned_to: staffId, notes: notes || undefined, crew_id: crewId || undefined }),
+      body: JSON.stringify({ assigned_to: staffId, notes: notes || undefined, crew_id: crewId || undefined, reason_code: reasonCode || undefined }),
     })
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
     }))
   },
 
-  overridePriority: async (complaintId, { score, reason, resetToAlgorithm = false }) => {
+  overridePriority: async (complaintId, { score, priority, reason, resetToAlgorithm = false }) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/priority`, {
       method: 'PATCH',
       body: JSON.stringify({
         score: resetToAlgorithm ? undefined : score,
+        priority: resetToAlgorithm ? undefined : priority,
         reason,
         reset_to_algorithm: resetToAlgorithm,
       }),
@@ -192,11 +185,6 @@ export const useComplaintStore = create((set, get) => ({
     return result
   },
 
-  acknowledgeTask: async complaintId => {
-    const { complaint } = await apiFetch(`/complaints/${complaintId}/task/acknowledge`, { method: 'PATCH' })
-    set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
-    return complaint
-  },
 
   updateTaskPlan: async (complaintId, data) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/task/plan`, {
@@ -206,16 +194,12 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
-  completeTask: async (complaintId, data, userId) => {
-    const completion_photo_url = data.photo
-      ? await uploadComplaintPhoto(data.photo, userId, 'completion')
-      : null
+  completeTask: async (complaintId, data) => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
       method: 'PATCH',
       body: JSON.stringify({
         completion_notes: data.completion_notes,
         materials_used: data.materials_used || undefined,
-        completion_photo_url: completion_photo_url || undefined,
       }),
     })
     set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
@@ -248,7 +232,7 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   // Customer: submit a 1-5 star rating + optional comment, only once
-  // the complaint is completed
+  // the complaint is resolved
   submitFeedback: async (complaintId, rating, comment) => {
     const { feedback } = await apiFetch(`/complaints/${complaintId}/feedback`, {
       method: 'POST',

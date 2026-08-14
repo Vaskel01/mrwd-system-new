@@ -6,7 +6,7 @@ import AppIcon from '../../components/ui/AppIcon'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 
-const CLOSED_STATUSES = new Set(['completed', 'cancelled', 'rejected'])
+const CLOSED_STATUSES = new Set(['resolved', 'completed', 'cancelled', 'rejected'])
 
 function StatCard({ label, value, detail, icon }) {
   return (
@@ -43,64 +43,71 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
   const dashboard = useMemo(() => {
     const active = complaints.filter(item => !CLOSED_STATUSES.has(item.status))
+    const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+    const isToday = value => value && new Date(value).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }) === todayKey
 
     if (moduleKey === 'commercial') {
       const pendingReview = complaints.filter(item => item.status === 'pending')
-      const highPriority = active.filter(item => item.priority === 'high')
+      const forwarded = complaints.filter(item => item.status === 'forwarded')
+      const reopened = complaints.filter(item => item.reopened_at && !CLOSED_STATUSES.has(item.status))
       const withBillingConcern = complaints.filter(item => {
         const type = String(item.complaint_type || '').toLowerCase()
         return type.includes('bill') || type.includes('account') || type.includes('payment')
       })
-      const completed = complaints.filter(item => item.status === 'completed')
+      const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.verified_at || item.updated_at))
 
       return {
         cards: [
-          ['Pending Review', pendingReview.length, 'Complaints currently waiting for Commercial review or validation.', 'clipboard'],
-          ['High Priority', highPriority.length, 'Active complaints currently classified as High priority.', 'alert'],
+          ['Pending Review', pendingReview.length, 'New complaints waiting for Commercial validation and routing.', 'clipboard'],
+          ['Forwarded to ECMD', forwarded.length, 'Complaints already handed off and waiting for field dispatch.', 'assignment'],
           ['Billing-related', withBillingConcern.length, 'Complaints involving billing, account, or payment concerns.', 'billing'],
-          ['Completed', completed.length, 'Complaint records already completed by the field workflow.', 'check'],
+          ['Resolved Today', resolvedToday.length, 'Complaints verified and resolved today.', 'check'],
         ],
         attention: [...complaints]
-          .filter(item => item.status === 'pending' || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
+          .filter(item => item.status === 'pending' || reopened.includes(item) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
           .sort((a, b) => {
+            const reopenedRank = item => item.reopened_at && !CLOSED_STATUSES.has(item.status) ? 0 : 1
             const pendingRank = item => item.status === 'pending' ? 0 : 1
             const highRank = item => item.priority === 'high' ? 0 : 1
-            return pendingRank(a) - pendingRank(b)
+            return reopenedRank(a) - reopenedRank(b)
+              || pendingRank(a) - pendingRank(b)
               || highRank(a) - highRank(b)
               || new Date(a.created_at) - new Date(b.created_at)
           })
           .slice(0, 6),
         attentionTitle: 'Needs Commercial Attention',
-        attentionDescription: 'Complaints that are pending review or currently High priority.',
+        attentionDescription: 'New, reopened, or High-priority complaints needing Commercial review or customer follow-up.',
       }
     }
 
-    const readyForDispatch = complaints.filter(item => item.status === 'pending' && !item.assigned_to)
+    const readyForDispatch = complaints.filter(item => item.status === 'forwarded' && !item.assigned_to)
     const activeFieldWork = complaints.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status))
-    const blocked = complaints.filter(item => item.status === 'blocked')
-    const completed = complaints.filter(item => item.status === 'completed')
+    const awaitingVerification = complaints.filter(item => item.status === 'awaiting_verification')
+    const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.verified_at || item.updated_at))
 
     return {
       cards: [
-        ['Dispatch Queue', readyForDispatch.length, 'Unassigned complaints currently waiting for ECMD dispatch.', 'assignment'],
-        ['Active Field Work', activeFieldWork.length, 'Complaints assigned or currently being handled in the field.', 'tool'],
-        ['Needs Attention', blocked.length, 'Blocked field tasks requiring ECMD follow-up or escalation.', 'alert'],
-        ['Completed', completed.length, 'Complaint records completed through maintenance action.', 'check'],
+        ['Dispatch Queue', readyForDispatch.length, 'Commercial-validated complaints ready for ECMD assignment.', 'assignment'],
+        ['Active Field Work', activeFieldWork.length, 'Complaints currently assigned or being handled in the field.', 'tool'],
+        ['Awaiting Verification', awaitingVerification.length, 'Maintenance-completed complaints awaiting ECMD verification.', 'alert'],
+        ['Resolved Today', resolvedToday.length, 'Complaints verified and resolved by ECMD today.', 'check'],
       ],
       attention: [...complaints]
-        .filter(item => item.status === 'blocked' || (item.status === 'pending' && !item.assigned_to) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
+        .filter(item => item.status === 'blocked' || item.status === 'awaiting_verification' || (item.status === 'forwarded' && !item.assigned_to) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
         .sort((a, b) => {
+          const verifyRank = item => item.status === 'awaiting_verification' ? 0 : 1
           const blockedRank = item => item.status === 'blocked' ? 0 : 1
-          const unassignedRank = item => item.status === 'pending' && !item.assigned_to ? 0 : 1
+          const unassignedRank = item => item.status === 'forwarded' && !item.assigned_to ? 0 : 1
           const highRank = item => item.priority === 'high' ? 0 : 1
-          return blockedRank(a) - blockedRank(b)
+          return verifyRank(a) - verifyRank(b)
+            || blockedRank(a) - blockedRank(b)
             || unassignedRank(a) - unassignedRank(b)
             || highRank(a) - highRank(b)
             || new Date(a.created_at) - new Date(b.created_at)
         })
         .slice(0, 6),
       attentionTitle: 'Needs ECMD Attention',
-      attentionDescription: 'Unassigned, blocked, or High-priority complaints that may require field action.',
+      attentionDescription: 'Complaints awaiting verification, blocked in the field, ready for dispatch, or High priority.',
     }
   }, [complaints, moduleKey])
 

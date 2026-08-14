@@ -38,9 +38,6 @@ export default function MaintenanceTasksPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
-  const acknowledgeTask = useComplaintStore(s => s.acknowledgeTask)
-  const [acknowledgingId, setAcknowledgingId] = useState(null)
-  const [notice, setNotice] = useState(null)
 
   const [view, setView] = useState(() => searchParams.get('view') || 'active')
   const [search, setSearch] = useState(() => searchParams.get('q') || '')
@@ -68,14 +65,14 @@ export default function MaintenanceTasksPage() {
   const counts = useMemo(() => ({
     all: myTasks.length,
     active: myTasks.filter(t => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(t.status)).length,
-    completed: myTasks.filter(t => t.status === 'completed').length,
+    completed: myTasks.filter(t => ['awaiting_verification', 'resolved', 'completed'].includes(t.status)).length,
     rejected: myTasks.filter(t => t.status === 'rejected').length,
   }), [myTasks])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     return myTasks
-      .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(task.status) : task.status === view))
+      .filter(task => view === 'all' || (view === 'active' ? ['assigned', 'en_route', 'in_progress', 'blocked'].includes(task.status) : view === 'completed' ? ['awaiting_verification', 'resolved', 'completed'].includes(task.status) : task.status === view))
       .filter(task => priorityFilter === 'all' || task.priority === priorityFilter)
       .filter(task => statusFilter === 'all' ||
         (statusFilter === 'in_progress' ? ['en_route', 'in_progress'].includes(task.status) : task.status === statusFilter))
@@ -104,50 +101,19 @@ export default function MaintenanceTasksPage() {
     setPage(1)
   }
 
-  const quickAcknowledge = async (event, task) => {
-    event.stopPropagation()
-    setAcknowledgingId(task.id)
-    try {
-      await acknowledgeTask(task.id)
-      setNotice({ type: 'success', message: `${task.reference_number} acknowledged.` })
-      window.setTimeout(() => setNotice(null), 3000)
-    } catch (acknowledgeError) {
-      setNotice({
-        type: 'error',
-        message: acknowledgeError?.message || 'The task could not be acknowledged. Please try again.',
-      })
-      window.setTimeout(() => setNotice(null), 5000)
-    } finally {
-      setAcknowledgingId(null)
-    }
-  }
 
-  const renderAction = task => {
-    const needsAcknowledgement = !task.acknowledged_at && ['assigned', 'en_route', 'in_progress'].includes(task.status)
-    return (
-      <div className="flex flex-col items-start gap-1.5">
-        {needsAcknowledgement && (
-          <button
-            type="button"
-            onClick={event => quickAcknowledge(event, task)}
-            disabled={acknowledgingId === task.id}
-            className="inline-flex w-28 items-center justify-center rounded-lg bg-gold-500 px-3 py-2 text-xs font-black text-navy-950 hover:bg-gold-400 disabled:opacity-50"
-          >
-            {acknowledgingId === task.id ? 'Saving…' : 'Acknowledge'}
-          </button>
-        )}
-        <button
-          onClick={event => {
-            event.stopPropagation()
-            navigate(`/complaints/${task.id}`)
-          }}
-          className={needsAcknowledgement ? 'text-xs font-bold text-navy-700 underline underline-offset-2' : TABLE_ACTION_CLASS}
-        >
-          {needsAcknowledgement ? 'Open details' : 'Open'}
-        </button>
-      </div>
-    )
-  }
+  const renderAction = task => (
+    <button
+      type="button"
+      onClick={event => {
+        event.stopPropagation()
+        navigate(`/complaints/${task.id}`)
+      }}
+      className={TABLE_ACTION_CLASS}
+    >
+      Open
+    </button>
+  )
 
   const completionRate = counts.active + counts.completed > 0
     ? Math.round(counts.completed / (counts.active + counts.completed) * 100)
@@ -162,7 +128,7 @@ export default function MaintenanceTasksPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Personnel</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1>
-            <p className="text-navy-300 text-sm mt-1">Review assigned work, update progress, and submit completion evidence.</p>
+            <p className="text-navy-300 text-sm mt-1">Review assigned work, update progress, and record completion notes.</p>
           </div>
           <div className="text-right">
             <p className="font-display font-black text-5xl leading-none text-gold-400">{completionRate}%</p>
@@ -172,18 +138,6 @@ export default function MaintenanceTasksPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
-      {notice && (
-        <div
-          role={notice.type === 'error' ? 'alert' : 'status'}
-          className={`fixed right-4 top-20 z-50 max-w-sm rounded-xl border-l-4 p-4 text-sm font-bold shadow-xl ${
-            notice.type === 'error'
-              ? 'border-red-500 bg-red-50 text-red-800'
-              : 'border-green-500 bg-green-50 text-green-800'
-          }`}
-        >
-          {notice.message}
-        </div>
-      )}
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your task list changed since this page was loaded." />
 
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -221,7 +175,8 @@ export default function MaintenanceTasksPage() {
               <option value="all">Any Status</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
+              <option value="awaiting_verification">Awaiting ECMD Verification</option>
+              <option value="resolved">Resolved</option>
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
             </select>
@@ -290,7 +245,6 @@ export default function MaintenanceTasksPage() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <p className="whitespace-nowrap text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      {!task.acknowledged_at && ['assigned','en_route','in_progress'].includes(task.status) && <p className="mt-2 text-[10px] font-bold text-brand-700">Needs acknowledgement</p>}
                       {task.status === 'blocked' && <p className="mt-2 text-[10px] font-bold text-orange-700">Attention requested</p>}
                     </td>
                     <td className="px-4 py-3 align-top">{renderAction(task)}</td>

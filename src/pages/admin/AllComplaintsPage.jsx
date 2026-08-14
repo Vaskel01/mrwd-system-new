@@ -126,11 +126,13 @@ export default function AllComplaintsPage() {
           </select>
           <select name="allcomplaintspage-filter-status-3" aria-label="Filter Status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Status</option>
-            <option value="pending">Pending</option>
+            <option value="pending">Pending Review</option>
+            <option value="forwarded">Forwarded to ECMD</option>
             <option value="assigned">Assigned</option>
             <option value="in_progress">In Progress</option>
             <option value="blocked">Needs Attention</option>
-            <option value="completed">Completed</option>
+            <option value="awaiting_verification">Awaiting ECMD Verification</option>
+            <option value="resolved">Resolved</option>
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
           </select>

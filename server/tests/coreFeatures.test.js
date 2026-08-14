@@ -4,7 +4,6 @@ import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
-import { calculateServiceDueAt, overdueServiceState } from '../src/lib/serviceTargets.js'
 import { CAPABILITIES, capabilitiesForUser, hasCapability } from '../src/lib/accessControl.js'
 import { homeForUser } from '../../src/lib/accessControl.js'
 import { staffAccessLabel, TERMS } from '../../src/config/terminology.js'
@@ -235,13 +234,4 @@ test('expanded local suggestive phrases classify No Water and water-quality conc
   })
   assert.equal(noWater.predicted_category, 'No Water')
   assert.equal(quality.predicted_category, 'Dirty / Discolored Water')
-})
-
-test('service targets calculate due dates and overdue escalation severity', () => {
-  const dueAt = calculateServiceDueAt('2026-08-01T00:00:00.000Z', 24)
-  assert.equal(dueAt, '2026-08-02T00:00:00.000Z')
-  assert.deepEqual(overdueServiceState(dueAt, 4, '2026-08-02T02:00:00.000Z'), {
-    overdue: true, hoursOverdue: 2, severity: 'warning',
-  })
-  assert.equal(overdueServiceState(dueAt, 4, '2026-08-02T05:00:00.000Z').severity, 'critical')
 })

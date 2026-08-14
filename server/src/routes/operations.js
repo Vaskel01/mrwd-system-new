@@ -1,12 +1,11 @@
 import { Router } from 'express'
 import { requireAuth, requireCapability, requireRole } from '../middleware/auth.js'
 import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
-import { fetchShapedComplaintById, fetchShapedComplaints } from '../lib/shapeComplaint.js'
-import { getDepartmentAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
-import { calculateServiceDueAt, overdueServiceState } from '../lib/serviceTargets.js'
+import { fetchShapedComplaintById } from '../lib/shapeComplaint.js'
+import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
-const CLOSED_STATUSES = new Set(['completed', 'rejected', 'cancelled'])
+const CLOSED_STATUSES = new Set(['resolved', 'completed', 'rejected', 'cancelled'])
 
 router.get('/crews', requireAuth, requireRole('admin', 'maintenance_personnel'), (req, res, next) => {
   if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
@@ -84,22 +83,19 @@ router.get('/ecmd-bootstrap', requireAuth, requireCapability(CAPABILITIES.ECMD_O
   try {
     const today = new Date().toISOString().slice(0, 10)
     const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
-    const [departments, crews, members, schedules, targets, escalations, inventory, staff] = await Promise.all([
+    const [departments, crews, members, schedules, inventory, staff] = await Promise.all([
       req.supabase.from('departments').select('*').eq('code', 'ECMD').limit(1),
       req.supabase.from('maintenance_crews').select('*').order('name'),
       req.supabase.from('crew_members').select('*').eq('is_active', true),
       req.supabase.from('staff_schedules').select('*').gte('shift_date', today).lte('shift_date', future).order('shift_date'),
-      req.supabase.from('service_targets').select('*').order('resolution_hours'),
-      req.supabase.from('complaint_escalations').select('*').in('status', ['open', 'acknowledged']).order('created_at', { ascending: false }),
       req.supabase.from('inventory_items').select('*').eq('is_active', true).order('name'),
       req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').eq('role', 'maintenance_personnel').order('full_name'),
     ])
-    const error = firstFailed([departments, crews, members, schedules, targets, escalations, inventory, staff])
+    const error = firstFailed([departments, crews, members, schedules, inventory, staff])
     if (error) throw error
     res.json({
       departments: departments.data || [], crews: crews.data || [], crew_members: members.data || [],
-      schedules: schedules.data || [], service_targets: targets.data || [], escalations: escalations.data || [],
-      inventory: inventory.data || [], staff: staff.data || [],
+      schedules: schedules.data || [], inventory: inventory.data || [], staff: staff.data || [],
     })
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -128,16 +124,13 @@ router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPA
     const today = new Date().toISOString().slice(0, 10)
     const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
     const [
-      departmentsResult, crewsResult, membersResult, schedulesResult, targetsResult,
-      escalationsResult, approvalsResult, accountsResult, batchesResult, inventoryResult,
-      archivesResult, deliveriesResult, staffResult,
+      departmentsResult, crewsResult, membersResult, schedulesResult, approvalsResult,
+      accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult,
     ] = await Promise.all([
       req.supabase.from('departments').select('*').order('name'),
       req.supabase.from('maintenance_crews').select('*').order('name'),
       req.supabase.from('crew_members').select('*').eq('is_active', true),
       req.supabase.from('staff_schedules').select('*').gte('shift_date', today).lte('shift_date', future).order('shift_date'),
-      req.supabase.from('service_targets').select('*').order('resolution_hours'),
-      req.supabase.from('complaint_escalations').select('*').in('status', ['open', 'acknowledged']).order('created_at', { ascending: false }),
       req.supabase.from('approval_requests').select('*').order('created_at', { ascending: false }).limit(50),
       req.supabase.from('customer_account_registry').select('*').order('updated_at', { ascending: false }).limit(200),
       req.supabase.from('billing_import_batches').select('*').order('created_at', { ascending: false }).limit(20),
@@ -146,7 +139,7 @@ router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPA
       req.supabase.from('notification_deliveries').select('*').order('created_at', { ascending: false }).limit(50),
       req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
     ])
-    const results = [departmentsResult, crewsResult, membersResult, schedulesResult, targetsResult, escalationsResult, approvalsResult, accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult]
+    const results = [departmentsResult, crewsResult, membersResult, schedulesResult, approvalsResult, accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult]
     const failed = results.find(result => result.error)
     if (failed?.error) throw failed.error
 
@@ -155,8 +148,6 @@ router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPA
       crews: crewsResult.data || [],
       crew_members: membersResult.data || [],
       schedules: schedulesResult.data || [],
-      service_targets: targetsResult.data || [],
-      escalations: escalationsResult.data || [],
       approvals: approvalsResult.data || [],
       account_registry: accountsResult.data || [],
       billing_batches: batchesResult.data || [],
@@ -280,87 +271,6 @@ router.post('/schedules', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERA
   res.status(201).json({ schedule: data })
 })
 
-router.post('/service-targets', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
-  try {
-    const priority = trimmed(req.body?.priority).toLowerCase()
-    if (!['low', 'medium', 'high'].includes(priority)) throw new Error('Select Low, Medium, or High priority.')
-    const acknowledgmentHours = numberValue(req.body?.acknowledgment_hours, 'Acknowledgment target', { min: 0.01, allowZero: false })
-    const resolutionHours = numberValue(req.body?.resolution_hours, 'Resolution target', { min: 0.01, allowZero: false })
-    const escalationHours = numberValue(req.body?.escalation_hours, 'Escalation target', { min: 0.01, allowZero: false })
-    const { data, error } = await req.supabase.from('service_targets').upsert({
-      priority, acknowledgment_hours: acknowledgmentHours, resolution_hours: resolutionHours, escalation_hours: escalationHours, updated_by: req.user.id, updated_at: new Date().toISOString(),
-    }, { onConflict: 'priority' }).select().single()
-    if (error) throw error
-    await writeAudit(req.supabase, req.user, 'service_target.updated', 'service_target', data.id, { priority, acknowledgment_hours: acknowledgmentHours, resolution_hours: resolutionHours, escalation_hours: escalationHours })
-    res.json({ service_target: data })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-router.post('/escalations/scan', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
-  try {
-    const [complaints, targetResult] = await Promise.all([
-      fetchShapedComplaints(req.supabase),
-      req.supabase.from('service_targets').select('*').eq('is_active', true),
-    ])
-    if (targetResult.error) throw targetResult.error
-    const targets = Object.fromEntries((targetResult.data || []).map(item => [item.priority, item]))
-    const now = Date.now()
-    const created = []
-    for (const complaint of complaints) {
-      if (complaint.priority !== 'high' || CLOSED_STATUSES.has(complaint.status) || complaint.archived_at) continue
-      const target = targets.high
-      if (!target) continue
-      const dueAt = complaint.service_target_due_at
-        ? new Date(complaint.service_target_due_at)
-        : new Date(calculateServiceDueAt(complaint.created_at, target.resolution_hours))
-      const overdue = overdueServiceState(dueAt, target.escalation_hours, now)
-      if (!overdue.overdue) continue
-      const { data: existing, error: existingError } = await req.supabase.from('complaint_escalations')
-        .select('id').eq('complaint_id', complaint.id).eq('escalation_type', 'high_priority_overdue').in('status', ['open', 'acknowledged']).maybeSingle()
-      if (existingError) throw existingError
-      if (existing) continue
-      const hoursOverdue = overdue.hoursOverdue
-      const { data, error } = await req.supabase.from('complaint_escalations').insert({
-        complaint_id: complaint.id,
-        target_id: target.id,
-        escalation_type: 'high_priority_overdue',
-        severity: overdue.severity,
-        reason: `${complaint.reference_number} is ${hoursOverdue} hour${hoursOverdue === 1 ? '' : 's'} beyond the High-priority resolution target.`,
-        due_at: dueAt.toISOString(),
-      }).select().single()
-      if (error) throw error
-      await req.supabase.from('complaints').update({ service_target_due_at: dueAt.toISOString(), escalated_at: new Date().toISOString() }).eq('id', complaint.id)
-      created.push({ ...data, reference_number: complaint.reference_number })
-    }
-    if (created.length) {
-      const adminIds = await getDepartmentAdminIds(req.supabase, 'ECMD')
-      await notifyUsers(req.supabase, req.user, adminIds, {
-        title: 'Overdue High-priority complaints',
-        message: `${created.length} High-priority complaint${created.length === 1 ? '' : 's'} exceeded the configured service target.`,
-        type: 'urgent',
-      })
-      await writeAudit(req.supabase, req.user, 'escalation.scan_completed', 'complaint', null, { created: created.length })
-    }
-    res.json({ created, count: created.length })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-router.patch('/escalations/:id', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
-  const status = req.body?.status
-  if (!['acknowledged', 'resolved', 'dismissed'].includes(status)) return res.status(400).json({ error: 'Invalid escalation status.' })
-  const now = new Date().toISOString()
-  const update = { status }
-  if (status === 'acknowledged') Object.assign(update, { acknowledged_by: req.user.id, acknowledged_at: now })
-  if (status === 'resolved') update.resolved_at = now
-  const { data, error } = await req.supabase.from('complaint_escalations').update(update).eq('id', req.params.id).select().single()
-  if (error) return res.status(400).json({ error: error.message })
-  await writeAudit(req.supabase, req.user, `escalation.${status}`, 'complaint_escalation', data.id)
-  res.json({ escalation: data })
-})
 
 router.post('/approvals', requireAuth, requireCapability(CAPABILITIES.SYSTEM_APPROVALS), async (req, res) => {
   const reason = trimmed(req.body?.reason)
@@ -563,7 +473,7 @@ router.post('/archive-requests', requireAuth, requireCapability(CAPABILITIES.COM
   const reason = trimmed(req.body?.reason)
   if (!complaintId || !reason) return res.status(400).json({ error: 'Complaint and archival reason are required.' })
   const complaint = await fetchShapedComplaintById(req.supabase, complaintId)
-  if (!complaint || !CLOSED_STATUSES.has(complaint.status)) return res.status(400).json({ error: 'Only completed, rejected, or cancelled complaints can be submitted for archival.' })
+  if (!complaint || !CLOSED_STATUSES.has(complaint.status)) return res.status(400).json({ error: 'Only resolved, rejected, or cancelled complaints can be submitted for archival.' })
   const { data, error } = await req.supabase.from('approval_requests').insert({
     request_type: 'archive_complaint', entity_type: 'complaint', entity_id: complaintId, requested_by: req.user.id, reason,
   }).select().single()

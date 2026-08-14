@@ -7,22 +7,27 @@ export default function RejectionDialog({
   description = 'Explain why this complaint is being rejected. The reason will be visible to the customer.',
   confirmLabel = 'Reject Complaint',
   loading = false,
+  options = [],
   onConfirm,
   onCancel,
 }) {
   const [reason, setReason] = useState('')
+  const [reasonCode, setReasonCode] = useState('')
   const titleId = useId()
 
   if (!open) return null
 
   const submit = () => {
     const trimmed = reason.trim()
-    if (trimmed.length < 3 || loading) return
-    Promise.resolve(onConfirm(trimmed)).then(() => setReason(''))
+    const selected = options.find(option => option.value === reasonCode)
+    if (loading || (options.length ? !selected : trimmed.length < 3)) return
+    const finalReason = selected ? `${selected.label}${trimmed ? `: ${trimmed}` : ''}` : trimmed
+    Promise.resolve(onConfirm(finalReason)).then(() => { setReason(''); setReasonCode('') })
   }
 
   const cancel = () => {
     setReason('')
+    setReasonCode('')
     onCancel()
   }
 
@@ -33,20 +38,21 @@ export default function RejectionDialog({
         <div className="p-6">
           <h3 id={titleId} className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
           <p className="text-sm text-gray-500 leading-relaxed mb-4">{description}</p>
+          {options.length > 0 && <div className="mb-3"><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Reason code</label><select autoFocus value={reasonCode} onChange={e => setReasonCode(e.target.value)} className="input-field rounded-lg"><option value="">Choose a reason…</option>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>}
           <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
-            Rejection reason
+            {options.length ? 'Additional details (optional)' : 'Rejection reason'}
           </label>
-          <textarea name="rejectiondialog-example-duplicate-report-incomplete-location-or-issue-is-outside-mrwd-jurisdiction-1" aria-label="Example: Duplicate report, incomplete location, or issue is outside MRWD jurisdiction."
-            autoFocus
+          <textarea name="rejectiondialog-example-duplicate-report-incomplete-location-or-issue-is-outside-mrwd-jurisdiction-1" aria-label="Rejection reason details"
+            autoFocus={options.length === 0}
             rows={4}
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="Example: Duplicate report, incomplete location, or issue is outside MRWD jurisdiction."
+            placeholder={options.length ? 'Add any details the customer should know…' : 'Example: Duplicate report, incomplete location, or issue is outside MRWD jurisdiction.'}
             className="input-field resize-none"
             maxLength={500}
           />
           <div className="flex items-center justify-between mt-1">
-            <p className="text-[11px] text-gray-400">At least 3 characters</p>
+            <p className="text-[11px] text-gray-400">{options.length ? 'A reason code is required' : 'At least 3 characters'}</p>
             <p className="text-[11px] text-gray-400">{reason.length}/500</p>
           </div>
         </div>
@@ -55,7 +61,7 @@ export default function RejectionDialog({
             className="flex-1 py-2.5 text-sm font-bold text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors rounded-lg">
             Cancel
           </button>
-          <button onClick={submit} disabled={loading || reason.trim().length < 3}
+          <button onClick={submit} disabled={loading || (options.length ? !reasonCode : reason.trim().length < 3)}
             className="flex-1 py-2.5 text-sm font-bold text-white flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 rounded-lg">
             {loading ? <Spinner className="w-4 h-4 border-2 border-white" /> : confirmLabel}
           </button>

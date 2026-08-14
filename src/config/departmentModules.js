@@ -18,7 +18,7 @@ export const DEPARTMENT_MODULES = Object.freeze({
     description: 'Receive complaints ready for field action, assign Maintenance Personnel or crews, monitor active work, manage field resources, and track complaint resolution.',
     links: [
       { to: '/ecmd/dispatch', label: 'Complaint Dispatch', description: 'Assign complaints to Maintenance Personnel and ECMD crews for field action.', icon: 'assignment' },
-      { to: '/ecmd/field-operations', label: 'Field Operations', description: 'Monitor active assignments, crew availability, service targets, escalations, and materials.', icon: 'tool' },
+      { to: '/ecmd/field-operations', label: 'Field Operations', description: 'Monitor active assignments, maintenance workload and availability, complaint hotspots, grouped incidents, materials, and ECMD resolution verification.', icon: 'tool' },
     ],
   },
 })

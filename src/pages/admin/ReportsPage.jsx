@@ -77,7 +77,7 @@ export default function ReportsPage() {
   ]), [scopedComplaints])
 
   const exportCsv = () => {
-    const headers = ['Complaint Reference', 'Category', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Filed', 'Completed', 'Description']
+    const headers = ['Complaint Reference', 'Category', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Filed', 'Resolved', 'Description']
     const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -147,7 +147,7 @@ export default function ReportsPage() {
         <p className="mt-3 text-xs text-gray-500">All cards, charts, and the CSV export use this complaint filing-date range.</p>
       </div>
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3">
-        {[['Total Complaints', summary.total ?? 0, 'text-navy-900'], ['Active Cases', summary.active ?? 0, 'text-brand-700'], ['Completed', summary.completed ?? 0, 'text-green-700'], ['Average Rating', summary.average_rating ? `${summary.average_rating}/5` : '—', 'text-amber-600']].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display font-black text-3xl ${color}`}>{value}</p><p className="text-xs font-bold text-gray-500 mt-1">{label}</p></div>)}
+        {[['Total Complaints', summary.total ?? 0, 'text-navy-900'], ['Active Cases', summary.active ?? 0, 'text-brand-700'], ['Resolved', summary.resolved ?? summary.completed ?? 0, 'text-green-700'], ['Average Rating', summary.average_rating ? `${summary.average_rating}/5` : '—', 'text-amber-600']].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display font-black text-3xl ${color}`}>{value}</p><p className="text-xs font-bold text-gray-500 mt-1">{label}</p></div>)}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-4">By Status</h2><BarList data={data?.by_status} total={summary.total} /></div>
@@ -155,18 +155,18 @@ export default function ReportsPage() {
         <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-4">By Priority</h2><BarList data={data?.by_priority} total={summary.total} /></div>
       </div>
       <div className="card rounded-xl p-4 sm:p-5">
-        <div className="mb-4"><h2 className="font-display font-bold text-navy-900">Monthly Complaint and Resolution Summary</h2><p className="mt-1 text-xs text-gray-400">Filed complaints and completed repairs within the selected report period.</p></div>
+        <div className="mb-4"><h2 className="font-display font-bold text-navy-900">Monthly Complaint and Resolution Summary</h2><p className="mt-1 text-xs text-gray-400">Filed complaints and verified resolutions within the selected report period.</p></div>
         <div className="overflow-x-auto rounded-lg border border-gray-100">
           <table className="w-full min-w-[520px] text-left text-sm">
-            <thead><tr className="border-b-2 border-gray-200 bg-gray-50"><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Month</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Complaints Filed</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Completed / Fixed</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Net Opened</th></tr></thead>
+            <thead><tr className="border-b-2 border-gray-200 bg-gray-50"><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Month</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Complaints Filed</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Resolved / Verified</th><th className="px-4 py-3 text-xs font-black uppercase text-gray-400">Net Opened</th></tr></thead>
             <tbody className="divide-y divide-gray-100">{data?.monthly_summary?.length ? data.monthly_summary.map(item => <tr key={item.month}><td className="px-4 py-3 font-bold text-navy-900">{new Date(`${item.month}-01T00:00:00`).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</td><td className="px-4 py-3">{item.filed}</td><td className="px-4 py-3 text-green-700">{item.completed}</td><td className="px-4 py-3">{item.filed - item.completed}</td></tr>) : <tr><td colSpan="4" className="p-6 text-center text-gray-400">No monthly activity in this period.</td></tr>}</tbody>
           </table>
         </div>
       </div>
       <div className="card rounded-xl p-4 sm:p-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
-          <div><h2 className="font-display font-bold text-navy-900">Operational Measures</h2><p className="text-xs text-gray-400 mt-1">Calculated from completed complaints and customer feedback.</p></div>
-          <div className="text-sm text-gray-600 break-words"><b>{summary.average_resolution_hours ?? '—'}</b> average resolution hours · <b>{summary.feedback_count ?? 0}</b> feedback responses</div>
+          <div><h2 className="font-display font-bold text-navy-900">Operational Measures</h2><p className="text-xs text-gray-400 mt-1">Calculated from resolved complaints and customer feedback.</p></div>
+          <div className="text-sm text-gray-600 break-words"><b>{summary.feedback_count ?? 0}</b> feedback responses · <b>{summary.average_rating ?? '—'}</b> average customer rating</div>
         </div>
 
         <p className="text-sm text-gray-600">Maintenance Personnel availability and workload are intentionally shown only in the ECMD Field Operations page.</p>

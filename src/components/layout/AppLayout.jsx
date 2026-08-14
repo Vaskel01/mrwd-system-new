@@ -3,6 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 import CustomerInterruptionBanner from '../ui/CustomerInterruptionBanner'
+import { adminModuleLabel, CAPABILITIES, hasCapability } from '../../lib/accessControl'
+import { apiFetch } from '../../lib/api'
 
 const NAV = {
   customer: [
@@ -11,22 +13,32 @@ const NAV = {
     { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
     { to: '/profile',                icon: ProfileIcon, label: 'My Profile' },
   ],
-  admin: [
-    { to: '/admin/dashboard',     icon: DashIcon,    label: 'Dashboard' },
-    { to: '/admin/complaints',    icon: ListIcon,    label: 'All Complaints' },
-    { to: '/admin/assign',        icon: AssignIcon,  label: 'Assign Tasks' },
-    { to: '/admin/reports',       icon: ReportIcon,  label: 'Reports & Export' },
-    { to: '/admin/audit',         icon: AuditIcon,   label: 'Audit Log' },
-    { to: '/admin/operations',    icon: WrenchIcon,  label: 'Operations' },
-    { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
-    { to: '/admin/staff',         icon: UsersIcon,   label: 'Staff Accounts' },
-    { to: '/profile',             icon: ProfileIcon, label: 'My Profile' },
-  ],
+  admin: [],
   maintenance_personnel: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
     { to: '/profile',                   icon: ProfileIcon, label: 'My Profile' },
   ],
+}
+
+function adminNavigation(user) {
+  const items = []
+  const add = (capability, item) => {
+    if (hasCapability(user, capability)) items.push(item)
+  }
+
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Oversight', to: '/admin/dashboard', icon: DashIcon, label: 'Dashboard' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Department', to: '/admin/complaints', icon: ListIcon, label: 'Complaint Review' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Department', to: '/admin/reports', icon: ReportIcon, label: 'Reports & Export' })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Department', to: '/admin/commercial-operations', icon: BillingIcon, label: 'Accounts & Billing' })
+  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Department', to: '/admin/announcements', icon: BellIcon, label: 'Service Advisories' })
+  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/admin/assign', icon: AssignIcon, label: 'Dispatch Tasks' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/admin/ecmd-operations', icon: WrenchIcon, label: 'Field Operations' })
+  add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/admin/system-operations', icon: WrenchIcon, label: 'Departments & Approvals' })
+  add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/admin/staff', icon: UsersIcon, label: 'Staff Accounts' })
+  add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/admin/audit', icon: AuditIcon, label: 'Audit Log' })
+  items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My Profile' })
+  return items
 }
 
 const ROLE_CONFIG = {
@@ -106,12 +118,24 @@ export default function AppLayout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
   const role     = user?.role || 'customer'
-  const config   = ROLE_CONFIG[role]
-  const navItems = NAV[role] || []
+  const baseConfig = ROLE_CONFIG[role]
+  const config = role === 'admin' ? { ...baseConfig, tag: adminModuleLabel(user) } : baseConfig
+  const navItems = role === 'admin' ? adminNavigation(user) : (NAV[role] || [])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const unreadCount = useNotificationStore(state => state.unreadCount)
   const fetchUnreadCount = useNotificationStore(state => state.fetchUnreadCount)
   const clearNotifications = useNotificationStore(state => state.clear)
+  const updateStoredUser = useAuthStore(state => state.updateStoredUser)
+
+  useEffect(() => {
+    let active = true
+    apiFetch('/users/me')
+      .then(result => {
+        if (active && result?.user) updateStoredUser(result.user)
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [updateStoredUser])
 
   useEffect(() => {
     fetchUnreadCount()
@@ -147,10 +171,14 @@ export default function AppLayout({ children }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5" aria-label={`${config.tag} navigation`}>
-        {navItems.map(item => {
+        {navItems.map((item, index) => {
           const Icon = item.icon
           return (
-            <NavLink key={item.to} to={item.to} onClick={closeSidebar}
+            <div key={item.to}>
+              {(index === 0 || navItems[index - 1]?.section !== item.section) && (
+                <p className="mb-1 mt-4 px-3 text-[9px] font-black uppercase tracking-[0.18em] text-navy-400 first:mt-0">{item.section}</p>
+              )}
+              <NavLink to={item.to} onClick={closeSidebar}
               className={({ isActive }) =>
                 `group w-full min-h-[42px] flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150 rounded-lg ${
                   isActive
@@ -168,7 +196,8 @@ export default function AppLayout({ children }) {
                   {item.notification && unreadCount > 0 ? <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-gold-400 text-navy-950 text-[10px] font-black flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span> : isActive && <span className="ml-auto w-1 h-1 rounded-full bg-gold-400" />}
                 </>
               )}
-            </NavLink>
+              </NavLink>
+            </div>
           )
         })}
       </nav>

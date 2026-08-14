@@ -5,12 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
 import AppIcon from '../../components/ui/AppIcon'
-
-const ROLE_HOME = {
-  customer:    '/customer/my-complaints',
-  admin:       '/admin/dashboard',
-  maintenance_personnel: '/maintenance/tasks',
-}
+import { homeForUser } from '../../lib/accessControl'
 
 const schema = z.object({
   email:    z.string().email('Enter a valid email address'),
@@ -69,7 +64,7 @@ export default function LoginPage() {
     setError('')
     try {
       const user = await signIn(email, password)
-      navigate(ROLE_HOME[user.role] || '/', { replace: true })
+      navigate(homeForUser(user), { replace: true })
     } catch (err) {
       setError(err.message)
     }

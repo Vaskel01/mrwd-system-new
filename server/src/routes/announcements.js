@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability } from '../middleware/auth.js'
+import { CAPABILITIES } from '../lib/accessControl.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
@@ -28,7 +29,7 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 // POST /api/announcements — admin only
-router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
   const { title, content, category, is_important = false, active_until = null } = req.body || {}
   if (!title || !content || !category) {
     return res.status(400).json({ error: 'title, content, and category are required.' })
@@ -58,7 +59,7 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
 })
 
 // PATCH /api/announcements/:id — admin only
-router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
   const { title, content, category, is_important = false, active_until = null } = req.body || {}
   if (!title || !content || !category) {
     return res.status(400).json({ error: 'title, content, and category are required.' })
@@ -89,7 +90,7 @@ router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
 })
 
 // PATCH /api/announcements/:id/importance — admin only
-router.patch('/:id/importance', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/importance', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
   if (typeof req.body?.is_important !== 'boolean') {
     return res.status(400).json({ error: 'is_important must be true or false.' })
   }
@@ -114,7 +115,7 @@ router.patch('/:id/importance', requireAuth, requireRole('admin'), async (req, r
 })
 
 // DELETE /api/announcements/:id — admin only
-router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
   const { error } = await req.supabase
     .from('announcements')
     .delete()

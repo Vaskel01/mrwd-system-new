@@ -1,9 +1,10 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability, requireRole } from '../middleware/auth.js'
+import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
 import { calculateServiceDueAt } from '../lib/serviceTargets.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
-import { getAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
+import { getDepartmentAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 
 const router = Router()
 const STATUS_VALUES = ['pending', 'assigned', 'en_route', 'in_progress', 'completed', 'rejected', 'cancelled', 'blocked']
@@ -47,7 +48,9 @@ async function respondWithComplaint(req, res, id, statusCode = 200) {
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, id)
     if (!complaint) return res.status(404).json({ error: 'Complaint not found or you do not have access to it.' })
-    return res.status(statusCode).json({ complaint: presentComplaintForRole(complaint, req.user.role) })
+    return res.status(statusCode).json({ complaint: presentComplaintForRole(complaint, req.user.role, {
+      canViewClassifier: hasCapability(req.user, CAPABILITIES.COMMERCIAL_COMPLAINTS),
+    }) })
   } catch (error) {
     return res.status(400).json({ error: error.message })
   }
@@ -142,14 +145,16 @@ async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const complaints = await fetchShapedComplaints(req.supabase)
-    res.json({ complaints: complaints.map(item => presentComplaintForRole(item, req.user.role)) })
+    res.json({ complaints: complaints.map(item => presentComplaintForRole(item, req.user.role, {
+      canViewClassifier: hasCapability(req.user, CAPABILITIES.COMMERCIAL_COMPLAINTS),
+    })) })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
 })
 
 // POST /api/complaints/reclassify-all — admin only
-router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/reclassify-all', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   try {
     const [{ data: complaints, error: complaintsError }, { data: categories, error: categoriesError }] = await Promise.all([
       req.supabase.from('complaints').select('id, category_id, description, photo_urls, priority_overridden_at'),
@@ -202,7 +207,7 @@ router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, re
 })
 
 // POST /api/complaints/bulk-assign — admin only
-router.post('/bulk-assign', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/bulk-assign', requireAuth, requireCapability(CAPABILITIES.ECMD_DISPATCH), async (req, res) => {
   const { complaint_ids, assigned_to, notes, crew_id } = req.body || {}
   if (!Array.isArray(complaint_ids) || complaint_ids.length === 0 || !assigned_to) {
     return res.status(400).json({ error: 'complaint_ids (array) and assigned_to are required.' })
@@ -220,7 +225,7 @@ router.post('/bulk-assign', requireAuth, requireRole('admin'), async (req, res) 
 })
 
 // POST /api/complaints/bulk-status — admin only
-router.post('/bulk-status', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/bulk-status', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const { complaint_ids, status, rejection_reason } = req.body || {}
   if (!Array.isArray(complaint_ids) || complaint_ids.length === 0 || status !== 'rejected') {
     return res.status(400).json({ error: 'Bulk status changes are limited to complaint rejection.' })
@@ -305,7 +310,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   }).select().single()
   if (error) return res.status(400).json({ error: error.message })
 
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {
     title: 'New complaint filed', message: `${req.user.full_name} submitted a ${complaint_type} complaint.`, type: 'new', complaintId: inserted.id,
   })
@@ -372,7 +377,7 @@ router.patch('/:id/cancel', requireAuth, requireRole('customer'), async (req, re
     status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: reason || null, updated_at: new Date().toISOString(),
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {
     title: 'Complaint cancelled by customer', message: `${req.user.full_name} cancelled a pending complaint.`, type: 'warning', complaintId: req.params.id,
   })
@@ -402,7 +407,7 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
 
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {
     title: 'Completed complaint reopened', message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
@@ -434,7 +439,7 @@ router.patch('/:id/acknowledge-completion', requireAuth, requireRole('customer')
 
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task?.id, req.user.id, 'Customer acknowledged the completed work.')
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, [...admins, task?.assigned_staff_id], {
     title: 'Completion acknowledged',
     message: `${req.user.full_name} confirmed that the completion report was reviewed.`,
@@ -448,7 +453,7 @@ router.patch('/:id/acknowledge-completion', requireAuth, requireRole('customer')
 })
 
 // Assignment / reassignment
-router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/assign', requireAuth, requireCapability(CAPABILITIES.ECMD_DISPATCH), async (req, res) => {
   const { assigned_to, notes, crew_id } = req.body || {}
   if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required.' })
   try {
@@ -460,7 +465,7 @@ router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) 
 })
 
 // Admin: override or restore the classifier-generated operational priority.
-router.patch('/:id/priority', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/priority', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
 
@@ -541,7 +546,22 @@ router.patch('/:id/priority', requireAuth, requireRole('admin'), async (req, res
 })
 
 // General status progression. Completion uses /complete so proof is captured.
-router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
+  if (req.user.role === 'admin') {
+    const requestedStatus = req.body?.status === 'en_route' ? 'in_progress' : req.body?.status
+    const requiredCapability = requestedStatus === 'rejected'
+      ? CAPABILITIES.COMMERCIAL_COMPLAINTS
+      : CAPABILITIES.ECMD_OPERATIONS
+    if (!hasCapability(req.user, requiredCapability)) {
+      return res.status(403).json({
+        error: requestedStatus === 'rejected'
+          ? 'Complaint rejection is restricted to the Commercial Department.'
+          : 'Complaint field-status changes are restricted to ECMD.',
+      })
+    }
+  }
+  return next()
+}, async (req, res) => {
   const { status: requestedStatus, rejection_reason } = req.body || {}
   if (!STATUS_VALUES.includes(requestedStatus)) return res.status(400).json({ error: `status must be one of: ${STATUS_VALUES.join(', ')}.` })
   // Legacy clients may still send en_route. New activity is stored as the
@@ -597,7 +617,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
   return respondWithComplaint(req, res, req.params.id)
 })
 
-router.patch('/:id/restore', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/restore', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const row = await getComplaintRow(req.supabase, req.params.id)
   if (!row) return res.status(404).json({ error: 'Complaint not found.' })
   if (row.status !== 'rejected') return res.status(400).json({ error: 'Only rejected complaints can be restored.' })
@@ -646,7 +666,12 @@ router.patch('/:id/task/plan', requireAuth, requireRole('maintenance_personnel')
 })
 
 // Maintenance: completion report with required resolution notes and proof photo; materials are optional.
-router.patch('/:id/complete', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.patch('/:id/complete', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
+  if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
+    return res.status(403).json({ error: 'Maintenance completion is restricted to ECMD.' })
+  }
+  return next()
+}, async (req, res) => {
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   if (!task) return res.status(400).json({ error: 'This complaint has no current maintenance task.' })
   if (req.user.role === 'maintenance_personnel' && task.assigned_staff_id !== req.user.id) {
@@ -709,7 +734,7 @@ router.post('/:id/task/issue', requireAuth, requireRole('maintenance_personnel')
   }
   const label = kind === 'assistance' ? 'Additional assistance requested' : kind === 'reassignment' ? 'Reassignment requested' : 'Task cannot be completed'
   await logTaskUpdate(req.supabase, task.id, req.user.id, `${label}. Reason: ${reason}`)
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'ECMD')
   await notifyUsers(req.supabase, req.user, admins, {
     title: label, message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
@@ -717,7 +742,12 @@ router.post('/:id/task/issue', requireAuth, requireRole('maintenance_personnel')
   return respondWithComplaint(req, res, req.params.id)
 })
 
-router.post('/:id/comment', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.post('/:id/comment', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
+  if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
+    return res.status(403).json({ error: 'Maintenance work notes are restricted to ECMD.' })
+  }
+  return next()
+}, async (req, res) => {
   const message = String(req.body?.message || '').trim()
   if (!message) return res.status(400).json({ error: 'message is required.' })
   const task = await getTaskForComplaint(req.supabase, req.params.id)
@@ -771,7 +801,7 @@ router.post('/:id/feedback', requireAuth, requireRole('customer'), async (req, r
     return res.status(400).json({ error: error.message })
   }
   const task = await getTaskForComplaint(req.supabase, req.params.id)
-  const admins = await getAdminIds(req.supabase)
+  const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, [...admins, task?.assigned_staff_id], {
     title: 'Customer feedback received', message: `${req.user.full_name} submitted a ${rating}-star rating.`, type: 'feedback', complaintId: req.params.id,
   })

@@ -3,13 +3,29 @@ import { apiFetch } from '../../lib/api'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
 
-const TABS = [
-  ['overview', 'Oversight'],
-  ['crews', 'Departments & Crews'],
-  ['schedules', 'Shifts & Targets'],
-  ['billing', 'Accounts & Billing'],
-  ['inventory', 'Inventory & Archive'],
-]
+const MODULE_CONFIG = {
+  commercial: {
+    eyebrow: 'Commercial Department',
+    title: 'Customer Accounts & Billing',
+    description: 'Manage customer-account validation, bulk billing records, and requests to archive closed complaint records.',
+    endpoint: '/operations/commercial-bootstrap',
+    tabs: [['billing', 'Accounts & Billing'], ['inventory', 'Records & Archival']],
+  },
+  ecmd: {
+    eyebrow: 'Engineering, Construction and Maintenance Department',
+    title: 'ECMD Field Operations',
+    description: 'Coordinate crews, manpower, shifts, service targets, escalations, equipment, and materials.',
+    endpoint: '/operations/ecmd-bootstrap',
+    tabs: [['overview', 'Field Oversight'], ['crews', 'Crews & Manpower'], ['schedules', 'Shifts & Targets'], ['inventory', 'Inventory']],
+  },
+  system: {
+    eyebrow: 'System Administration',
+    title: 'Departments, Approvals & Governance',
+    description: 'Manage department access, staff assignments, independent approvals, archival, and auditable notification delivery.',
+    endpoint: '/operations/system-bootstrap',
+    tabs: [['overview', 'Approvals & Delivery'], ['crews', 'Departments & Access'], ['inventory', 'Approved Archival']],
+  },
+}
 
 function titleCase(value) {
   return String(value || '').replaceAll('_', ' ').replace(/\b\w/g, character => character.toUpperCase())
@@ -49,8 +65,9 @@ function Field({ label, children, className = '' }) {
   return <label className={`block ${className}`}><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-gray-500">{label}</span>{children}</label>
 }
 
-export default function OperationsPage() {
-  const [tab, setTab] = useState('overview')
+export default function OperationsPage({ module = 'system' }) {
+  const moduleConfig = MODULE_CONFIG[module] || MODULE_CONFIG.system
+  const [tab, setTab] = useState(moduleConfig.tabs[0][0])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
@@ -62,7 +79,7 @@ export default function OperationsPage() {
   const load = async () => {
     setError('')
     try {
-      const result = await apiFetch('/operations/bootstrap')
+      const result = await apiFetch(moduleConfig.endpoint)
       setData(result)
     } catch (loadError) {
       setError(loadError.message)
@@ -73,7 +90,7 @@ export default function OperationsPage() {
 
   useEffect(() => {
     let active = true
-    Promise.all([apiFetch('/operations/bootstrap'), fetchComplaints()])
+    Promise.all([apiFetch(moduleConfig.endpoint), fetchComplaints()])
       .then(([result]) => {
         if (active) setData(result)
       })
@@ -84,7 +101,7 @@ export default function OperationsPage() {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [fetchComplaints])
+  }, [fetchComplaints, moduleConfig.endpoint])
 
   const run = async (key, action, success) => {
     setBusy(key); setError(''); setMessage('')
@@ -111,67 +128,65 @@ export default function OperationsPage() {
   return (
     <div className="space-y-5">
       <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Administrator · Operations</p>
-        <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Operations Center</h1>
-        <p className="mt-1 max-w-3xl text-sm text-navy-300">Coordinate departments, ECMD crews, service targets, schedules, billing imports, inventory, escalation, approvals, and archival.</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">{moduleConfig.eyebrow}</p>
+        <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{moduleConfig.title}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-navy-300">{moduleConfig.description}</p>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{message}</div>}
 
       <div className="card grid grid-cols-1 gap-2 rounded-xl p-2 min-[420px]:grid-cols-2 lg:grid-cols-5" role="tablist" aria-label="Operations sections">
-        {TABS.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`min-h-10 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
+        {moduleConfig.tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`min-h-10 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
       </div>
 
-      {tab === 'overview' && <OverviewTab data={data} busy={busy} run={run} complaintMap={complaintMap} staffMap={staffMap} />}
-      {tab === 'crews' && <CrewsTab data={data} busy={busy} run={run} staffMap={staffMap} departmentMap={departmentMap} />}
+      {tab === 'overview' && <OverviewTab data={data} busy={busy} run={run} complaintMap={complaintMap} staffMap={staffMap} module={module} />}
+      {tab === 'crews' && <CrewsTab data={data} busy={busy} run={run} staffMap={staffMap} departmentMap={departmentMap} module={module} />}
       {tab === 'schedules' && <SchedulesTab data={data} busy={busy} run={run} staffMap={staffMap} />}
       {tab === 'billing' && <BillingTab data={data} busy={busy} run={run} />}
-      {tab === 'inventory' && <InventoryTab data={data} busy={busy} run={run} complaints={complaints} staffMap={staffMap} crewMap={crewMap} />}
+      {tab === 'inventory' && <InventoryTab data={data} busy={busy} run={run} complaints={complaints} staffMap={staffMap} crewMap={crewMap} module={module} />}
     </div>
   )
 }
 
-function OverviewTab({ data, busy, run, complaintMap, staffMap }) {
+function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
   const openEscalations = data?.escalations || []
   const pendingApprovals = (data?.approvals || []).filter(item => item.status === 'pending')
   const pendingDeliveries = (data?.notification_deliveries || []).filter(item => item.status === 'pending').length
+  const overviewCards = module === 'ecmd'
+    ? [['Open Escalations', openEscalations.length, 'text-red-700'], ['Active Crews', (data?.crews || []).filter(item => item.is_active).length, 'text-navy-900']]
+    : [['Pending Approvals', pendingApprovals.length, 'text-amber-700'], ['External Messages Queued', pendingDeliveries, 'text-brand-700']]
   return <div className="space-y-5">
     <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
-      {[
-        ['Open Escalations', openEscalations.length, 'text-red-700'],
-        ['Pending Approvals', pendingApprovals.length, 'text-amber-700'],
-        ['Active Crews', (data?.crews || []).filter(item => item.is_active).length, 'text-navy-900'],
-        ['External Messages Queued', pendingDeliveries, 'text-brand-700'],
-      ].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display text-3xl font-black ${color}`}>{value}</p><p className="mt-1 text-xs font-bold text-gray-500">{label}</p></div>)}
+      {overviewCards.map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display text-3xl font-black ${color}`}>{value}</p><p className="mt-1 text-xs font-bold text-gray-500">{label}</p></div>)}
     </div>
 
-    <Section title="Overdue High-priority Escalation" description="Compares active High-priority complaints with the Administrator-defined resolution target." action={<button disabled={busy === 'scan'} onClick={() => run('scan', () => apiFetch('/operations/escalations/scan', { method: 'POST' }), 'High-priority service targets scanned.')} className="btn-primary rounded-lg">{busy === 'scan' ? <Spinner className="h-4 w-4 border-2 border-white" /> : 'Scan Now'}</button>}>
+    {module === 'ecmd' && <Section title="Overdue High-priority Escalation" description="Compares active High-priority complaints with the ECMD-defined resolution target." action={<button disabled={busy === 'scan'} onClick={() => run('scan', () => apiFetch('/operations/escalations/scan', { method: 'POST' }), 'High-priority service targets scanned.')} className="btn-primary rounded-lg">{busy === 'scan' ? <Spinner className="h-4 w-4 border-2 border-white" /> : 'Scan Now'}</button>}>
       {openEscalations.length === 0 ? <p className="text-sm text-gray-500">No open overdue escalations.</p> : <div className="space-y-3">{openEscalations.map(item => <div key={item.id} className="rounded-xl border border-red-200 bg-red-50 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-black text-red-900">{complaintMap[item.complaint_id]?.reference_number || 'Complaint'} · {titleCase(item.severity)}</p><p className="mt-1 text-xs text-red-700">{item.reason}</p><p className="mt-1 text-[10px] text-red-500">Target: {formatDate(item.due_at)}</p></div><div className="flex gap-2"><button onClick={() => run(`escalation-${item.id}`, () => apiFetch(`/operations/escalations/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'acknowledged' }) }), 'Escalation acknowledged.')} className="btn-secondary rounded-lg text-xs">Acknowledge</button><button onClick={() => run(`resolve-${item.id}`, () => apiFetch(`/operations/escalations/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }) }), 'Escalation resolved.')} className="btn-primary rounded-lg text-xs">Resolve</button></div></div></div>)}</div>}
-    </Section>
+    </Section>}
 
-    <Section title="Backup Administrator / Supervisor Approval" description="The requester cannot approve their own request. Archival requires a separate reviewer.">
+    {module === 'system' && <Section title="Backup Administrator / Supervisor Approval" description="The requester cannot approve their own request. Archival requires a separate reviewer.">
       {pendingApprovals.length === 0 ? <p className="text-sm text-gray-500">No approval requests are awaiting review.</p> : <div className="space-y-3">{pendingApprovals.map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="text-sm font-black text-navy-900">{titleCase(item.request_type)}</p><p className="mt-1 text-xs text-gray-600">{item.reason}</p><p className="mt-1 text-[10px] text-gray-400">Requested by {staffMap[item.requested_by]?.full_name || 'Administrator'} · {formatDate(item.created_at)}</p><div className="mt-3 flex gap-2"><button onClick={() => run(`approve-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'approved' }) }), 'Request approved.')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-black text-white">Approve</button><button onClick={() => run(`reject-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'rejected' }) }), 'Request rejected.')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Reject</button></div></div>)}</div>}
-    </Section>
+    </Section>}
 
-    <Section title="Email and SMS Delivery Queue" description="In-app notifications are queued automatically for each user's enabled channels.">
+    {module === 'system' && <Section title="Email and SMS Delivery Queue" description="In-app notifications are queued automatically for each user's enabled channels.">
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Provider connection required</p><p className="mt-1 text-xs">The system now creates auditable email/SMS delivery jobs. Actual sending remains disabled until MRWD supplies an approved email/SMS provider, sender identity, credentials, consent rules, and budget.</p></div>
-    </Section>
+    </Section>}
   </div>
 }
 
-function CrewsTab({ data, busy, run, staffMap, departmentMap }) {
+function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
   const [crew, setCrew] = useState({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })
   const [member, setMember] = useState({ crew_id: '', staff_id: '', crew_role: 'crew_member', manpower_units: 1 })
   const [assignment, setAssignment] = useState({ staff_id: '', department_id: '', staff_position: 'department_staff', supervisor_id: '' })
   const maintenance = (data?.staff || []).filter(item => item.role === 'maintenance_personnel' && item.is_active)
   const supervisors = (data?.staff || []).filter(item => ['manager', 'supervisor', 'team_leader'].includes(item.staff_position) || item.role === 'admin')
   return <div className="space-y-5">
-    <Section title="Department Responsibilities" description="Commercial monitors customer submissions and reports; ECMD coordinates field work.">
+    {module === 'system' && <Section title="Department Responsibilities" description="Commercial manages customer and billing records; ECMD coordinates engineering and field work.">
       <div className="grid gap-3 md:grid-cols-2">{(data?.departments || []).map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="font-black text-navy-900">{item.name}</p><p className="mt-1 text-xs text-gray-600">{item.responsibilities}</p></div>)}</div>
-    </Section>
+    </Section>}
 
-    <div className="grid gap-5 lg:grid-cols-2">
+    {module === 'ecmd' && <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Create ECMD Crew" description="Assign a team leader and expected manpower.">
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('crew', () => apiFetch('/operations/crews', { method: 'POST', body: JSON.stringify(crew) }), 'Crew created.').then(ok => ok && setCrew({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })) }}>
           <Field label="Crew Name"><input required value={crew.name} onChange={event => setCrew(value => ({ ...value, name: event.target.value }))} className="input-field rounded-lg" /></Field>
@@ -191,9 +206,9 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap }) {
           <button disabled={busy === 'member'} className="btn-primary rounded-lg sm:col-span-2">Save Member</button>
         </form>
       </Section>
-    </div>
+    </div>}
 
-    <Section title="Staff Department & Position" description="Designate Commercial staff, ECMD crew members, Team Leaders, Supervisors, and Managers without changing login security roles.">
+    {module === 'system' && <Section title="Staff Department & Position" description="Designate Commercial staff, ECMD crew members, Team Leaders, Supervisors, and Managers. Department assignment now determines accessible modules.">
       <form className="grid gap-3 md:grid-cols-4" onSubmit={event => { event.preventDefault(); run('assignment', () => apiFetch('/operations/staff-assignment', { method: 'POST', body: JSON.stringify(assignment) }), 'Staff assignment updated.') }}>
         <Field label="Staff"><select required value={assignment.staff_id} onChange={event => setAssignment(value => ({ ...value, staff_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
         <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value }))} className="input-field rounded-lg"><option value="">No department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
@@ -201,11 +216,11 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap }) {
         <Field label="Supervisor"><select value={assignment.supervisor_id} onChange={event => setAssignment(value => ({ ...value, supervisor_id: event.target.value }))} className="input-field rounded-lg"><option value="">None</option>{supervisors.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
         <button disabled={busy === 'assignment'} className="btn-primary rounded-lg md:col-span-4">Save Assignment</button>
       </form>
-    </Section>
+    </Section>}
 
-    <Section title="Current Crews">
+    {module === 'ecmd' && <Section title="Current Crews">
       <div className="grid gap-3 md:grid-cols-2">{(data?.crews || []).map(item => { const members = (data?.crew_members || []).filter(memberItem => memberItem.crew_id === item.id); return <div key={item.id} className="rounded-xl border border-gray-200 p-4"><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{item.name}</p><p className="text-xs text-gray-500">{departmentMap[item.department_id]?.name || 'Department'} · Default manpower {item.default_manpower}</p></div><span className="rounded-full bg-green-50 px-2 py-1 text-[10px] font-black text-green-700">{item.is_active ? 'ACTIVE' : 'INACTIVE'}</span></div><p className="mt-3 text-xs font-bold text-gray-700">Team Leader: {staffMap[item.team_leader_id]?.full_name || 'Not assigned'}</p><div className="mt-2 flex flex-wrap gap-1.5">{members.map(memberItem => <span key={memberItem.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-bold text-gray-600">{staffMap[memberItem.staff_id]?.full_name || 'Staff'} · {titleCase(memberItem.crew_role)}</span>)}</div></div> })}</div>
-    </Section>
+    </Section>}
   </div>
 }
 
@@ -264,14 +279,14 @@ function BillingTab({ data, busy, run }) {
   </div>
 }
 
-function InventoryTab({ data, busy, run, complaints, staffMap }) {
+function InventoryTab({ data, busy, run, complaints, staffMap, module }) {
   const [item, setItem] = useState({ sku: '', name: '', category: 'material', unit: 'piece', quantity_on_hand: 0, reorder_level: 0, location: '' })
   const [adjustment, setAdjustment] = useState({ id: '', quantity_delta: '', reason: '' })
   const [archive, setArchive] = useState({ complaint_id: '', reason: '' })
   const closed = complaints.filter(complaint => ['completed', 'rejected', 'cancelled'].includes(complaint.status) && !complaint.archived_at)
   const approvedArchives = (data?.approvals || []).filter(approval => approval.request_type === 'archive_complaint' && approval.status === 'approved')
   return <div className="space-y-5">
-    <div className="grid gap-5 lg:grid-cols-2">
+    {module === 'ecmd' && <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Equipment & Material Inventory" description="Stock usage can be linked directly to maintenance tasks.">
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('inventory', () => apiFetch('/operations/inventory', { method: 'POST', body: JSON.stringify(item) }), 'Inventory item saved.').then(ok => ok && setItem({ sku: '', name: '', category: 'material', unit: 'piece', quantity_on_hand: 0, reorder_level: 0, location: '' })) }}>
           <Field label="SKU"><input required value={item.sku} onChange={event => setItem(value => ({ ...value, sku: event.target.value }))} className="input-field rounded-lg" /></Field>
@@ -292,20 +307,20 @@ function InventoryTab({ data, busy, run, complaints, staffMap }) {
           <button disabled={busy === 'adjust'} className="btn-primary w-full rounded-lg">Record Adjustment</button>
         </form>
       </Section>
-    </div>
+    </div>}
 
-    <Section title="Current Inventory">
+    {module === 'ecmd' && <Section title="Current Inventory">
       <div className="grid gap-3 md:grid-cols-2">{(data?.inventory || []).map(value => <div key={value.id} className={`rounded-xl border p-4 ${Number(value.quantity_on_hand) <= Number(value.reorder_level) ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{value.name}</p><p className="text-xs text-gray-500">{value.sku} · {value.category}</p></div><p className="font-display text-xl font-black text-navy-900">{value.quantity_on_hand} <span className="text-xs font-normal text-gray-500">{value.unit}</span></p></div>{Number(value.quantity_on_hand) <= Number(value.reorder_level) && <p className="mt-2 text-xs font-bold text-red-700">At or below reorder level ({value.reorder_level}).</p>}</div>)}</div>
-    </Section>
+    </Section>}
 
-    <Section title="Data Archival" description="Closed complaint records require approval from a different Administrator or Supervisor before archival.">
-      <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={event => { event.preventDefault(); run('archive-request', () => apiFetch('/operations/archive-requests', { method: 'POST', body: JSON.stringify(archive) }), 'Archival request submitted for independent approval.') }}>
+    {module !== 'ecmd' && <Section title={module === 'commercial' ? 'Closed-record Archival Requests' : 'Approved Complaint Archival'} description="Closed complaint records require approval from a different System Supervisor before archival.">
+      {module === 'commercial' && <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={event => { event.preventDefault(); run('archive-request', () => apiFetch('/operations/archive-requests', { method: 'POST', body: JSON.stringify(archive) }), 'Archival request submitted for independent approval.') }}>
         <Field label="Closed Complaint"><select required value={archive.complaint_id} onChange={event => setArchive(value => ({ ...value, complaint_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select complaint</option>{closed.map(value => <option key={value.id} value={value.id}>{value.reference_number} · {value.complaint_type}</option>)}</select></Field>
         <Field label="Archival Reason"><input required minLength={5} value={archive.reason} onChange={event => setArchive(value => ({ ...value, reason: event.target.value }))} className="input-field rounded-lg" /></Field>
         <button className="btn-secondary self-end rounded-lg">Request Approval</button>
-      </form>
-      {approvedArchives.length > 0 && <div className="mt-4 space-y-2"><p className="text-xs font-black uppercase text-gray-500">Approved and ready</p>{approvedArchives.map(approval => <div key={approval.id} className="flex flex-col gap-2 rounded-lg border border-green-200 bg-green-50 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-green-900">{complaints.find(item => item.id === approval.entity_id)?.reference_number || 'Complaint'}</p><p className="text-xs text-green-700">Approved by {staffMap[approval.reviewed_by]?.full_name || 'backup reviewer'}</p></div><button onClick={() => run(`archive-${approval.id}`, () => apiFetch(`/operations/archive/${approval.entity_id}`, { method: 'POST', body: JSON.stringify({ approval_id: approval.id }) }), 'Complaint archived.')} className="rounded-lg bg-green-700 px-3 py-2 text-xs font-black text-white">Archive Record</button></div>)}</div>}
+      </form>}
+      {module === 'system' && (approvedArchives.length > 0 ? <div className="space-y-2"><p className="text-xs font-black uppercase text-gray-500">Approved and ready</p>{approvedArchives.map(approval => <div key={approval.id} className="flex flex-col gap-2 rounded-lg border border-green-200 bg-green-50 p-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-green-900">{complaints.find(item => item.id === approval.entity_id)?.reference_number || 'Complaint'}</p><p className="text-xs text-green-700">Approved by {staffMap[approval.reviewed_by]?.full_name || 'backup reviewer'}</p></div><button onClick={() => run(`archive-${approval.id}`, () => apiFetch(`/operations/archive/${approval.entity_id}`, { method: 'POST', body: JSON.stringify({ approval_id: approval.id }) }), 'Complaint archived.')} className="rounded-lg bg-green-700 px-3 py-2 text-xs font-black text-white">Archive Record</button></div>)}</div> : <p className="text-sm text-gray-500">No approved archival requests are ready.</p>)}
       <p className="mt-4 text-xs text-gray-500">Archived records remain in the database and audit history; they are removed from active operational lists rather than permanently deleted.</p>
-    </Section>
+    </Section>}
   </div>
 }

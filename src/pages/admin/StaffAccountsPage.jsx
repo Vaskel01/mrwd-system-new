@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import AppIcon from '../../components/ui/AppIcon'
+import { apiFetch } from '../../lib/api'
 
 const ROLE_BADGE = {
   admin: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -17,6 +18,11 @@ const ROLE_BADGE = {
 const ROLE_LABEL = {
   admin: 'Administrator',
   maintenance_personnel: 'Maintenance Personnel',
+}
+
+function accessModuleLabel(account) {
+  if (['manager', 'supervisor'].includes(account?.staff_position)) return 'System Supervisor'
+  return account?.department?.name || 'No module assigned'
 }
 
 function timeAgo(iso) {
@@ -48,6 +54,7 @@ const schema = z.object({
     .regex(/[A-Za-z]/, 'Password must include a letter')
     .regex(/\d/, 'Password must include a number'),
   role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select a role' }) }),
+  access_module: z.enum(['commercial', 'ecmd', 'system'], { errorMap: () => ({ message: 'Select a department module' }) }),
 })
 
 export default function StaffAccountsPage() {
@@ -79,10 +86,14 @@ export default function StaffAccountsPage() {
   const [actionId, setActionId] = useState(null)
   const [manageAccountId, setManageAccountId] = useState(null)
   const [deactivationAccount, setDeactivationAccount] = useState(null)
+  const [departments, setDepartments] = useState([])
 
   useEffect(() => {
     fetchStaff()
     fetchComplaints()
+    apiFetch('/operations/system-bootstrap')
+      .then(result => setDepartments(result.departments || []))
+      .catch(() => setDepartments([]))
   }, [fetchStaff, fetchComplaints])
   useEffect(() => {
     const next = {}
@@ -93,10 +104,11 @@ export default function StaffAccountsPage() {
     setSearchParams(next, { replace: true })
   }, [search, roleFilter, accountFilter, sortBy, setSearchParams])
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: '', email: '', password: '', role: '' },
+    defaultValues: { full_name: '', email: '', password: '', role: '', access_module: '' },
   })
+  const selectedRole = watch('role')
 
   const workload = useMemo(() => {
     const result = {}
@@ -149,7 +161,17 @@ export default function StaffAccountsPage() {
     setCreating(true)
     setError('')
     try {
-      const normalized = { ...data, email: data.email.trim().toLowerCase(), full_name: data.full_name.trim() }
+      const requestedModule = data.role === 'maintenance_personnel' ? 'ecmd' : data.access_module
+      const department = departments.find(item => item.code === requestedModule.toUpperCase())
+      if (requestedModule !== 'system' && !department) throw new Error(`The ${requestedModule.toUpperCase()} department record is missing. Run the department-access migration first.`)
+      const normalized = {
+        ...data,
+        email: data.email.trim().toLowerCase(),
+        full_name: data.full_name.trim(),
+        department_id: department?.id || null,
+        staff_position: requestedModule === 'system' ? 'supervisor' : data.role === 'maintenance_personnel' ? 'crew_member' : requestedModule === 'commercial' ? 'commercial_staff' : 'department_staff',
+      }
+      delete normalized.access_module
       const result = await createStaff(normalized)
       setCreatedCredentials({ email: normalized.email, password: normalized.password, name: normalized.full_name })
       setShowCredentialPassword(false)
@@ -351,6 +373,17 @@ export default function StaffAccountsPage() {
                 {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
               </div>
               <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Department Module <span className="text-red-500">*</span></label>
+                <select aria-label="Department module" {...register('access_module')} className={`input-field rounded-lg ${errors.access_module ? 'input-error' : ''}`}>
+                  <option value="">Select access…</option>
+                  {selectedRole !== 'maintenance_personnel' && <option value="commercial">Commercial Department</option>}
+                  <option value="ecmd">ECMD</option>
+                  {selectedRole !== 'maintenance_personnel' && <option value="system">System Supervisor</option>}
+                </select>
+                {errors.access_module && <p className="mt-1 text-xs text-red-600">{errors.access_module.message}</p>}
+                <p className="mt-1 text-[11px] text-gray-400">This controls which module and API actions the account can access.</p>
+              </div>
+              <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email <span className="text-red-500">*</span></label>
                 <input aria-label="Email" type="email" placeholder="name@mrwd.gov.ph" {...register('email')}
                   className={`input-field rounded-lg ${errors.email ? 'input-error' : ''}`} />
@@ -448,6 +481,7 @@ export default function StaffAccountsPage() {
                           <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                             {ROLE_LABEL[account.role] || account.role}
                           </span>
+                          <span className="text-[10px] font-bold text-navy-600">{accessModuleLabel(account)}</span>
                           <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                             {account.is_active === false ? 'Inactive' : 'Active'}
                           </span>
@@ -503,7 +537,7 @@ export default function StaffAccountsPage() {
                       {ROLE_LABEL[account.role] || account.role}
                     </span>
                   </div>
-                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
+                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span><span className="px-2 py-1 rounded border bg-navy-50 text-navy-700 border-navy-100 text-[10px] font-black uppercase">{accessModuleLabel(account)}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
                   {account.role === 'maintenance_personnel' && (
                     <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                       <div className="rounded-lg bg-brand-50 p-2"><p className="font-black text-brand-700">{stats.active}</p><p className="text-[10px] text-gray-500">Active</p></div>
@@ -563,6 +597,7 @@ export default function StaffAccountsPage() {
                 {managedAccount.id === currentUser?.id && (
                   <span className="inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase bg-brand-50 text-brand-700 border-brand-200">Your Account</span>
                 )}
+                <span className="inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase bg-navy-50 text-navy-700 border-navy-100">{accessModuleLabel(managedAccount)}</span>
               </div>
 
               {managedAccount.role === 'maintenance_personnel' && managedStats && (

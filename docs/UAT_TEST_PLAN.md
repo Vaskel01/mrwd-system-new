@@ -144,3 +144,20 @@ The included 25 cases are development checks. Final research results should use 
 | OPS-10 | Record concurrent inventory usage | Stock never becomes negative and all accepted usage appears in the task report. |
 | OPS-11 | Record manpower and print the official maintenance report | Crew, personnel, hours, materials, equipment, completion, and customer acknowledgment are readable in print/PDF. |
 | OPS-12 | Enable email/SMS preferences without a provider worker | In-app notification succeeds and eligible external deliveries remain safely queued rather than falsely marked sent. |
+
+## Department access checks
+
+Use one Commercial Administrator, one ECMD Administrator, one System Supervisor, and one unassigned Administrator. Test both normal navigation and direct URL/API access.
+
+| ID | Test | Expected result |
+|---|---|---|
+| DEPT-01 | Sign in as Commercial and inspect the sidebar | Complaint Review, Reports, Accounts & Billing, and Service Advisories are available; Dispatch, ECMD Operations, Staff Accounts, Approvals, and Audit Log are absent. |
+| DEPT-02 | As Commercial, directly open an ECMD URL or call an ECMD endpoint | Access is denied and no ECMD record is changed. |
+| DEPT-03 | Sign in as ECMD and inspect the sidebar | Dispatch Tasks and Field Operations are available; classifier review, billing, reports, announcements, staff management, approvals, and audit are absent. |
+| DEPT-04 | As ECMD, open a complaint | Final category and operational priority are visible; numerical score, sentiment, confidence, matched phrases, and priority-override controls are absent from the response and page. |
+| DEPT-05 | As ECMD, directly call a Commercial endpoint | Access is denied and no complaint classification, billing, or announcement record is changed. |
+| DEPT-06 | Sign in as System Supervisor | Cross-department dashboard, department/staff access, approvals, archival, and audit are available, together with oversight access to both department modules. |
+| DEPT-07 | Sign in with an unassigned Administrator account | The account is labeled Restricted Administrator and cannot enter any department module until assigned by a System Supervisor. |
+| DEPT-08 | Change an Administrator's Department Module in Staff Accounts | The next authenticated profile refresh shows only the new module; the action is recorded in the audit trail. |
+| DEPT-09 | Attempt a direct Supabase Data API update outside the account's department | PostgreSQL capability checks/RLS reject the update even when the record ID is known. |
+| DEPT-10 | Trigger a new complaint and a maintenance escalation | Complaint-review notices reach Commercial; field/escalation notices reach ECMD; System Supervisors retain oversight. |

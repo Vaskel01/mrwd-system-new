@@ -1,25 +1,35 @@
 # Operations Expansion Guide
 
-Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after all earlier migrations. The Administrator **Operations** page then provides the controls described below.
+Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, followed by `supabase/migrations/20260814100000_department_module_access.sql`. Administrative work is then divided into three independently protected modules rather than one shared Administrator workspace.
+
+## Department access matrix
+
+| Module | Intended accounts | Main functions |
+|---|---|---|
+| Commercial Department | Administrators assigned to `COMMERCIAL` | Complaint review and classifier evidence, audited priority overrides, reports, customer accounts, billing imports, important advisories, and archival requests |
+| ECMD | Administrators assigned to `ECMD` and assigned Maintenance Personnel | Dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
+| System Administration | Administrator with `Supervisor` or `Manager` position | Cross-department dashboard, departments and staff access, approvals, approved archival, delivery records, and audit logs |
+
+The sidebar is only the visible navigation layer. The same separation is enforced by protected frontend routes, Express API capability checks, PostgreSQL triggers, grants, and Row Level Security policies. An unassigned Administrator receives no department capabilities until a System Supervisor assigns a department module. A System Supervisor retains cross-department oversight.
 
 ## Departments, positions, crews, and team leaders
 
 - Seeded departments: **Commercial Department** and **Engineering, Construction and Maintenance Department (ECMD)**.
 - A staff account keeps its security role (`admin` or `maintenance_personnel`) and may also receive a department and operational position such as Supervisor, Team Leader, Crew Member, or Commercial Staff.
-- Team Leader is an operational position, not a new authentication role. Access remains protected by the existing Administrator and Maintenance Personnel roles.
+- Team Leader is an operational position, not a new authentication role. Access remains protected by the ECMD module and the existing Maintenance Personnel role.
 - A maintenance crew can have one active Team Leader and multiple members. Administrators may assign an individual Maintenance Personnel account, an optional crew, or both to a complaint.
 - Staff schedules record date, shift start/end, availability, and notes. The available-staff list considers the current day's schedule.
 
 ## Service targets and escalations
 
-- Administrators define resolution targets in hours for Low, Medium, and High priorities.
+- ECMD administrators define resolution targets in hours for Low, Medium, and High priorities.
 - Assigning a complaint records its service-target due date.
 - **Scan Now** identifies overdue active High Priority complaints and creates escalation records. The scan is intentionally administrator-triggered in this prototype; production automation requires a scheduled worker or cron job.
-- Administrators can acknowledge and resolve escalations, and each action is audited.
+- ECMD administrators can acknowledge and resolve escalations, and each action is audited.
 
 ## Supervisor approval
 
-- Sensitive actions can create approval requests for a second Administrator or supervisor.
+- Sensitive actions create approval requests for an independent System Supervisor.
 - The requester cannot approve their own request.
 - Complaint archival uses this independent-approval workflow and performs a soft archive rather than deleting operational history.
 
@@ -33,8 +43,8 @@ Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after a
 
 ## Inventory, materials, equipment, and manpower
 
-- Administrators create inventory items and record stock adjustments.
-- Administrators and assigned Maintenance Personnel can record task manpower, materials, and equipment.
+- ECMD administrators create inventory items and record stock adjustments.
+- ECMD administrators and assigned Maintenance Personnel can record task manpower, materials, and equipment.
 - Inventory usage uses an atomic database function so stock cannot fall below zero during concurrent updates.
 - Official maintenance reports show the complaint, assignment, crew, progress, manpower, inventory usage, completion evidence, and customer acknowledgment, and can be printed or saved as PDF.
 

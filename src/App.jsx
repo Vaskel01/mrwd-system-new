@@ -32,6 +32,7 @@ import ComplaintDetailsPage from './pages/shared/ComplaintDetailsPage'
 import NotificationsPage from './pages/shared/NotificationsPage'
 import ProfilePage from './pages/shared/ProfilePage'
 import MaintenanceReportPage from './pages/shared/MaintenanceReportPage'
+import { CAPABILITIES } from './lib/accessControl'
 
 export default function App() {
   return (
@@ -64,7 +65,7 @@ export default function App() {
           </ProtectedRoute>
         }/>
         <Route path="/maintenance-reports/:id" element={
-          <ProtectedRoute allowedRoles={['admin', 'maintenance_personnel']}>
+          <ProtectedRoute allowedRoles={['admin', 'maintenance_personnel']} requiredCapabilities={[CAPABILITIES.ECMD_REPORTS]} capabilityRestrictedRoles={['admin']}>
             <AppLayout><MaintenanceReportPage /></AppLayout>
           </ProtectedRoute>
         }/>
@@ -93,44 +94,55 @@ export default function App() {
 
         {/* ── Admin ── */}
         <Route path="/admin/dashboard" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SUPERVISOR_DASHBOARD]}>
             <AppLayout><AdminDashboard /></AppLayout>
           </ProtectedRoute>
         }/>
         <Route path="/admin/complaints" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_COMPLAINTS]}>
             <AppLayout><AllComplaintsPage /></AppLayout>
           </ProtectedRoute>
         }/>
         <Route path="/admin/assign" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
             <AppLayout><AssignTaskPage /></AppLayout>
           </ProtectedRoute>
         }/>
 
         <Route path="/admin/reports" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_REPORTS]}>
             <AppLayout><ReportsPage /></AppLayout>
           </ProtectedRoute>
         }/>
         <Route path="/admin/audit" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_AUDIT]}>
             <AppLayout><AuditLogPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/admin/operations" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AppLayout><OperationsPage /></AppLayout>
+        <Route path="/admin/commercial-operations" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_BILLING]}>
+            <AppLayout><OperationsPage module="commercial" /></AppLayout>
           </ProtectedRoute>
         }/>
+        <Route path="/admin/ecmd-operations" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
+            <AppLayout><OperationsPage module="ecmd" /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/admin/system-operations" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_DEPARTMENTS]}>
+            <AppLayout><OperationsPage module="system" /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/admin/operations" element={<Navigate to="/admin/system-operations" replace />} />
 
         <Route path="/admin/announcements" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS]}>
             <AppLayout><AdminAnnouncementsPage /></AppLayout>
           </ProtectedRoute>
         }/>
         <Route path="/admin/staff" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_STAFF]}>
             <AppLayout><StaffAccountsPage /></AppLayout>
           </ProtectedRoute>
         }/>

@@ -1,13 +1,19 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability, requireRole } from '../middleware/auth.js'
+import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { fetchShapedComplaintById, fetchShapedComplaints } from '../lib/shapeComplaint.js'
-import { getAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
+import { getDepartmentAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 import { calculateServiceDueAt, overdueServiceState } from '../lib/serviceTargets.js'
 
 const router = Router()
 const CLOSED_STATUSES = new Set(['completed', 'rejected', 'cancelled'])
 
-router.get('/crews', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.get('/crews', requireAuth, requireRole('admin', 'maintenance_personnel'), (req, res, next) => {
+  if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
+    return res.status(403).json({ error: 'Crew information is restricted to ECMD.' })
+  }
+  return next()
+}, async (req, res) => {
   const { data, error } = await req.supabase
     .from('maintenance_crews')
     .select('id, name, department_id, team_leader_id, default_manpower, is_active')
@@ -51,7 +57,73 @@ async function requireTaskAccess(req, complaintId) {
   return task
 }
 
-router.get('/bootstrap', requireAuth, requireRole('admin'), async (req, res) => {
+function firstFailed(results) {
+  return results.find(result => result.error)?.error || null
+}
+
+function requireEcmdOrAssignedMaintenance(req, res, next) {
+  if (req.user?.role === 'maintenance_personnel' || hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) return next()
+  return res.status(403).json({ error: 'Maintenance resources are restricted to ECMD and assigned Maintenance Personnel.' })
+}
+
+router.get('/commercial-bootstrap', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
+  try {
+    const [accounts, batches] = await Promise.all([
+      req.supabase.from('customer_account_registry').select('*').order('updated_at', { ascending: false }).limit(200),
+      req.supabase.from('billing_import_batches').select('*').order('created_at', { ascending: false }).limit(20),
+    ])
+    const error = firstFailed([accounts, batches])
+    if (error) throw error
+    res.json({ account_registry: accounts.data || [], billing_batches: batches.data || [], approvals: [], staff: [] })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.get('/ecmd-bootstrap', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
+    const [departments, crews, members, schedules, targets, escalations, inventory, staff] = await Promise.all([
+      req.supabase.from('departments').select('*').eq('code', 'ECMD').limit(1),
+      req.supabase.from('maintenance_crews').select('*').order('name'),
+      req.supabase.from('crew_members').select('*').eq('is_active', true),
+      req.supabase.from('staff_schedules').select('*').gte('shift_date', today).lte('shift_date', future).order('shift_date'),
+      req.supabase.from('service_targets').select('*').order('resolution_hours'),
+      req.supabase.from('complaint_escalations').select('*').in('status', ['open', 'acknowledged']).order('created_at', { ascending: false }),
+      req.supabase.from('inventory_items').select('*').eq('is_active', true).order('name'),
+      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').eq('role', 'maintenance_personnel').order('full_name'),
+    ])
+    const error = firstFailed([departments, crews, members, schedules, targets, escalations, inventory, staff])
+    if (error) throw error
+    res.json({
+      departments: departments.data || [], crews: crews.data || [], crew_members: members.data || [],
+      schedules: schedules.data || [], service_targets: targets.data || [], escalations: escalations.data || [],
+      inventory: inventory.data || [], staff: staff.data || [],
+    })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.get('/system-bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
+  try {
+    const [departments, approvals, archives, deliveries, staff] = await Promise.all([
+      req.supabase.from('departments').select('*').order('name'),
+      req.supabase.from('approval_requests').select('*').order('created_at', { ascending: false }).limit(50),
+      req.supabase.from('archive_records').select('*').order('archived_at', { ascending: false }).limit(50),
+      req.supabase.from('notification_deliveries').select('*').order('created_at', { ascending: false }).limit(50),
+      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
+    ])
+    const error = firstFailed([departments, approvals, archives, deliveries, staff])
+    if (error) throw error
+    res.json({ departments: departments.data || [], approvals: approvals.data || [], archives: archives.data || [], notification_deliveries: deliveries.data || [], staff: staff.data || [], inventory: [] })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10)
     const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
@@ -98,7 +170,7 @@ router.get('/bootstrap', requireAuth, requireRole('admin'), async (req, res) => 
   }
 })
 
-router.post('/departments', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/departments', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   const code = trimmed(req.body?.code).toUpperCase()
   const name = trimmed(req.body?.name)
   if (!code || !name) return res.status(400).json({ error: 'Department code and name are required.' })
@@ -110,7 +182,7 @@ router.post('/departments', requireAuth, requireRole('admin'), async (req, res) 
   res.status(201).json({ department: data })
 })
 
-router.post('/crews', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/crews', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const name = trimmed(req.body?.name)
   const departmentId = req.body?.department_id
   if (!name || !departmentId) return res.status(400).json({ error: 'Crew name and department are required.' })
@@ -135,7 +207,7 @@ router.post('/crews', requireAuth, requireRole('admin'), async (req, res) => {
   }
 })
 
-router.post('/crew-members', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/crew-members', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const { crew_id, staff_id } = req.body || {}
   if (!crew_id || !staff_id) return res.status(400).json({ error: 'Crew and staff member are required.' })
   try {
@@ -151,7 +223,7 @@ router.post('/crew-members', requireAuth, requireRole('admin'), async (req, res)
   }
 })
 
-router.post('/staff-assignment', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   const { staff_id, department_id, staff_position, supervisor_id } = req.body || {}
   if (!staff_id) return res.status(400).json({ error: 'Staff member is required.' })
   const { data, error } = await req.supabase.rpc('admin_update_staff_assignment', {
@@ -165,7 +237,7 @@ router.post('/staff-assignment', requireAuth, requireRole('admin'), async (req, 
   res.json({ user: data })
 })
 
-router.post('/schedules', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/schedules', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const { staff_id, shift_date, starts_at, ends_at } = req.body || {}
   if (!staff_id || !shift_date || !starts_at || !ends_at) return res.status(400).json({ error: 'Staff, shift date, start, and end time are required.' })
   const { data, error } = await req.supabase.from('staff_schedules').upsert({
@@ -176,7 +248,7 @@ router.post('/schedules', requireAuth, requireRole('admin'), async (req, res) =>
   res.status(201).json({ schedule: data })
 })
 
-router.post('/service-targets', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/service-targets', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   try {
     const priority = trimmed(req.body?.priority).toLowerCase()
     if (!['low', 'medium', 'high'].includes(priority)) throw new Error('Select Low, Medium, or High priority.')
@@ -194,7 +266,7 @@ router.post('/service-targets', requireAuth, requireRole('admin'), async (req, r
   }
 })
 
-router.post('/escalations/scan', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/escalations/scan', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   try {
     const [complaints, targetResult] = await Promise.all([
       fetchShapedComplaints(req.supabase),
@@ -231,7 +303,7 @@ router.post('/escalations/scan', requireAuth, requireRole('admin'), async (req, 
       created.push({ ...data, reference_number: complaint.reference_number })
     }
     if (created.length) {
-      const adminIds = await getAdminIds(req.supabase)
+      const adminIds = await getDepartmentAdminIds(req.supabase, 'ECMD')
       await notifyUsers(req.supabase, req.user, adminIds, {
         title: 'Overdue High-priority complaints',
         message: `${created.length} High-priority complaint${created.length === 1 ? '' : 's'} exceeded the configured service target.`,
@@ -245,7 +317,7 @@ router.post('/escalations/scan', requireAuth, requireRole('admin'), async (req, 
   }
 })
 
-router.patch('/escalations/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/escalations/:id', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const status = req.body?.status
   if (!['acknowledged', 'resolved', 'dismissed'].includes(status)) return res.status(400).json({ error: 'Invalid escalation status.' })
   const now = new Date().toISOString()
@@ -258,7 +330,7 @@ router.patch('/escalations/:id', requireAuth, requireRole('admin'), async (req, 
   res.json({ escalation: data })
 })
 
-router.post('/approvals', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/approvals', requireAuth, requireCapability(CAPABILITIES.SYSTEM_APPROVALS), async (req, res) => {
   const reason = trimmed(req.body?.reason)
   if (!reason) return res.status(400).json({ error: 'Approval reason is required.' })
   const { data, error } = await req.supabase.from('approval_requests').insert({
@@ -269,7 +341,7 @@ router.post('/approvals', requireAuth, requireRole('admin'), async (req, res) =>
   res.status(201).json({ approval: data })
 })
 
-router.patch('/approvals/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/approvals/:id', requireAuth, requireCapability(CAPABILITIES.SYSTEM_APPROVALS), async (req, res) => {
   const decision = req.body?.decision
   if (!['approved', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Decision must be approved or rejected.' })
   const { data: current, error: currentError } = await req.supabase.from('approval_requests').select('*').eq('id', req.params.id).single()
@@ -284,7 +356,7 @@ router.patch('/approvals/:id', requireAuth, requireRole('admin'), async (req, re
   res.json({ approval: data })
 })
 
-router.post('/accounts/import', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/accounts/import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
   const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 2000) : []
   if (!rows.length) return res.status(400).json({ error: 'Provide at least one customer account row.' })
   const valid = rows.map((row, index) => ({
@@ -305,7 +377,7 @@ router.post('/accounts/import', requireAuth, requireRole('admin'), async (req, r
   res.json({ imported: data?.length || 0, skipped: rows.length - valid.length })
 })
 
-router.post('/billing/import', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/billing/import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
   const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 5000) : []
   const filename = trimmed(req.body?.filename) || 'billing-import.csv'
   if (!rows.length) return res.status(400).json({ error: 'Provide at least one billing row.' })
@@ -360,7 +432,7 @@ router.post('/billing/import', requireAuth, requireRole('admin'), async (req, re
   res.json({ batch_id: batch.id, imported, failed: failures.length, errors: failures })
 })
 
-router.post('/inventory', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/inventory', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   try {
     const sku = trimmed(req.body?.sku).toUpperCase()
     const name = trimmed(req.body?.name)
@@ -378,7 +450,7 @@ router.post('/inventory', requireAuth, requireRole('admin'), async (req, res) =>
   }
 })
 
-router.post('/inventory/:id/adjust', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/inventory/:id/adjust', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   try {
     const delta = numberValue(req.body?.quantity_delta, 'Adjustment quantity', { min: -1000000 })
     if (delta === 0) throw new Error('Adjustment quantity cannot be zero.')
@@ -397,7 +469,7 @@ router.post('/inventory/:id/adjust', requireAuth, requireRole('admin'), async (r
   }
 })
 
-router.post('/tasks/:complaintId/manpower', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.post('/tasks/:complaintId/manpower', requireAuth, requireRole('admin', 'maintenance_personnel'), requireEcmdOrAssignedMaintenance, async (req, res) => {
   try {
     const task = await requireTaskAccess(req, req.params.complaintId)
     const personnelCount = Math.round(numberValue(req.body?.personnel_count, 'Personnel count', { min: 1, allowZero: false }))
@@ -419,7 +491,7 @@ router.post('/tasks/:complaintId/manpower', requireAuth, requireRole('admin', 'm
   }
 })
 
-router.post('/tasks/:complaintId/inventory-usage', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.post('/tasks/:complaintId/inventory-usage', requireAuth, requireRole('admin', 'maintenance_personnel'), requireEcmdOrAssignedMaintenance, async (req, res) => {
   try {
     const task = await requireTaskAccess(req, req.params.complaintId)
     const quantity = numberValue(req.body?.quantity, 'Quantity', { min: 0.01, allowZero: false })
@@ -437,7 +509,7 @@ router.post('/tasks/:complaintId/inventory-usage', requireAuth, requireRole('adm
   }
 })
 
-router.get('/tasks/:complaintId/resources', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.get('/tasks/:complaintId/resources', requireAuth, requireRole('admin', 'maintenance_personnel'), requireEcmdOrAssignedMaintenance, async (req, res) => {
   try {
     const task = await requireTaskAccess(req, req.params.complaintId)
     const [inventoryResult, usageResult, manpowerResult, crewResult] = await Promise.all([
@@ -454,7 +526,7 @@ router.get('/tasks/:complaintId/resources', requireAuth, requireRole('admin', 'm
   }
 })
 
-router.post('/archive-requests', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/archive-requests', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ARCHIVE_REQUEST), async (req, res) => {
   const complaintId = req.body?.complaint_id
   const reason = trimmed(req.body?.reason)
   if (!complaintId || !reason) return res.status(400).json({ error: 'Complaint and archival reason are required.' })
@@ -468,7 +540,7 @@ router.post('/archive-requests', requireAuth, requireRole('admin'), async (req, 
   res.status(201).json({ approval: data })
 })
 
-router.post('/archive/:complaintId', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/archive/:complaintId', requireAuth, requireCapability(CAPABILITIES.SYSTEM_APPROVALS), async (req, res) => {
   const { data, error } = await req.supabase.rpc('archive_complaint_with_approval', {
     p_complaint_id: req.params.complaintId,
     p_approval_request_id: req.body?.approval_id,
@@ -478,7 +550,7 @@ router.post('/archive/:complaintId', requireAuth, requireRole('admin'), async (r
   res.json({ complaint: data })
 })
 
-router.get('/maintenance-report/:complaintId', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res) => {
+router.get('/maintenance-report/:complaintId', requireAuth, requireRole('admin', 'maintenance_personnel'), requireEcmdOrAssignedMaintenance, async (req, res) => {
   try {
     const complaint = await fetchShapedComplaintById(req.supabase, req.params.complaintId)
     if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })

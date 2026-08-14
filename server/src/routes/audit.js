@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability } from '../middleware/auth.js'
+import { CAPABILITIES } from '../lib/accessControl.js'
 
 const router = Router()
 const PROFILE_DETAIL_KEYS = new Set([
@@ -23,7 +24,7 @@ function normalizeDetails(details) {
   }
 }
 
-router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_AUDIT), async (req, res) => {
   const page = Math.max(Number(req.query.page) || 1, 1)
   const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100)
   const offset = (page - 1) * limit

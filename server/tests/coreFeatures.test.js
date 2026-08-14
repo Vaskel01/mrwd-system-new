@@ -5,6 +5,7 @@ import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
 import { calculateServiceDueAt, overdueServiceState } from '../src/lib/serviceTargets.js'
+import { CAPABILITIES, capabilitiesForUser, hasCapability } from '../src/lib/accessControl.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({
@@ -76,6 +77,40 @@ test('maintenance response keeps only operational category and priority', () => 
 test('admin response retains complete classifier evidence', () => {
   const source = { priority: 'high', priority_score: 90, classification_keywords: [{ term: 'flooding' }] }
   assert.deepEqual(presentComplaintForRole(source, 'admin'), source)
+})
+
+test('department modules grant only their approved administrative capabilities', () => {
+  const commercialAdmin = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' } }
+  const ecmdAdmin = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' } }
+  const supervisor = { role: 'admin', staff_position: 'supervisor', department: null }
+  const unassignedAdmin = { role: 'admin', staff_position: null, department: null }
+
+  assert.equal(hasCapability(commercialAdmin, CAPABILITIES.COMMERCIAL_COMPLAINTS), true)
+  assert.equal(hasCapability(commercialAdmin, CAPABILITIES.ECMD_DISPATCH), false)
+  assert.equal(hasCapability(commercialAdmin, CAPABILITIES.SYSTEM_STAFF), false)
+  assert.equal(hasCapability(ecmdAdmin, CAPABILITIES.ECMD_DISPATCH), true)
+  assert.equal(hasCapability(ecmdAdmin, CAPABILITIES.COMMERCIAL_BILLING), false)
+  assert.equal(hasCapability(ecmdAdmin, CAPABILITIES.SYSTEM_AUDIT), false)
+  assert.equal(hasCapability(supervisor, CAPABILITIES.COMMERCIAL_REPORTS), true)
+  assert.equal(hasCapability(supervisor, CAPABILITIES.ECMD_OPERATIONS), true)
+  assert.equal(hasCapability(supervisor, CAPABILITIES.SYSTEM_APPROVALS), true)
+  assert.deepEqual(capabilitiesForUser(unassignedAdmin), [])
+})
+
+test('ECMD administrative responses keep operational priority but hide classifier evidence', () => {
+  const source = {
+    priority: 'high',
+    priority_score: 83,
+    classified_category: 'Water Leak',
+    classification_confidence: 91,
+    classification_keywords: [{ term: 'burst pipe' }],
+  }
+  const shown = presentComplaintForRole(source, 'admin', { canViewClassifier: false })
+  assert.equal(shown.priority, 'high')
+  assert.equal(shown.classified_category, 'Water Leak')
+  assert.equal(shown.priority_score, undefined)
+  assert.equal(shown.classification_confidence, undefined)
+  assert.equal(shown.classification_keywords, undefined)
 })
 
 

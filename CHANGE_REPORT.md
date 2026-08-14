@@ -142,3 +142,26 @@ Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after m
 - Browser verification: Operations, Reports, My Profile, and Official Maintenance Report passed at 1366 × 900 and 375 × 812, with no error overlays, console errors, or page-level horizontal overflow.
 - Updated classifier workbook: 149 entries, 25 test cases, no formula-error values, and visually checked Summary, Dataset, and Test Cases sheets.
 - Environment files remain present locally and are excluded from the archive.
+
+## Department module separation — August 14, 2026
+
+- Replaced the shared Administrator workspace with distinct Commercial Department, ECMD, and System Administration navigation groups and landing pages.
+- Restricted complaint classification, priority overrides, reports, billing, announcements, and archival requests to the Commercial Department.
+- Restricted dispatch, crews, manpower, schedules, service targets, escalations, inventory, field updates, and maintenance reports to ECMD.
+- Restricted cross-department dashboard access, staff-account management, department assignment, independent approvals, final archival, and audit logs to System Supervisors.
+- Added capability enforcement to protected React routes and Express endpoints; hiding a sidebar link is no longer the only control.
+- Added PostgreSQL capability checks, guarded update triggers, grants, and RLS policies so direct Data API requests cannot bypass department ownership.
+- Limited ECMD complaint responses to the final operational category and priority; classifier scores, evidence, sentiment, and matched phrases remain Commercial/System-only.
+- Updated Staff Accounts so every new administrative account is explicitly assigned to Commercial, ECMD, or System Supervisor access.
+- Routed complaint-review notifications to Commercial and field/escalation notifications to ECMD, with compatibility fallback while the migration is pending.
+
+### Required migration
+
+Run `supabase/migrations/20260814100000_department_module_access.sql` after `20260813110000_client_operations_expansion.sql`. Back up the database first. Existing unassigned administrators are promoted to System Supervisor during this migration so the current management account is not locked out; future unassigned administrators are intentionally restricted.
+
+### Verification
+
+- Production build: passed (201 modules transformed).
+- ESLint: passed with no errors; four existing React Hook Form compiler advisories remain warnings only.
+- Backend/core-feature tests: 16/16 passed, including capability isolation and ECMD classifier-privacy checks.
+- Backend route syntax checks: passed.

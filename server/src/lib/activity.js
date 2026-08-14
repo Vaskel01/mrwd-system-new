@@ -50,3 +50,16 @@ export async function getAdminIds(supabase) {
     return []
   }
 }
+
+export async function getDepartmentAdminIds(supabase, departmentCode) {
+  try {
+    const { data, error } = await supabase.rpc('active_admin_ids_for_department', {
+      p_department_code: String(departmentCode || '').trim().toUpperCase(),
+    })
+    if (error) throw error
+    return (data || []).map(row => row.id)
+  } catch (error) {
+    console.warn('[department recipients]', error?.message || error)
+    return getAdminIds(supabase)
+  }
+}

@@ -92,8 +92,8 @@ export async function fetchShapedComplaintById(supabase, id) {
 // Removes classifier internals from non-admin API responses. Customers do
 // not receive any classifier output. Assigned maintenance personnel only
 // receive the final operational category and priority needed to perform work.
-export function presentComplaintForRole(complaint, role) {
-  if (!complaint || role === 'admin') return complaint
+export function presentComplaintForRole(complaint, role, { canViewClassifier = role === 'admin' } = {}) {
+  if (!complaint || (role === 'admin' && canViewClassifier)) return complaint
 
   const presented = { ...complaint }
   const internalFields = [

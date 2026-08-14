@@ -21,7 +21,8 @@ This folder contains incremental migrations for the existing MRWD database. It d
 | 13 | `migrations/20260729193000_announcement_lifecycle.sql` | Adds optional announcement expiry and edit timestamps while preserving existing RLS policies. |
 | 14 | `migrations/20260729204500_fix_customer_profile_persistence.sql` | Adds a dedicated customer-profile update function for account number, phone, service address, and barangay, with immediate PostgREST schema refresh. |
 | 15 | `migrations/20260729210000_harden_profile_update_access.sql` | Runs profile updates with the authenticated user's permissions, limits editable columns, and adds an ownership `WITH CHECK` policy. |
-| 16 | `migrations/20260813110000_client_operations_expansion.sql` | Adds departments, crews, team leaders, shifts, service targets, escalations, approvals, account validation, billing imports, inventory, external-notification queues, and archival controls. Run last. |
+| 16 | `migrations/20260813110000_client_operations_expansion.sql` | Adds departments, crews, team leaders, shifts, service targets, escalations, approvals, account validation, billing imports, inventory, external-notification queues, and archival controls. |
+| 17 | `migrations/20260814100000_department_module_access.sql` | Separates Commercial, ECMD, and System Supervisor modules; adds capability-aware API/RLS enforcement and protects department ownership. Run last. |
 
 Many statements are safe to rerun, but always back up the database and review the SQL before executing it.
 

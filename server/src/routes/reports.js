@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability } from '../middleware/auth.js'
+import { CAPABILITIES } from '../lib/accessControl.js'
 import { fetchShapedComplaints } from '../lib/shapeComplaint.js'
 
 const router = Router()
@@ -28,7 +29,7 @@ function monthKey(value) {
     .format(new Date(value))
 }
 
-router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_REPORTS), async (req, res) => {
   try {
     const { from, to } = parseRange(req.query.from, req.query.to)
     const allComplaints = await fetchShapedComplaints(req.supabase)

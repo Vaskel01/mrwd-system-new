@@ -1,11 +1,12 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../middleware/auth.js'
+import { requireAuth, requireCapability } from '../middleware/auth.js'
+import { CAPABILITIES } from '../lib/accessControl.js'
 import { supabaseAnonClient } from '../supabaseClient.js'
 import { writeAudit } from '../lib/activity.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../lib/profileUpdate.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled'
+const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, department:departments(id, code, name)'
 
 router.get('/me', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', req.user.id).single()
@@ -108,7 +109,7 @@ router.patch('/me/notification-preferences', requireAuth, async (req, res) => {
   res.json({ user: data })
 })
 
-router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/maintenance-staff', requireAuth, requireCapability(CAPABILITIES.ECMD_DISPATCH), async (req, res) => {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   const [staffResult, scheduleResult] = await Promise.all([
     req.supabase
@@ -133,7 +134,7 @@ router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, 
   res.json({ staff })
 })
 
-router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/staff', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {
   const { data, error } = await req.supabase
     .from('profiles')
     .select(PROFILE_FIELDS)
@@ -144,7 +145,7 @@ router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
   res.json({ staff: data || [] })
 })
 
-router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {
   const { email, password, full_name, role, department_id, staff_position, supervisor_id } = req.body || {}
   if (!email || !password || !full_name || !['admin', 'maintenance_personnel'].includes(role)) {
     return res.status(400).json({ error: 'full_name, email, password, and a valid staff role are required.' })
@@ -187,7 +188,7 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   res.status(201).json({ user: finalProfile || promoted, requiresEmailConfirmation: !data.session })
 })
 
-router.patch('/:id/active', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/active', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {
   const { is_active } = req.body || {}
   if (typeof is_active !== 'boolean') return res.status(400).json({ error: 'is_active must be true or false.' })
 
@@ -200,7 +201,7 @@ router.patch('/:id/active', requireAuth, requireRole('admin'), async (req, res) 
   res.json({ user: data })
 })
 
-router.post('/:id/password-reset', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/:id/password-reset', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {
   const { data: profile, error: profileError } = await req.supabase
     .from('profiles')
     .select('id, email, full_name, role')

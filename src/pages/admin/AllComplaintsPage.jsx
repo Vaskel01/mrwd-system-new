@@ -89,8 +89,8 @@ export default function AllComplaintsPage() {
       <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Records</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">All Complaints</h1>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Department</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Complaint Review</h1>
           </div>
           <div className="text-right">
             <p className="font-display font-black text-5xl leading-none" style={{ color: '#e6b020' }}>{filtered.length}</p>
@@ -106,7 +106,7 @@ export default function AllComplaintsPage() {
           <AppIcon name="search" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
           <div>
             <p className="font-display font-bold text-navy-900">Records and review</p>
-            <p className="mt-1 text-sm text-gray-600">Use this page to find and inspect any complaint. Open a record for its complete timeline and actions; use <b>Assign Tasks</b> for dispatch and bulk assignment work.</p>
+            <p className="mt-1 text-sm text-gray-600">Use this page to verify complaint information, review classification results, and complete Commercial Department actions. ECMD handles dispatch and field work on its separate pages.</p>
           </div>
         </div>
       </div>

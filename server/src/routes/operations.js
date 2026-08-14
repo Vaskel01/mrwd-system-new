@@ -226,10 +226,42 @@ router.post('/crew-members', requireAuth, requireCapability(CAPABILITIES.ECMD_OP
 router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   const { staff_id, department_id, staff_position, supervisor_id } = req.body || {}
   if (!staff_id) return res.status(400).json({ error: 'Staff member is required.' })
+  const position = trimmed(staff_position).toLowerCase()
+  const allowedPositions = new Set(['manager', 'supervisor', 'team_leader', 'crew_member', 'commercial_staff', 'department_staff'])
+  if (!allowedPositions.has(position)) return res.status(400).json({ error: 'Select a valid access designation.' })
+  if (supervisor_id && supervisor_id === staff_id) return res.status(400).json({ error: 'A staff account cannot supervise itself.' })
+
+  const [{ data: staff, error: staffError }, departmentResult] = await Promise.all([
+    req.supabase.from('profiles').select('id, role').eq('id', staff_id).single(),
+    department_id
+      ? req.supabase.from('departments').select('id, code').eq('id', department_id).single()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+  if (staffError) return res.status(400).json({ error: staffError.message })
+  if (departmentResult.error) return res.status(400).json({ error: departmentResult.error.message })
+  const departmentCode = String(departmentResult.data?.code || '').toUpperCase()
+
+  const isSystemSupervisor = ['manager', 'supervisor'].includes(position)
+  const isCommercialStaff = position === 'commercial_staff'
+  const isEcmdStaff = position === 'department_staff'
+  const isMaintenancePosition = ['team_leader', 'crew_member'].includes(position)
+  if (isSystemSupervisor && (staff.role !== 'admin' || department_id)) {
+    return res.status(400).json({ error: 'System Supervisors must use a Department Staff account without a department assignment.' })
+  }
+  if (isCommercialStaff && (staff.role !== 'admin' || departmentCode !== 'COMMERCIAL')) {
+    return res.status(400).json({ error: 'Commercial Department Staff must use a Department Staff account assigned to the Commercial Department.' })
+  }
+  if (isEcmdStaff && (staff.role !== 'admin' || departmentCode !== 'ECMD')) {
+    return res.status(400).json({ error: 'ECMD Staff must use a Department Staff account assigned to ECMD.' })
+  }
+  if (isMaintenancePosition && (staff.role !== 'maintenance_personnel' || departmentCode !== 'ECMD')) {
+    return res.status(400).json({ error: 'Team Leaders and Maintenance Crew Members must use a Maintenance Personnel account assigned to ECMD.' })
+  }
+
   const { data, error } = await req.supabase.rpc('admin_update_staff_assignment', {
     p_staff_id: staff_id,
     p_department_id: department_id || null,
-    p_staff_position: staff_position || null,
+    p_staff_position: position,
     p_supervisor_id: supervisor_id || null,
   })
   if (error) return res.status(400).json({ error: error.message })
@@ -346,7 +378,7 @@ router.patch('/approvals/:id', requireAuth, requireCapability(CAPABILITIES.SYSTE
   if (!['approved', 'rejected'].includes(decision)) return res.status(400).json({ error: 'Decision must be approved or rejected.' })
   const { data: current, error: currentError } = await req.supabase.from('approval_requests').select('*').eq('id', req.params.id).single()
   if (currentError) return res.status(404).json({ error: 'Approval request not found.' })
-  if (current.requested_by === req.user.id) return res.status(400).json({ error: 'A different backup Administrator or Supervisor must review this request.' })
+  if (current.requested_by === req.user.id) return res.status(400).json({ error: 'A different System Supervisor must review this request.' })
   if (current.status !== 'pending') return res.status(400).json({ error: 'This approval request has already been reviewed.' })
   const { data, error } = await req.supabase.from('approval_requests').update({
     status: decision, reviewed_by: req.user.id, review_notes: trimmed(req.body?.review_notes) || null, reviewed_at: new Date().toISOString(),

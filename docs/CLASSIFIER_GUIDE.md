@@ -90,9 +90,10 @@ Run `supabase/dataset-backed-classification.sql` before using stored classifier 
 
 - **Customer:** no classifier fields are returned.
 - **Maintenance Personnel:** only the operational category and priority are returned.
-- **Administrator:** complete classifier analysis is available for review.
+- **Commercial Department Staff:** complete classifier analysis and controlled override controls are available for review.
+- **System Supervisor:** complete classifier analysis remains available for oversight.
 
-Administrators may apply a controlled operational priority override. The override:
+Commercial Department Staff may apply a controlled operational priority override. The override:
 
 - requires a reason;
 - preserves the latest classifier-generated score;

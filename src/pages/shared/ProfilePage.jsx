@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
 import { isPasswordValid } from '../../lib/passwordPolicy'
 import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
+import { staffAccessLabel } from '../../config/terminology'
 
 export default function ProfilePage() {
   const currentUser = useAuthStore(s => s.user)
@@ -112,7 +113,7 @@ export default function ProfilePage() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Full Name</label><input name="profilepage-full-name-1" aria-label="Full Name" value={fullName} onChange={e => setFullName(e.target.value)} className="input-field rounded-lg" required minLength={2} /></div>
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email</label><input name="profilepage-email-2" aria-label="Email" value={profile?.email || ''} className="input-field rounded-lg bg-gray-50" disabled /></div>
-          <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Role</label><input name="profilepage-role-3" aria-label="Role" value={profile?.role === 'maintenance_personnel' ? 'Maintenance Personnel' : profile?.role === 'admin' ? 'Administrator' : 'Customer'} className="input-field rounded-lg bg-gray-50" disabled /></div>
+          <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Access</label><input name="profilepage-role-3" aria-label="Access" value={staffAccessLabel(profile)} className="input-field rounded-lg bg-gray-50" disabled /></div>
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Member Since</label><input aria-label="Member Since" value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not available'} className="input-field rounded-lg bg-gray-50" disabled /></div>
         </div>
         {effectiveRole === 'customer' && <div className="border-t border-gray-100 pt-5 space-y-4">
@@ -125,7 +126,7 @@ export default function ProfilePage() {
           </div>
         </div>}
         {effectiveRole === 'maintenance_personnel' && <div className="border-t border-gray-100 pt-5 space-y-4">
-          <div><h2 className="font-display font-bold text-navy-900">Work Availability</h2><p className="text-xs text-gray-400 mt-1">Admins see this before assigning tasks.</p></div>
+          <div><h2 className="font-display font-bold text-navy-900">Work Availability</h2><p className="text-xs text-gray-400 mt-1">ECMD dispatch staff see this before assigning complaints.</p></div>
           <div className="grid sm:grid-cols-2 gap-4"><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Status</label><select name="profilepage-availability-4" aria-label="Availability" value={availability} onChange={e => setAvailability(e.target.value)} className="input-field rounded-lg"><option value="available">Available</option><option value="busy">Busy</option><option value="on_leave">On Leave</option><option value="off_duty">Off Duty</option></select></div><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Until (optional)</label><input name="profilepage-until-5" aria-label="Until" type="datetime-local" value={until} onChange={e => setUntil(e.target.value)} className="input-field rounded-lg" /></div></div>
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Availability Note</label><textarea name="profilepage-example-field-inspection-until-3-pm-6" aria-label="Example: Field inspection until 3 PM" rows={3} value={note} onChange={e => setNote(e.target.value)} className="input-field rounded-lg resize-none" placeholder="Example: Field inspection until 3 PM" /></div>
         </div>}

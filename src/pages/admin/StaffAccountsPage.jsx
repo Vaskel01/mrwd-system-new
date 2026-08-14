@@ -10,19 +10,19 @@ import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/u
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import AppIcon from '../../components/ui/AppIcon'
 import { apiFetch } from '../../lib/api'
+import { staffAccessLabel } from '../../config/terminology'
 
 const ROLE_BADGE = {
   admin: 'bg-purple-100 text-purple-800 border-purple-200',
   maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
 }
 const ROLE_LABEL = {
-  admin: 'Administrator',
+  admin: 'Department Staff',
   maintenance_personnel: 'Maintenance Personnel',
 }
 
 function accessModuleLabel(account) {
-  if (['manager', 'supervisor'].includes(account?.staff_position)) return 'System Supervisor'
-  return account?.department?.name || 'No module assigned'
+  return staffAccessLabel(account)
 }
 
 function timeAgo(iso) {
@@ -53,7 +53,7 @@ const schema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters')
     .regex(/[A-Za-z]/, 'Password must include a letter')
     .regex(/\d/, 'Password must include a number'),
-  role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select a role' }) }),
+  role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select an account type' }) }),
   access_module: z.enum(['commercial', 'ecmd', 'system'], { errorMap: () => ({ message: 'Select a department module' }) }),
 })
 
@@ -280,7 +280,7 @@ export default function StaffAccountsPage() {
       <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator · Access</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl tracking-tight">Staff Accounts</h1>
             <p className="text-navy-300 text-sm mt-1">Manage access, password resets, availability, and Maintenance Personnel workload.</p>
           </div>
@@ -338,13 +338,13 @@ export default function StaffAccountsPage() {
           <p className="font-display font-black text-3xl text-navy-800">{counts.all}</p><p className="text-xs font-bold text-gray-500 mt-1">All Staff</p>
         </button>
         <button onClick={() => setRoleFilter('admin')} className={`card rounded-xl p-4 text-left ${roleFilter === 'admin' ? 'ring-2 ring-purple-600 border-purple-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-purple-700">{counts.admins}</p><p className="text-xs font-bold text-gray-500 mt-1">Admins</p>
+          <p className="font-display font-black text-3xl text-purple-700">{counts.admins}</p><p className="text-xs font-bold text-gray-500 mt-1">Department Staff</p>
         </button>
         <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'ring-2 ring-amber-600 border-amber-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-amber-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance</p>
+          <p className="font-display font-black text-3xl text-amber-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
         </button>
         <div className="card rounded-xl p-4 text-left">
-          <p className="font-display font-black text-3xl text-brand-600">{counts.activeTasks}</p><p className="text-xs font-bold text-gray-500 mt-1">Active Staff Tasks</p>
+          <p className="font-display font-black text-3xl text-brand-600">{counts.activeTasks}</p><p className="text-xs font-bold text-gray-500 mt-1">Active Assignments</p>
         </div>
       </div>
 
@@ -364,16 +364,16 @@ export default function StaffAccountsPage() {
                 {errors.full_name && <p className="mt-1 text-xs text-red-600">{errors.full_name.message}</p>}
               </div>
               <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Role <span className="text-red-500">*</span></label>
-                <select aria-label="Role" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
-                  <option value="">Select role…</option>
-                  <option value="admin">Administrator</option>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Account Type <span className="text-red-500">*</span></label>
+                <select aria-label="Account Type" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
+                  <option value="">Select account type…</option>
+                  <option value="admin">Department Staff</option>
                   <option value="maintenance_personnel">Maintenance Personnel</option>
                 </select>
                 {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
               </div>
               <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Department Module <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Department Access <span className="text-red-500">*</span></label>
                 <select aria-label="Department module" {...register('access_module')} className={`input-field rounded-lg ${errors.access_module ? 'input-error' : ''}`}>
                   <option value="">Select access…</option>
                   {selectedRole !== 'maintenance_personnel' && <option value="commercial">Commercial Department</option>}
@@ -417,12 +417,12 @@ export default function StaffAccountsPage() {
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input name="staffaccountspage-search-staff-name-email-or-role-5" aria-label="Search staff name, email, or role..." value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or role..." className="input-field pl-9 rounded-lg" />
+            <input name="staffaccountspage-search-staff-name-email-or-role-5" aria-label="Search staff name, email, or access..." value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or access..." className="input-field pl-9 rounded-lg" />
           </div>
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
-            <select name="staffaccountspage-role-filter-6" aria-label="Role Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
-              <option value="all">Any Role</option>
-              <option value="admin">Admins</option>
+            <select name="staffaccountspage-role-filter-6" aria-label="Account Type Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="all">Any Account Type</option>
+              <option value="admin">Department Staff</option>
               <option value="maintenance_personnel">Maintenance Personnel</option>
             </select>
             <select name="staffaccountspage-account-filter-7" aria-label="Account Filter" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
@@ -445,7 +445,7 @@ export default function StaffAccountsPage() {
       {loading && staff.length === 0 ? (
         <PageLoader label="Loading staff accounts..." />
       ) : staff.length === 0 ? (
-        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet." description='Click "New Account" to create an administrator or Maintenance Personnel login.' />
+        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet." description='Click "New Account" to create Department Staff or Maintenance Personnel access.' />
       ) : filteredStaff.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
@@ -461,7 +461,7 @@ export default function StaffAccountsPage() {
               </colgroup>
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                  {['Staff Member', 'Role & Access', 'Availability', 'Workload & Completion', 'Action'].map(header => (
+                  {['Staff Member', 'Account Type & Access', 'Availability', 'Workload & Completion', 'Action'].map(header => (
                     <th key={header} className="px-5 py-3 font-black text-gray-400 uppercase tracking-wider text-xs">{header}</th>
                   ))}
                 </tr>
@@ -623,7 +623,7 @@ export default function StaffAccountsPage() {
                     type="button"
                     onClick={() => {
                       setManageAccountId(null)
-                      navigate(`/admin/assign?staff=${managedAccount.id}`)
+                      navigate(`/ecmd/dispatch?staff=${managedAccount.id}`)
                     }}
                     className="w-full flex items-center justify-between gap-4 rounded-xl border border-navy-200 bg-navy-50 px-4 py-3 text-left hover:bg-navy-100 transition-colors"
                   >

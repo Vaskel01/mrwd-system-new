@@ -37,12 +37,10 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       const filed = new Date(item.created_at)
       return (!from || filed >= from) && (!to || filed <= to)
     })
-    const [{ data: feedback, error: feedbackError }, { data: staff, error: staffError }] = await Promise.all([
-      req.supabase.from('feedback').select('complaint_id, rating, created_at'),
-      req.supabase.from('profiles').select('id, full_name, role, is_active, availability_status').eq('role', 'maintenance_personnel'),
-    ])
+    const { data: feedback, error: feedbackError } = await req.supabase
+      .from('feedback')
+      .select('complaint_id, rating, created_at')
     if (feedbackError) throw feedbackError
-    if (staffError) throw staffError
 
     const completed = complaints.filter(item => item.status === 'completed')
     const monthlyMap = new Map()
@@ -69,22 +67,6 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       .filter(item => complaintIds.has(item.complaint_id))
       .map(item => Number(item.rating))
       .filter(Number.isFinite)
-    const technicianWorkload = (staff || []).map(person => {
-      const assigned = complaints.filter(item => item.assigned_to === person.id)
-      const active = assigned.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status)).length
-      const done = assigned.filter(item => item.status === 'completed').length
-      return {
-        id: person.id,
-        name: person.full_name,
-        active,
-        completed: done,
-        total: assigned.length,
-        completion_rate: active + done ? Math.round(done / (active + done) * 100) : 0,
-        availability_status: person.availability_status,
-        is_active: person.is_active,
-      }
-    })
-
     res.json({
       range: {
         from: req.query.from || null,
@@ -109,7 +91,6 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       by_category: countBy(complaints, item => item.complaint_type),
       by_priority: countBy(complaints, item => item.priority),
       monthly_summary: [...monthlyMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
-      technician_workload: technicianWorkload,
     })
   } catch (error) {
     res.status(400).json({ error: error.message })

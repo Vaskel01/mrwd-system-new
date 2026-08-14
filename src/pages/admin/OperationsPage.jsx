@@ -31,6 +31,19 @@ function titleCase(value) {
   return String(value || '').replaceAll('_', ' ').replace(/\b\w/g, character => character.toUpperCase())
 }
 
+const STAFF_POSITION_LABELS = Object.freeze({
+  manager: 'System Supervisor (Manager)',
+  supervisor: 'System Supervisor',
+  team_leader: 'Team Leader',
+  crew_member: 'Maintenance Crew Member',
+  commercial_staff: 'Commercial Department Staff',
+  department_staff: 'ECMD Staff',
+})
+
+function staffPositionLabel(value) {
+  return STAFF_POSITION_LABELS[value] || titleCase(value)
+}
+
 function formatDate(value) {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
@@ -153,6 +166,8 @@ function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
   const openEscalations = data?.escalations || []
   const pendingApprovals = (data?.approvals || []).filter(item => item.status === 'pending')
   const pendingDeliveries = (data?.notification_deliveries || []).filter(item => item.status === 'pending').length
+  const maintenancePersonnel = (data?.staff || []).filter(item => item.role === 'maintenance_personnel')
+  const complaintRecords = Object.values(complaintMap || {})
   const overviewCards = module === 'ecmd'
     ? [['Open Escalations', openEscalations.length, 'text-red-700'], ['Active Crews', (data?.crews || []).filter(item => item.is_active).length, 'text-navy-900']]
     : [['Pending Approvals', pendingApprovals.length, 'text-amber-700'], ['External Messages Queued', pendingDeliveries, 'text-brand-700']]
@@ -161,12 +176,19 @@ function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
       {overviewCards.map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display text-3xl font-black ${color}`}>{value}</p><p className="mt-1 text-xs font-bold text-gray-500">{label}</p></div>)}
     </div>
 
+    {module === 'ecmd' && <Section title="Maintenance Personnel Availability" description="Availability and active assignment counts are operational ECMD information.">
+      {maintenancePersonnel.length === 0 ? <p className="text-sm text-gray-500">No Maintenance Personnel accounts are assigned to ECMD.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{maintenancePersonnel.map(person => {
+        const activeTasks = complaintRecords.filter(complaint => complaint.assigned_to === person.id && ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length
+        return <div key={person.id} className="rounded-xl border border-gray-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-navy-900">{person.full_name}</p><p className="mt-1 text-xs text-gray-500">{activeTasks} active assignment{activeTasks === 1 ? '' : 's'}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${person.availability_status === 'available' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>{titleCase(person.availability_status || 'available')}</span></div></div>
+      })}</div>}
+    </Section>}
+
     {module === 'ecmd' && <Section title="Overdue High-priority Escalation" description="Compares active High-priority complaints with the ECMD-defined resolution target." action={<button disabled={busy === 'scan'} onClick={() => run('scan', () => apiFetch('/operations/escalations/scan', { method: 'POST' }), 'High-priority service targets scanned.')} className="btn-primary rounded-lg">{busy === 'scan' ? <Spinner className="h-4 w-4 border-2 border-white" /> : 'Scan Now'}</button>}>
       {openEscalations.length === 0 ? <p className="text-sm text-gray-500">No open overdue escalations.</p> : <div className="space-y-3">{openEscalations.map(item => <div key={item.id} className="rounded-xl border border-red-200 bg-red-50 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-black text-red-900">{complaintMap[item.complaint_id]?.reference_number || 'Complaint'} · {titleCase(item.severity)}</p><p className="mt-1 text-xs text-red-700">{item.reason}</p><p className="mt-1 text-[10px] text-red-500">Target: {formatDate(item.due_at)}</p></div><div className="flex gap-2"><button onClick={() => run(`escalation-${item.id}`, () => apiFetch(`/operations/escalations/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'acknowledged' }) }), 'Escalation acknowledged.')} className="btn-secondary rounded-lg text-xs">Acknowledge</button><button onClick={() => run(`resolve-${item.id}`, () => apiFetch(`/operations/escalations/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }) }), 'Escalation resolved.')} className="btn-primary rounded-lg text-xs">Resolve</button></div></div></div>)}</div>}
     </Section>}
 
-    {module === 'system' && <Section title="Backup Administrator / Supervisor Approval" description="The requester cannot approve their own request. Archival requires a separate reviewer.">
-      {pendingApprovals.length === 0 ? <p className="text-sm text-gray-500">No approval requests are awaiting review.</p> : <div className="space-y-3">{pendingApprovals.map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="text-sm font-black text-navy-900">{titleCase(item.request_type)}</p><p className="mt-1 text-xs text-gray-600">{item.reason}</p><p className="mt-1 text-[10px] text-gray-400">Requested by {staffMap[item.requested_by]?.full_name || 'Administrator'} · {formatDate(item.created_at)}</p><div className="mt-3 flex gap-2"><button onClick={() => run(`approve-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'approved' }) }), 'Request approved.')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-black text-white">Approve</button><button onClick={() => run(`reject-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'rejected' }) }), 'Request rejected.')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Reject</button></div></div>)}</div>}
+    {module === 'system' && <Section title="Independent System Supervisor Approval" description="The requester cannot approve their own request. Archival requires a separate System Supervisor.">
+      {pendingApprovals.length === 0 ? <p className="text-sm text-gray-500">No approval requests are awaiting review.</p> : <div className="space-y-3">{pendingApprovals.map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="text-sm font-black text-navy-900">{titleCase(item.request_type)}</p><p className="mt-1 text-xs text-gray-600">{item.reason}</p><p className="mt-1 text-[10px] text-gray-400">Requested by {staffMap[item.requested_by]?.full_name || 'Department Staff'} · {formatDate(item.created_at)}</p><div className="mt-3 flex gap-2"><button onClick={() => run(`approve-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'approved' }) }), 'Request approved.')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-black text-white">Approve</button><button onClick={() => run(`reject-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'rejected' }) }), 'Request rejected.')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Reject</button></div></div>)}</div>}
     </Section>}
 
     {module === 'system' && <Section title="Email and SMS Delivery Queue" description="In-app notifications are queued automatically for each user's enabled channels.">
@@ -178,9 +200,18 @@ function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
 function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
   const [crew, setCrew] = useState({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })
   const [member, setMember] = useState({ crew_id: '', staff_id: '', crew_role: 'crew_member', manpower_units: 1 })
-  const [assignment, setAssignment] = useState({ staff_id: '', department_id: '', staff_position: 'department_staff', supervisor_id: '' })
+  const [assignment, setAssignment] = useState({ staff_id: '', department_id: '', staff_position: '', supervisor_id: '' })
   const maintenance = (data?.staff || []).filter(item => item.role === 'maintenance_personnel' && item.is_active)
   const supervisors = (data?.staff || []).filter(item => ['manager', 'supervisor', 'team_leader'].includes(item.staff_position) || item.role === 'admin')
+  const selectedAssignmentStaff = (data?.staff || []).find(item => item.id === assignment.staff_id)
+  const selectedAssignmentDepartment = (data?.departments || []).find(item => item.id === assignment.department_id)
+  const assignmentPositionOptions = selectedAssignmentStaff?.role === 'maintenance_personnel'
+    ? ['team_leader', 'crew_member']
+    : selectedAssignmentDepartment?.code === 'COMMERCIAL'
+      ? ['commercial_staff']
+      : selectedAssignmentDepartment?.code === 'ECMD'
+        ? ['department_staff']
+        : ['manager', 'supervisor']
   return <div className="space-y-5">
     {module === 'system' && <Section title="Department Responsibilities" description="Commercial manages customer and billing records; ECMD coordinates engineering and field work.">
       <div className="grid gap-3 md:grid-cols-2">{(data?.departments || []).map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="font-black text-navy-900">{item.name}</p><p className="mt-1 text-xs text-gray-600">{item.responsibilities}</p></div>)}</div>
@@ -208,14 +239,15 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
       </Section>
     </div>}
 
-    {module === 'system' && <Section title="Staff Department & Position" description="Designate Commercial staff, ECMD crew members, Team Leaders, Supervisors, and Managers. Department assignment now determines accessible modules.">
+    {module === 'system' && <Section title="Staff Department & Access" description="Designate Commercial Department Staff, ECMD Staff, Team Leaders, Maintenance Crew members, and System Supervisors. Department assignment determines the available pages.">
       <form className="grid gap-3 md:grid-cols-4" onSubmit={event => { event.preventDefault(); run('assignment', () => apiFetch('/operations/staff-assignment', { method: 'POST', body: JSON.stringify(assignment) }), 'Staff assignment updated.') }}>
-        <Field label="Staff"><select required value={assignment.staff_id} onChange={event => setAssignment(value => ({ ...value, staff_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
-        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value }))} className="input-field rounded-lg"><option value="">No department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-        <Field label="Position"><select value={assignment.staff_position} onChange={event => setAssignment(value => ({ ...value, staff_position: event.target.value }))} className="input-field rounded-lg">{['manager', 'supervisor', 'team_leader', 'crew_member', 'commercial_staff', 'department_staff'].map(item => <option key={item} value={item}>{titleCase(item)}</option>)}</select></Field>
-        <Field label="Supervisor"><select value={assignment.supervisor_id} onChange={event => setAssignment(value => ({ ...value, supervisor_id: event.target.value }))} className="input-field rounded-lg"><option value="">None</option>{supervisors.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
+        <Field label="Staff"><select required value={assignment.staff_id} onChange={event => { const staff = (data?.staff || []).find(item => item.id === event.target.value); setAssignment({ staff_id: event.target.value, department_id: staff?.department_id || '', staff_position: staff?.staff_position || '', supervisor_id: staff?.supervisor_id || '' }) }} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
+        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value, staff_position: '' }))} className="input-field rounded-lg"><option value="">System Administration</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        <Field label="Access Designation"><select required value={assignment.staff_position} onChange={event => setAssignment(value => ({ ...value, staff_position: event.target.value }))} className="input-field rounded-lg"><option value="">Select access</option>{assignmentPositionOptions.map(item => <option key={item} value={item}>{staffPositionLabel(item)}</option>)}</select></Field>
+        <Field label="Reports To"><select value={assignment.supervisor_id} onChange={event => setAssignment(value => ({ ...value, supervisor_id: event.target.value }))} className="input-field rounded-lg"><option value="">None</option>{supervisors.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
         <button disabled={busy === 'assignment'} className="btn-primary rounded-lg md:col-span-4">Save Assignment</button>
       </form>
+      <p className="mt-3 text-xs text-gray-500">Commercial Department Staff receive only Commercial pages; ECMD Staff receive only ECMD pages; System Supervisors use System Administration. Maintenance Personnel can be designated as a Team Leader or Maintenance Crew Member within ECMD.</p>
     </Section>}
 
     {module === 'ecmd' && <Section title="Current Crews">
@@ -240,7 +272,7 @@ function SchedulesTab({ data, busy, run, staffMap }) {
       <div className="mt-5 space-y-2">{(data?.schedules || []).map(item => <div key={item.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="font-black text-navy-900">{staffMap[item.staff_id]?.full_name || 'Staff'}</span><span>{item.shift_date} · {item.starts_at.slice(0,5)}–{item.ends_at.slice(0,5)} · {titleCase(item.shift_status)}</span></div>)}</div>
     </Section>
 
-    <Section title="Administrator-defined Service Targets" description="Targets drive overdue High-priority escalation and are retained in the audit log.">
+    <Section title="ECMD-defined Service Targets" description="Targets drive overdue High-priority escalation and are retained in the audit log.">
       <div className="grid gap-3 lg:grid-cols-3">{['high', 'medium', 'low'].map(priority => { const value = targets[priority] || { priority, acknowledgment_hours: '', resolution_hours: '', escalation_hours: '' }; return <form key={priority} className="rounded-xl border border-gray-200 p-4" onSubmit={event => { event.preventDefault(); run(`target-${priority}`, () => apiFetch('/operations/service-targets', { method: 'POST', body: JSON.stringify(value) }), `${titleCase(priority)} service target updated.`) }}><p className="font-display font-black text-navy-900">{titleCase(priority)} Priority</p><div className="mt-3 grid grid-cols-3 gap-2"><Field label="Acknowledge"><input type="number" min="0.25" step="0.25" value={value.acknowledgment_hours} onChange={event => setTargets(current => ({ ...current, [priority]: { ...value, acknowledgment_hours: event.target.value } }))} className="input-field rounded-lg" /></Field><Field label="Resolve"><input type="number" min="0.25" step="0.25" value={value.resolution_hours} onChange={event => setTargets(current => ({ ...current, [priority]: { ...value, resolution_hours: event.target.value } }))} className="input-field rounded-lg" /></Field><Field label="Escalate"><input type="number" min="0.25" step="0.25" value={value.escalation_hours} onChange={event => setTargets(current => ({ ...current, [priority]: { ...value, escalation_hours: event.target.value } }))} className="input-field rounded-lg" /></Field></div><p className="mt-2 text-[10px] text-gray-400">Values are in hours.</p><button className="btn-secondary mt-3 w-full rounded-lg text-xs">Save {titleCase(priority)}</button></form> })}</div>
     </Section>
   </div>

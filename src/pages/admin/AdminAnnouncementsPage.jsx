@@ -163,9 +163,9 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
-        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Administrator</p>
+        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Department</p>
         <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
-          <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Announcements</h1>
+          <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Service Advisories</h1>
           <button onClick={() => showForm ? closeForm() : openNewForm()}
             className={`w-full min-[420px]:w-auto text-xs font-black px-4 py-2 border transition-colors ${
               showForm ? 'bg-white text-navy border-white' : 'border-white/40 text-white hover:bg-white/10'
@@ -173,7 +173,9 @@ export default function AdminAnnouncementsPage() {
             {showForm ? '✕ Cancel' : '+ New Post'}
           </button>
         </div>
-        <p className="text-navy-300 text-sm mt-1">{sorted.length} announcement{sorted.length !== 1 ? 's' : ''} posted · visible to all users</p>
+        <p className="text-navy-300 text-sm mt-1">
+          {sorted.length} {sorted.length === 1 ? 'service advisory' : 'service advisories'} published · visible to all users
+        </p>
       </div>
 
       {/* Toast */}
@@ -196,7 +198,7 @@ export default function AdminAnnouncementsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Title <span className="text-red-500">*</span></label>
-                <input aria-label="Title" type="text" placeholder="e.g. Scheduled Water Interruption – June 20"
+                <input aria-label="Title" type="text" placeholder="e.g. Scheduled No Water Advisory – June 20"
                   {...register('title')}
                   className={`input-field ${errors.title ? 'input-error' : ''}`} />
                 {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
@@ -224,12 +226,12 @@ export default function AdminAnnouncementsPage() {
             </div>
             <label className="flex items-start gap-3 rounded-lg border border-gold-200 bg-gold-50 p-3 cursor-pointer">
               <input type="checkbox" {...register('is_important')} className="mt-0.5 h-4 w-4 accent-amber-500" />
-              <span><span className="block text-sm font-bold text-navy-900">Mark as important</span><span className="block text-xs text-gray-500 mt-0.5">Pins this notice above regular announcements for every user.</span></span>
+              <span><span className="block text-sm font-bold text-navy-900">Mark as important</span><span className="block text-xs text-gray-500 mt-0.5">Keeps this advisory above regular announcements for every user.</span></span>
             </label>
             <div>
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Active Until <span className="normal-case font-medium text-gray-400">(optional)</span></label>
               <input aria-label="Active Until" type="datetime-local" {...register('active_until')} className="input-field" />
-              <p className="mt-1.5 text-xs text-gray-500">After this date, customers and Maintenance Personnel will no longer see the notice. Administrators can still review it here.</p>
+              <p className="mt-1.5 text-xs text-gray-500">After this date, Customers and Maintenance Personnel will no longer see the advisory. Commercial Department Staff can still review it here.</p>
             </div>
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={posting}
@@ -275,9 +277,9 @@ export default function AdminAnnouncementsPage() {
                       Edit
                     </button>
                     <button onClick={() => handleImportance(a)}
-                      title={a.is_important ? 'Remove important pin' : 'Mark as important'}
+                      title={a.is_important ? 'Remove important status' : 'Mark as important'}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-bold border ${a.is_important ? 'border-gold-300 bg-gold-50 text-navy-800' : 'border-gray-200 text-gray-500 hover:border-gold-300'}`}>
-                      {a.is_important ? 'Unpin' : 'Important'}
+                      {a.is_important ? 'Remove Important' : 'Mark Important'}
                     </button>
                     <button onClick={() => setConfirmDelete(a)}
                       className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">

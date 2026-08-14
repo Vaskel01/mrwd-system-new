@@ -13,15 +13,17 @@ import SubmitComplaintPage from './pages/customer/SubmitComplaintPage'
 import MyComplaintsPage from './pages/customer/MyComplaintsPage'
 import BillingPage from './pages/customer/BillingPage'
 
-// Admin
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AllComplaintsPage from './pages/admin/AllComplaintsPage'
-import AssignTaskPage from './pages/admin/AssignTaskPage'
-import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage'
-import StaffAccountsPage from './pages/admin/StaffAccountsPage'
-import ReportsPage from './pages/admin/ReportsPage'
-import AuditLogPage from './pages/admin/AuditLogPage'
-import OperationsPage from './pages/admin/OperationsPage'
+// Department-specific staff pages
+import CommercialComplaintReviewPage from './pages/commercial/CommercialComplaintReviewPage'
+import CommercialReportsPage from './pages/commercial/CommercialReportsPage'
+import CommercialAccountsBillingPage from './pages/commercial/CommercialAccountsBillingPage'
+import CommercialAdvisoriesPage from './pages/commercial/CommercialAdvisoriesPage'
+import EcmdDispatchPage from './pages/ecmd/EcmdDispatchPage'
+import EcmdFieldOperationsPage from './pages/ecmd/EcmdFieldOperationsPage'
+import SystemDashboardPage from './pages/system/SystemDashboardPage'
+import SystemDepartmentsPage from './pages/system/SystemDepartmentsPage'
+import SystemStaffAccountsPage from './pages/system/SystemStaffAccountsPage'
+import SystemAuditLogPage from './pages/system/SystemAuditLogPage'
 
 // Maintenance
 import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
@@ -92,60 +94,74 @@ export default function App() {
           </ProtectedRoute>
         }/>
 
-        {/* ── Admin ── */}
-        <Route path="/admin/dashboard" element={
-          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SUPERVISOR_DASHBOARD]}>
-            <AppLayout><AdminDashboard /></AppLayout>
-          </ProtectedRoute>
-        }/>
-        <Route path="/admin/complaints" element={
+        {/* ── Commercial Department ── */}
+        <Route path="/commercial/complaints" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_COMPLAINTS]}>
-            <AppLayout><AllComplaintsPage /></AppLayout>
+            <AppLayout><CommercialComplaintReviewPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/admin/assign" element={
-          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
-            <AppLayout><AssignTaskPage /></AppLayout>
-          </ProtectedRoute>
-        }/>
-
-        <Route path="/admin/reports" element={
+        <Route path="/commercial/reports" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_REPORTS]}>
-            <AppLayout><ReportsPage /></AppLayout>
+            <AppLayout><CommercialReportsPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/admin/audit" element={
-          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_AUDIT]}>
-            <AppLayout><AuditLogPage /></AppLayout>
-          </ProtectedRoute>
-        }/>
-        <Route path="/admin/commercial-operations" element={
+        <Route path="/commercial/accounts-billing" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_BILLING]}>
-            <AppLayout><OperationsPage module="commercial" /></AppLayout>
+            <AppLayout><CommercialAccountsBillingPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/admin/ecmd-operations" element={
-          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
-            <AppLayout><OperationsPage module="ecmd" /></AppLayout>
-          </ProtectedRoute>
-        }/>
-        <Route path="/admin/system-operations" element={
-          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_DEPARTMENTS]}>
-            <AppLayout><OperationsPage module="system" /></AppLayout>
-          </ProtectedRoute>
-        }/>
-        <Route path="/admin/operations" element={<Navigate to="/admin/system-operations" replace />} />
-
-        <Route path="/admin/announcements" element={
+        <Route path="/commercial/service-advisories" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS]}>
-            <AppLayout><AdminAnnouncementsPage /></AppLayout>
+            <AppLayout><CommercialAdvisoriesPage /></AppLayout>
           </ProtectedRoute>
         }/>
-        <Route path="/admin/staff" element={
+
+        {/* ── Engineering, Construction and Maintenance Department ── */}
+        <Route path="/ecmd/dispatch" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
+            <AppLayout><EcmdDispatchPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/ecmd/field-operations" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
+            <AppLayout><EcmdFieldOperationsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+
+        {/* ── System Administration ── */}
+        <Route path="/system/dashboard" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SUPERVISOR_DASHBOARD]}>
+            <AppLayout><SystemDashboardPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/system/departments-access" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_DEPARTMENTS]}>
+            <AppLayout><SystemDepartmentsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/system/staff-accounts" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_STAFF]}>
-            <AppLayout><StaffAccountsPage /></AppLayout>
+            <AppLayout><SystemStaffAccountsPage /></AppLayout>
           </ProtectedRoute>
         }/>
+        <Route path="/system/audit-log" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_AUDIT]}>
+            <AppLayout><SystemAuditLogPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+
+        {/* Compatibility redirects for links saved before department separation. */}
+        <Route path="/admin/dashboard" element={<Navigate to="/system/dashboard" replace />} />
+        <Route path="/admin/complaints" element={<Navigate to="/commercial/complaints" replace />} />
+        <Route path="/admin/reports" element={<Navigate to="/commercial/reports" replace />} />
+        <Route path="/admin/commercial-operations" element={<Navigate to="/commercial/accounts-billing" replace />} />
+        <Route path="/admin/announcements" element={<Navigate to="/commercial/service-advisories" replace />} />
+        <Route path="/admin/assign" element={<Navigate to="/ecmd/dispatch" replace />} />
+        <Route path="/admin/ecmd-operations" element={<Navigate to="/ecmd/field-operations" replace />} />
+        <Route path="/admin/system-operations" element={<Navigate to="/system/departments-access" replace />} />
+        <Route path="/admin/operations" element={<Navigate to="/system/departments-access" replace />} />
+        <Route path="/admin/staff" element={<Navigate to="/system/staff-accounts" replace />} />
+        <Route path="/admin/audit" element={<Navigate to="/system/audit-log" replace />} />
 
         {/* ── Maintenance ── */}
         <Route path="/maintenance/tasks" element={

@@ -47,7 +47,7 @@ function StatCard({ label, value, color }) {
 }
 
 function AttentionReason({ complaint }) {
-  if (complaint.status === 'blocked') return <span className="text-orange-700">Needs administrator attention</span>
+  if (complaint.status === 'blocked') return <span className="text-orange-700">Needs ECMD attention</span>
   if (!complaint.assigned_to && complaint.status === 'pending') return <span className="text-amber-700">Waiting for assignment</span>
   if (complaint.priority === 'high') return <span className="text-red-700">High-priority complaint</span>
   return null
@@ -104,10 +104,10 @@ export default function AdminDashboard() {
   const resolveRate = total > 0 ? Math.round((completed / total) * 100) : 0
   const unassigned = complaints.filter(item => !item.assigned_to && item.status === 'pending').length
 
-  const activeTechnicians = staff.filter(account =>
+  const activeMaintenancePersonnel = staff.filter(account =>
     account.role === 'maintenance_personnel' && account.is_active !== false
   )
-  const availableTechnicians = activeTechnicians.filter(account =>
+  const availableMaintenancePersonnel = activeMaintenancePersonnel.filter(account =>
     String(account.availability_status || 'available').toLowerCase() === 'available'
   )
 
@@ -145,9 +145,9 @@ export default function AdminDashboard() {
       <div className="page-band wave-header relative overflow-hidden rounded-2xl px-6 py-7">
         <div className="relative flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-gold-400">Administrator Command Center</p>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.15em] text-gold-400">System Administration</p>
             <h1 className="font-display text-3xl font-black leading-tight text-white">
-              Good day, <span className="text-gold-400">{user?.full_name?.split(' ')[0]}</span>
+              System overview for <span className="text-gold-400">{user?.full_name?.split(' ')[0]}</span>
             </h1>
             <p className="mt-1 text-sm text-navy-300">
               {new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -196,14 +196,14 @@ export default function AdminDashboard() {
           <div className="rounded-xl border border-white bg-white/80 px-4 py-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Maintenance availability</p>
             <p className="mt-1 font-display text-2xl font-black text-navy-900">
-              {availableTechnicians.length} <span className="text-base text-gray-400">of {activeTechnicians.length}</span>
+              {availableMaintenancePersonnel.length} <span className="text-base text-gray-400">of {activeMaintenancePersonnel.length}</span>
             </p>
             <p className="text-xs text-gray-500">available now for assignment</p>
           </div>
 
           <button
             type="button"
-            onClick={() => navigate('/admin/assign')}
+            onClick={() => navigate('/ecmd/dispatch')}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-navy-800 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-navy-900"
           >
             Open Dispatch
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/admin/complaints')}
+              onClick={() => navigate('/commercial/complaints')}
               className="text-xs font-bold text-navy-600 transition-colors hover:text-navy-900"
             >
               View All

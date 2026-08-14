@@ -1,13 +1,13 @@
 begin;
 
--- Preserve access for existing pre-department Administrator accounts without
--- making every future unassigned Administrator a supervisor.
+-- Preserve access for existing pre-department management accounts without
+-- making every future unassigned Department Staff account a supervisor.
 update public.profiles
 set staff_position = 'manager', updated_at = now()
 where role = 'admin' and department_id is null and staff_position is null;
 
--- Department membership is authoritative for Administrator access. Existing
--- pre-department Administrators are explicitly promoted above so deployment
+-- Department membership is authoritative for Department Staff access. Existing
+-- pre-department management accounts are explicitly promoted above so deployment
 -- cannot cause an accidental lockout; future unassigned accounts stay restricted.
 create or replace function public.current_user_has_capability(p_capability text)
 returns boolean
@@ -61,7 +61,7 @@ revoke all on function public.active_admin_ids_for_department(text) from public,
 grant execute on function public.active_admin_ids_for_department(text) to authenticated;
 
 -- Security-definer RPCs and direct Data API calls both reach table triggers.
--- These guards prevent a broad legacy Administrator check from bypassing the
+-- These guards prevent a broad legacy staff check from bypassing the
 -- new department boundaries.
 create or replace function public.guard_department_profile_changes()
 returns trigger
@@ -69,7 +69,32 @@ language plpgsql
 security invoker
 set search_path = public, pg_temp
 as $$
+declare
+  new_department_code text;
 begin
+  if new.department_id is not null then
+    select upper(trim(code)) into new_department_code
+    from public.departments
+    where id = new.department_id;
+  end if;
+
+  if new.staff_position in ('manager', 'supervisor')
+     and (new.role <> 'admin' or new.department_id is not null) then
+    raise exception 'System Supervisors must use a Department Staff account without a department assignment';
+  end if;
+  if new.staff_position = 'commercial_staff'
+     and (new.role <> 'admin' or new_department_code <> 'COMMERCIAL') then
+    raise exception 'Commercial Department Staff must be assigned to the Commercial Department';
+  end if;
+  if new.staff_position = 'department_staff'
+     and (new.role <> 'admin' or new_department_code <> 'ECMD') then
+    raise exception 'ECMD Staff must be assigned to ECMD';
+  end if;
+  if new.staff_position in ('team_leader', 'crew_member')
+     and (new.role <> 'maintenance_personnel' or new_department_code <> 'ECMD') then
+    raise exception 'Team Leaders and Maintenance Crew Members must use a Maintenance Personnel account assigned to ECMD';
+  end if;
+
   if auth.uid() is null then return new; end if;
   if tg_op = 'INSERT' then
     if new.role in ('admin', 'maintenance_personnel')
@@ -132,6 +157,13 @@ begin
   if public.current_user_has_capability('system.dashboard') then return new; end if;
 
   if public.current_user_has_capability('commercial.complaints') then
+    if new.status is distinct from old.status
+       and not (
+         new.status = 'rejected'
+         or (old.status = 'rejected' and new.status in ('pending', 'assigned'))
+       ) then
+      raise exception 'Field-work status changes are restricted to ECMD';
+    end if;
     if (new_data - array[
       'category_id','description','address_text','lat','lng','zone','photo_urls',
       'status','rejection_reason','rejected_at','priority','priority_score',
@@ -172,7 +204,7 @@ begin
     return new;
   end if;
 
-  raise exception 'Administrator account has no authorized complaint module';
+  raise exception 'Department Staff account has no authorized complaint module';
 end;
 $$;
 
@@ -332,7 +364,7 @@ create policy "notifications_insert_related" on public.notifications
     )
   );
 
--- Replace the broad Administrator policies introduced by the previous
+-- Replace the broad staff policies introduced by the previous
 -- operations migration.
 drop policy if exists "departments_authenticated_read" on public.departments;
 drop policy if exists "departments_admin_write" on public.departments;

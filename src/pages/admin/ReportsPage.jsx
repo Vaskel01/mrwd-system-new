@@ -114,9 +114,9 @@ export default function ReportsPage() {
       <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6 no-print">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Administrator · Analytics</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Reports & Exports</h1>
-            <p className="text-navy-300 text-sm mt-1">Complaint volume, resolution performance, workload, and satisfaction.</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Commercial Department</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Complaint Reports</h1>
+            <p className="text-navy-300 text-sm mt-1">Complaint volume, resolution performance, and customer satisfaction.</p>
           </div>
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
             <button onClick={exportCsv} className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-white text-navy-800 text-xs font-black">Export CSV</button>
@@ -144,7 +144,7 @@ export default function ReportsPage() {
             <button type="button" onClick={() => selectPreset('quarter')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">This Quarter</button>
           </div>
         </div>
-        <p className="mt-3 text-xs text-gray-500">All cards, charts, workload counts, and the CSV export use this filing-date range.</p>
+        <p className="mt-3 text-xs text-gray-500">All cards, charts, and the CSV export use this complaint filing-date range.</p>
       </div>
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3">
         {[['Total Complaints', summary.total ?? 0, 'text-navy-900'], ['Active Cases', summary.active ?? 0, 'text-brand-700'], ['Completed', summary.completed ?? 0, 'text-green-700'], ['Average Rating', summary.average_rating ? `${summary.average_rating}/5` : '—', 'text-amber-600']].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display font-black text-3xl ${color}`}>{value}</p><p className="text-xs font-bold text-gray-500 mt-1">{label}</p></div>)}
@@ -169,31 +169,7 @@ export default function ReportsPage() {
           <div className="text-sm text-gray-600 break-words"><b>{summary.average_resolution_hours ?? '—'}</b> average resolution hours · <b>{summary.feedback_count ?? 0}</b> feedback responses</div>
         </div>
 
-        <div className="hidden xl:block overflow-hidden rounded-lg border border-gray-100 p-2">
-          <table className="w-full table-fixed text-sm">
-            <thead><tr className="bg-gray-50 border-b-2 border-gray-200 text-left">{['Maintenance Personnel', 'Availability', 'Active', 'Completed', 'Total', 'Completion Rate'].map(item => <th key={item} className="px-3 py-3 text-xs font-black text-gray-400 uppercase">{item}</th>)}</tr></thead>
-            <tbody className="divide-y divide-gray-100">{(data?.technician_workload || []).map(person => <tr key={person.id}><td className="px-3 py-3 font-bold text-gray-900 truncate">{person.name}{!person.is_active && <span className="ml-2 text-[10px] text-red-600">INACTIVE</span>}</td><td className="px-3 py-3 capitalize text-gray-600 truncate">{titleCase(person.availability_status)}</td><td className="px-3 py-3">{person.active}</td><td className="px-3 py-3">{person.completed}</td><td className="px-3 py-3">{person.total}</td><td className="px-3 py-3 pr-5 font-bold text-navy-800">{person.completion_rate}%</td></tr>)}</tbody>
-          </table>
-        </div>
-
-        <div className="xl:hidden space-y-3">
-          {(data?.technician_workload || []).length === 0 ? <p className="text-sm text-gray-400">No Maintenance Personnel workload data yet.</p> : (data?.technician_workload || []).map(person => (
-            <div key={person.id} className="rounded-xl border border-gray-200 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-bold text-gray-900 truncate">{person.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">{titleCase(person.availability_status)}{!person.is_active ? ' · Inactive' : ''}</p>
-                </div>
-                <span className="text-lg font-black text-navy-800">{person.completion_rate}%</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 mt-4">
-                <div className="rounded-lg bg-gray-50 p-2 text-center"><p className="font-black text-navy-800">{person.active}</p><p className="text-[10px] uppercase text-gray-400">Active</p></div>
-                <div className="rounded-lg bg-gray-50 p-2 text-center"><p className="font-black text-green-700">{person.completed}</p><p className="text-[10px] uppercase text-gray-400">Completed</p></div>
-                <div className="rounded-lg bg-gray-50 p-2 text-center"><p className="font-black text-gray-700">{person.total}</p><p className="text-[10px] uppercase text-gray-400">Total</p></div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-gray-600">Maintenance Personnel availability and workload are intentionally shown only in the ECMD Field Operations page.</p>
       </div>
     </div>
   )

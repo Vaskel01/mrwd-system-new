@@ -10,13 +10,34 @@ A web-based complaint management and maintenance task assignment system for Metr
 - **System Supervisor:** access the cross-department dashboard, create and assign staff accounts, manage department access, review independent approvals, archive approved records, and inspect the audit trail.
 - **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress, manpower, equipment and materials, request assistance or reassignment, submit completion reports, and print official maintenance reports.
 - **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
-- **Privacy:** Customers receive no classifier internals. Maintenance Personnel and ECMD administrators receive only the operational category and priority. Commercial reviewers receive the classifier breakdown; System Supervisors retain oversight access.
+- **Privacy:** Customers receive no classifier internals. Maintenance Personnel and ECMD Staff receive only the operational category and priority. Commercial Department Staff receive the classifier breakdown; System Supervisors retain oversight access.
 - **Interface:** the original MRWD navy, blue, gold, wave-header, and role-based visual design is retained, with keyboard focus, reduced-motion, dialog, navigation, and status-label accessibility support.
+
+## Canonical interface terminology
+
+Use these labels in pages, documentation, training, and demonstrations:
+
+| Area | Approved label |
+|---|---|
+| Customer account | **Customer** |
+| Complaint review, classifier, billing, and advisories | **Commercial Department Staff** |
+| Dispatch and field coordination | **ECMD Staff** |
+| Governance, access, approvals, and audit | **System Supervisor** |
+| Assigned field account | **Maintenance Personnel** |
+| Field group | **Maintenance Crew** |
+| Urgent service notice | **Important Advisory** |
+| Active field status | **In Progress** |
+| No-supply category | **No Water** |
+
+Internal values such as `admin`, `maintenance_personnel`, and legacy `en_route` remain in code or stored records for compatibility; they are not alternative interface labels.
 
 ## Project structure
 
 ```text
 src/                       React frontend
+src/pages/commercial/      Commercial Department pages
+src/pages/ecmd/            ECMD pages
+src/pages/system/          System Administration pages
 server/                    Express API and canonical classifier
 api/index.js               Vercel serverless adapter for the Express app
 docs/                      Classifier and user-acceptance-test documentation
@@ -85,9 +106,9 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 
-## Create the first administrator
+## Create the first System Supervisor
 
-Public registration always creates a Customer account. To create the first Administrator:
+Public registration always creates a Customer account. The database keeps the internal `admin` security role for compatibility, while the interface consistently displays the operational access name. To create the first System Supervisor:
 
 1. In Supabase, open **Authentication → Users → Add User**.
 2. Create the account and leave automatic confirmation enabled.
@@ -97,11 +118,11 @@ Public registration always creates a Customer account. To create the first Admin
 update public.profiles
 set role = 'admin',
     staff_position = 'supervisor',
-    full_name = 'Administrator Name'
+    full_name = 'System Supervisor Name'
 where email = 'admin@example.com';
 ```
 
-After that, Administrators can create staff accounts through **Staff Accounts** in the system.
+After that, the System Supervisor can create Commercial Department Staff, ECMD Staff, and Maintenance Personnel accounts through **Staff Accounts**.
 
 ## Local development
 

@@ -569,9 +569,9 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
   const status = requestedStatus === 'en_route' ? 'in_progress' : requestedStatus
   if (status === 'completed') return res.status(400).json({ error: 'Use the completion report to mark this task completed.' })
   if (req.user.role === 'admin' && status !== 'rejected') {
-    return res.status(400).json({ error: 'Admins must use assignment, restoration, or completion actions instead of manually forcing a workflow status.' })
+    return res.status(400).json({ error: 'Department Staff must use the designated review, dispatch, restoration, or completion actions instead of forcing a workflow status.' })
   }
-  if (status === 'rejected' && req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin can reject a complaint.' })
+  if (status === 'rejected' && req.user.role !== 'admin') return res.status(403).json({ error: 'Only authorized Commercial Department Staff can reject a complaint.' })
   if (status === 'rejected' && String(rejection_reason || '').trim().length < 3) {
     return res.status(400).json({ error: 'A rejection reason of at least 3 characters is required.' })
   }

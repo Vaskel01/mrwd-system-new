@@ -3,7 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 import CustomerInterruptionBanner from '../ui/CustomerInterruptionBanner'
-import { adminModuleLabel, CAPABILITIES, hasCapability } from '../../lib/accessControl'
+import { CAPABILITIES, hasCapability } from '../../lib/accessControl'
+import { staffAccessLabel } from '../../config/terminology'
 import { apiFetch } from '../../lib/api'
 
 const NAV = {
@@ -27,23 +28,23 @@ function adminNavigation(user) {
     if (hasCapability(user, capability)) items.push(item)
   }
 
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Oversight', to: '/admin/dashboard', icon: DashIcon, label: 'Dashboard' })
-  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Department', to: '/admin/complaints', icon: ListIcon, label: 'Complaint Review' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Department', to: '/admin/reports', icon: ReportIcon, label: 'Reports & Export' })
-  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Department', to: '/admin/commercial-operations', icon: BillingIcon, label: 'Accounts & Billing' })
-  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Department', to: '/admin/announcements', icon: BellIcon, label: 'Service Advisories' })
-  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/admin/assign', icon: AssignIcon, label: 'Dispatch Tasks' })
-  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/admin/ecmd-operations', icon: WrenchIcon, label: 'Field Operations' })
-  add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/admin/system-operations', icon: WrenchIcon, label: 'Departments & Approvals' })
-  add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/admin/staff', icon: UsersIcon, label: 'Staff Accounts' })
-  add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/admin/audit', icon: AuditIcon, label: 'Audit Log' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System Dashboard' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Department', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Department', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Department', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Customer Accounts & Billing' })
+  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Department', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
+  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint Dispatch' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field Operations' })
+  add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & Access' })
+  add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/system/staff-accounts', icon: UsersIcon, label: 'Staff Accounts' })
+  add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/system/audit-log', icon: AuditIcon, label: 'Audit Log' })
   items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My Profile' })
   return items
 }
 
 const ROLE_CONFIG = {
   customer:    { tag: 'Customer',      gradient: 'from-blue-500 to-blue-600', dot: '#60a5fa' },
-  admin:       { tag: 'Administrator', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
+  admin:       { tag: 'Department Staff', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
   maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
@@ -119,7 +120,7 @@ export default function AppLayout({ children }) {
   const location = useLocation()
   const role     = user?.role || 'customer'
   const baseConfig = ROLE_CONFIG[role]
-  const config = role === 'admin' ? { ...baseConfig, tag: adminModuleLabel(user) } : baseConfig
+  const config = role === 'admin' ? { ...baseConfig, tag: staffAccessLabel(user) } : baseConfig
   const navItems = role === 'admin' ? adminNavigation(user) : (NAV[role] || [])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const unreadCount = useNotificationStore(state => state.unreadCount)

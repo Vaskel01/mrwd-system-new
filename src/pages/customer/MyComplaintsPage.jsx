@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
   en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
   completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Completed', message: 'The reported work has been completed.' },
-  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Administrator.' },
+  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Department.' },
   cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
   blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs Attention', message: 'Maintenance Personnel requested administrative assistance.' },
 }

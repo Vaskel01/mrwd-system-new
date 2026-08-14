@@ -266,8 +266,8 @@ export default function AssignTaskPage() {
       <div className="page-band wave-header rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Administrator · Dispatch</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Assign Tasks</h1>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">ECMD</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Complaint Dispatch</h1>
             <p className="text-navy-300 text-sm mt-1">Manage the entire dispatch queue from one complaint-style list.</p>
           </div>
           <div className="text-right">
@@ -290,7 +290,7 @@ export default function AssignTaskPage() {
           <AppIcon name="assignment" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
           <div>
             <p className="font-display font-bold text-navy-900">Dispatch workspace</p>
-            <p className="mt-1 text-sm text-gray-600">Use this page to assign, reassign, or batch-dispatch complaints. Use <b>All Complaints</b> when you only need to search, review, or open a complaint record.</p>
+            <p className="mt-1 text-sm text-gray-600">Use this page to assign, reassign, or batch-dispatch complaints. Use <b>Complaint Review</b> when you only need to search, review, or open a complaint record.</p>
           </div>
         </div>
       </div>

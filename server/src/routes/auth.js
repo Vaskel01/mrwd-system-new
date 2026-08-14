@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
   if (profileErr || !profile) return res.status(403).json({ error: 'No profile found for this account. Contact the district office.' })
   if (profile.is_active === false) {
     await client.auth.signOut()
-    return res.status(403).json({ error: 'This account has been deactivated. Contact an administrator.' })
+    return res.status(403).json({ error: 'This account has been deactivated. Contact a System Supervisor.' })
   }
 
   res.json({ user: profile, access_token: data.session.access_token, refresh_token: data.session.refresh_token })

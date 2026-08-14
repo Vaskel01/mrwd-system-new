@@ -1,31 +1,33 @@
-# Operations Expansion Guide
+# Department Modules and Operations Guide
 
-Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, followed by `supabase/migrations/20260814100000_department_module_access.sql`. Administrative work is then divided into three independently protected modules rather than one shared Administrator workspace.
+Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, followed by `supabase/migrations/20260814100000_department_module_access.sql`. Staff work is then divided into three independently protected page families rather than one shared workspace.
 
 ## Department access matrix
 
 | Module | Intended accounts | Main functions |
 |---|---|---|
-| Commercial Department | Administrators assigned to `COMMERCIAL` | Complaint review and classifier evidence, audited priority overrides, reports, customer accounts, billing imports, important advisories, and archival requests |
-| ECMD | Administrators assigned to `ECMD` and assigned Maintenance Personnel | Dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
-| System Administration | Administrator with `Supervisor` or `Manager` position | Cross-department dashboard, departments and staff access, approvals, approved archival, delivery records, and audit logs |
+| Commercial Department | Commercial Department Staff (`COMMERCIAL`) | Complaint review and classifier evidence, audited priority overrides, complaint reports, customer accounts, billing imports, Important advisories, and archival requests |
+| ECMD | ECMD Staff (`ECMD`) and assigned Maintenance Personnel | Complaint dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
+| System Administration | System Supervisor (`Supervisor` or `Manager`) | Cross-department dashboard, departments and staff access, approvals, approved archival, delivery records, and audit logs |
 
-The sidebar is only the visible navigation layer. The same separation is enforced by protected frontend routes, Express API capability checks, PostgreSQL triggers, grants, and Row Level Security policies. An unassigned Administrator receives no department capabilities until a System Supervisor assigns a department module. A System Supervisor retains cross-department oversight.
+The sidebar is only the visible navigation layer. The same separation is enforced by protected frontend routes, Express API capability checks, PostgreSQL triggers, grants, and Row Level Security policies. An unassigned Department Staff account receives no department capabilities until a System Supervisor assigns access. A System Supervisor retains cross-department oversight.
+
+Canonical page families are `/commercial/*`, `/ecmd/*`, and `/system/*`. Older `/admin/*` links exist only as compatibility redirects and still pass through the destination page's capability checks.
 
 ## Departments, positions, crews, and team leaders
 
 - Seeded departments: **Commercial Department** and **Engineering, Construction and Maintenance Department (ECMD)**.
-- A staff account keeps its security role (`admin` or `maintenance_personnel`) and may also receive a department and operational position such as Supervisor, Team Leader, Crew Member, or Commercial Staff.
+- A staff account keeps its internal security role (`admin` or `maintenance_personnel`) and may also receive an operational access designation such as System Supervisor, Commercial Department Staff, ECMD Staff, Team Leader, or Maintenance Crew member.
 - Team Leader is an operational position, not a new authentication role. Access remains protected by the ECMD module and the existing Maintenance Personnel role.
-- A maintenance crew can have one active Team Leader and multiple members. Administrators may assign an individual Maintenance Personnel account, an optional crew, or both to a complaint.
+- A Maintenance Crew can have one active Team Leader and multiple members. ECMD Staff may assign an individual Maintenance Personnel account, an optional crew, or both to a complaint.
 - Staff schedules record date, shift start/end, availability, and notes. The available-staff list considers the current day's schedule.
 
 ## Service targets and escalations
 
-- ECMD administrators define resolution targets in hours for Low, Medium, and High priorities.
+- ECMD Staff define resolution targets in hours for Low, Medium, and High priorities.
 - Assigning a complaint records its service-target due date.
-- **Scan Now** identifies overdue active High Priority complaints and creates escalation records. The scan is intentionally administrator-triggered in this prototype; production automation requires a scheduled worker or cron job.
-- ECMD administrators can acknowledge and resolve escalations, and each action is audited.
+- **Scan Now** identifies overdue active High Priority complaints and creates escalation records. The scan is intentionally triggered by ECMD Staff in this prototype; production automation requires a scheduled worker or cron job.
+- ECMD Staff can acknowledge and resolve escalations, and each action is audited.
 
 ## Supervisor approval
 
@@ -43,8 +45,8 @@ The sidebar is only the visible navigation layer. The same separation is enforce
 
 ## Inventory, materials, equipment, and manpower
 
-- ECMD administrators create inventory items and record stock adjustments.
-- ECMD administrators and assigned Maintenance Personnel can record task manpower, materials, and equipment.
+- ECMD Staff create inventory items and record stock adjustments.
+- ECMD Staff and assigned Maintenance Personnel can record task manpower, materials, and equipment.
 - Inventory usage uses an atomic database function so stock cannot fall below zero during concurrent updates.
 - Official maintenance reports show the complaint, assignment, crew, progress, manpower, inventory usage, completion evidence, and customer acknowledgment, and can be printed or saved as PDF.
 
@@ -62,7 +64,7 @@ Before formal deployment, obtain written confirmation for:
 2. Which department owns complaint monitoring, dispatch, reports, billing imports, and complaint closure.
 3. Team Leader authority, crew membership rules, shift rules, and whether multiple crews may be assigned to one complaint.
 4. Official Low/Medium/High service targets and escalation recipients.
-5. Which actions require supervisor approval and who may act as backup Administrator.
+5. Which actions require supervisor approval and who may act as a backup System Supervisor.
 6. Customer account-number format and authoritative account source.
 7. Billing CSV format, import frequency, correction process, and retention rules.
 8. Inventory units, stock-adjustment approval, and whether the current billing or inventory systems expose an integration interface.

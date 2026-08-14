@@ -5,13 +5,13 @@
 - Removed the complaint-description character limit while keeping a non-empty validation rule.
 - Added human-readable complaint reference numbers and replaced visible internal IDs.
 - Expanded Customer My Profile with account number, phone, barangay, and service address.
-- Replaced automatic latest-announcement pinning with explicit Important notices.
+- Replaced automatic latest-announcement ordering with explicit Important notices.
 - Removed Submit Complaint from the sidebar and added the action to My Complaints.
-- Made Pending the default All Complaints view and sorted it by priority, then oldest filing date within each priority group.
-- Reduced All Complaints row actions to one Open action.
-- Added audited administrator priority overrides while preserving the classifier score.
+- Made Pending the default Complaint Review view and sorted it by priority, then oldest filing date within each priority group.
+- Reduced Complaint Review row actions to one Open action.
+- Added audited Commercial Department priority overrides while preserving the classifier score.
 - Simplified Maintenance Personnel My Tasks and added assignment dates.
-- Standardized Customer, Administrator, and Maintenance Personnel terminology.
+- Standardized Customer, Commercial Department Staff, ECMD Staff, System Supervisor, and Maintenance Personnel terminology.
 - Unified En Route and On Site as In Progress while keeping legacy `en_route` records readable.
 - Prevented Leaflet maps from appearing above modals.
 - Added customer completion acknowledgment with timeline, notifications, and audit history.
@@ -26,17 +26,17 @@
 - Replaced the Audit Log's silent 500-row cap with server-side pagination, exact totals, date filters, and visible paging. High-stakes, review-needed, and routine actions now use distinct badges.
 - Added authenticated in-app password changes to My Profile with current-password verification, audit logging, an eight-character letter-and-number policy, and a strength meter.
 - Reused each Customer's saved service address in Submit Complaint while keeping GPS and map pinning available for issues at another location.
-- Added clear purpose panels to distinguish **All Complaints** (records and review) from **Assign Tasks** (dispatch and batch assignment).
-- Standardized the Assign Tasks purpose panel to the same white card treatment used by All Complaints.
+- Added clear purpose panels to distinguish **Complaint Review** (records and review) from **Complaint Dispatch** (dispatch and batch assignment).
+- Standardized the Complaint Dispatch purpose panel to the same white card treatment used by Complaint Review.
 - Reorganized Staff Accounts into five readable columns, combined related account and workload information, and restored one **Manage** action per row.
 - Reworked Maintenance > My Tasks into five task-focused columns on larger screens and clean cards below the desktop breakpoint, eliminating the narrow seven-column layout and page-level horizontal overflow.
-- Rebuilt the Administrator Dashboard around morning triage: removed repeated counters, added Today/This Week/All Time statistics and a today-versus-yesterday filing trend, combined unassigned work with live Maintenance Personnel availability, and separated urgency-sorted **Needs Attention** records from the non-duplicated **Recently Filed** feed.
-- Standardized the dashboard Operational Overview cards to the compact rounded-card design used by Assign Tasks.
+- Rebuilt the System Dashboard around morning triage: removed repeated counters, added Today/This Week/All Time statistics and a today-versus-yesterday filing trend, combined unassigned work with live Maintenance Personnel availability, and separated urgency-sorted **Needs Attention** records from the non-duplicated **Recently Filed** feed.
+- Standardized the dashboard Operational Overview cards to the compact rounded-card design used by Complaint Dispatch.
 - Fixed Customer My Profile persistence by introducing a dedicated customer-profile RPC, normalizing and verifying the stored account number, phone, service address, and barangay before reporting success, and refreshing the authoritative profile state after saving.
-- Changed Assign Tasks notices to fixed overlays to prevent page jumps.
-- Completed Assign Tasks URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
+- Changed Complaint Dispatch notices to fixed overlays to prevent page jumps.
+- Completed Complaint Dispatch URL state for view, search, priority, status, Maintenance Personnel, sort, and page. Reset Filters now returns to the Unassigned dispatch view.
 - Added quick task acknowledgment from Maintenance > My Tasks without removing access to the full task details.
-- Added announcement editing with preserved author/original posting date, audit history, optional **Active Until**, automatic customer/staff hiding after expiry, and an Administrator-visible Expired state.
+- Added service-advisory editing with preserved author/original posting date, audit history, optional **Active Until**, automatic customer/staff hiding after expiry, and a Commercial Department-visible Expired state.
 - Kept the original MRWD navy/gold palette, wave headers, role layouts, terminology, and existing complaint workflow behavior.
 
 ## Interface and accessibility
@@ -48,13 +48,13 @@
 - Refined the login water artwork with clearer independent wave motion, a restrained gold crest, and gentle pointer-following parallax. The moving layers now meet a divider-anchored impact shape instead of forming a clipped circular loop. A rising crest, irregular white foam, and localized spray make the wave visibly crash against the white login panel before receding. The earlier sweeping shine and cursor glow remain removed. Feature rows retain a small hover response, while reduced-motion users receive a static treatment.
 - Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
-- Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.
+- Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for Commercial Department Staff and System Supervisors.
 - Made completed complaint-submission steps directly navigable and clarified that reverse-geocoded addresses remain editable.
 - Made Saved Address, Device Location, and Map Pin equal first-class location choices with one consistent selected treatment, while showing the confirmed address only in the address field.
 - Added subtle high-priority/pending emphasis, active-filter counts, and a single clear table-row action.
 - Simplified Maintenance Personnel task actions into one dominant next step, location tools, and a More actions disclosure.
 - Preserved complaint, task, and staff filters in the URL so browser Back returns users to the same working view.
-- Standardized the All Complaints filter panel to the same search-and-dropdown layout used by the task lists.
+- Standardized the Complaint Review filter panel to the same search-and-dropdown layout used by the task lists.
 - Added optional refresh notices to complaint lists/details instead of silently replacing data while a user is working.
 - Added paginated notifications with per-item dismissal and account-scoped deletion security.
 - Added a visible masked/reveal fallback for temporary staff passwords when clipboard access is unavailable.
@@ -64,7 +64,7 @@
 - Kept Leaflet maps below dialogs and modal backdrops.
 - Added shared width constraints to the application shell, top bar, main content, and footer so long child content cannot widen the page.
 - Made filter panels stack cleanly on narrow phones and reduced page-header padding below the small-screen breakpoint.
-- Kept dense operational tables for true desktop widths and automatically switched All Complaints, Assign Tasks, Staff Accounts, Audit Log, Reports, and My Tasks to readable cards on tablets and sidebar-width laptops.
+- Kept dense operational tables for true desktop widths and automatically switched Complaint Review, Complaint Dispatch, Staff Accounts, Audit Log, Complaint Reports, and My Tasks to readable cards on tablets and sidebar-width laptops.
 - Made announcement actions and Staff Accounts dialogs wrap, scroll, and remain fully reachable on small screens.
 
 ## Database
@@ -110,7 +110,7 @@ Real `.env` files remain local and are ignored by Git. They are not included in 
 - Renamed the complaint category **Water Interruption** to **No Water** while retaining the previous wording as a classifier synonym.
 - Added separate Commercial Department and ECMD records, operational staff positions, supervisors, Team Leaders, maintenance crews, crew membership, and optional crew assignment.
 - Added staff schedules and shift-aware availability.
-- Added Administrator-defined Low/Medium/High service targets, assignment due dates, overdue High Priority scanning, escalation acknowledgment, and resolution.
+- Added ECMD-defined Low/Medium/High service targets, assignment due dates, overdue High Priority scanning, escalation acknowledgment, and resolution.
 - Added independent approval requests for sensitive actions; complaint archival requires approval by someone other than the requester.
 - Added customer account-registry import and account-number validation.
 - Added bulk billing CSV import with row-level validation results.
@@ -119,7 +119,7 @@ Real `.env` files remain local and are ignored by Git. They are not included in 
 - Added email/SMS opt-in preferences and an external delivery queue. Actual sending intentionally remains disabled until MRWD provides an approved provider and credentials.
 - Added monthly filed-versus-completed reporting to the existing date-scoped Reports page.
 - Expanded the classifier from 129 to 149 entries with additional synonyms, suggestive symptoms, and commonly used Filipino/Hiligaynon phrases.
-- Added an Administrator **Operations** workspace that groups oversight, departments/crews, shifts/targets, imports, inventory, approvals, and archival controls.
+- Added operational tools for departments/crews, shifts/targets, imports, inventory, approvals, and archival controls; these tools are now separated into Commercial Department, ECMD, and System Administration pages.
 
 ### Required migration
 
@@ -145,7 +145,7 @@ Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after m
 
 ## Department module separation — August 14, 2026
 
-- Replaced the shared Administrator workspace with distinct Commercial Department, ECMD, and System Administration navigation groups and landing pages.
+- Replaced the shared staff workspace with distinct Commercial Department, ECMD, and System Administration page families and navigation groups.
 - Restricted complaint classification, priority overrides, reports, billing, announcements, and archival requests to the Commercial Department.
 - Restricted dispatch, crews, manpower, schedules, service targets, escalations, inventory, field updates, and maintenance reports to ECMD.
 - Restricted cross-department dashboard access, staff-account management, department assignment, independent approvals, final archival, and audit logs to System Supervisors.
@@ -157,7 +157,7 @@ Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after m
 
 ### Required migration
 
-Run `supabase/migrations/20260814100000_department_module_access.sql` after `20260813110000_client_operations_expansion.sql`. Back up the database first. Existing unassigned administrators are promoted to System Supervisor during this migration so the current management account is not locked out; future unassigned administrators are intentionally restricted.
+Run `supabase/migrations/20260814100000_department_module_access.sql` after `20260813110000_client_operations_expansion.sql`. Back up the database first. Existing unassigned internal `admin` profiles are promoted to System Supervisor during this migration so the current management account is not locked out; future unassigned Department Staff accounts are intentionally restricted.
 
 ### Verification
 

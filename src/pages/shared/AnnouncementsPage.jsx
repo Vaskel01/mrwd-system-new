@@ -82,7 +82,7 @@ export default function AnnouncementsPage() {
         </div>
       </div>
 
-      {/* Explicitly important notices — pinned and featured */}
+      {/* Explicitly Important notices — featured above regular notices */}
       {important.map(item => (
         <div key={item.id} className="card rounded-xl border-2 border-gold-400 overflow-hidden">
           <div className={`h-1.5 ${CAT_CONFIG[item.category]?.bar || 'bg-gray-400'}`} />

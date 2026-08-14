@@ -6,6 +6,8 @@ import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
 import { calculateServiceDueAt, overdueServiceState } from '../src/lib/serviceTargets.js'
 import { CAPABILITIES, capabilitiesForUser, hasCapability } from '../src/lib/accessControl.js'
+import { homeForUser } from '../../src/lib/accessControl.js'
+import { staffAccessLabel, TERMS } from '../../src/config/terminology.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({
@@ -95,6 +97,21 @@ test('department modules grant only their approved administrative capabilities',
   assert.equal(hasCapability(supervisor, CAPABILITIES.ECMD_OPERATIONS), true)
   assert.equal(hasCapability(supervisor, CAPABILITIES.SYSTEM_APPROVALS), true)
   assert.deepEqual(capabilitiesForUser(unassignedAdmin), [])
+})
+
+test('department accounts use canonical labels and distinct home pages', () => {
+  const commercialStaff = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' } }
+  const ecmdStaff = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' } }
+  const systemSupervisor = { role: 'admin', staff_position: 'supervisor', department: null }
+  const maintenancePersonnel = { role: 'maintenance_personnel' }
+
+  assert.equal(staffAccessLabel(commercialStaff), TERMS.COMMERCIAL_STAFF)
+  assert.equal(staffAccessLabel(ecmdStaff), TERMS.ECMD_STAFF)
+  assert.equal(staffAccessLabel(systemSupervisor), TERMS.SYSTEM_SUPERVISOR)
+  assert.equal(staffAccessLabel(maintenancePersonnel), TERMS.MAINTENANCE_PERSONNEL)
+  assert.equal(homeForUser(commercialStaff), '/commercial/complaints')
+  assert.equal(homeForUser(ecmdStaff), '/ecmd/dispatch')
+  assert.equal(homeForUser(systemSupervisor), '/system/dashboard')
 })
 
 test('ECMD administrative responses keep operational priority but hide classifier evidence', () => {

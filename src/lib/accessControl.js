@@ -51,15 +51,8 @@ export function hasCapability(user, ...required) {
 export function homeForUser(user) {
   if (user?.role === 'customer') return '/customer/my-complaints'
   if (user?.role === 'maintenance_personnel') return '/maintenance/tasks'
-  if (hasCapability(user, CAPABILITIES.SUPERVISOR_DASHBOARD)) return '/admin/dashboard'
-  if (hasCapability(user, CAPABILITIES.COMMERCIAL_COMPLAINTS)) return '/admin/complaints'
-  if (hasCapability(user, CAPABILITIES.ECMD_DISPATCH)) return '/admin/assign'
+  if (hasCapability(user, CAPABILITIES.SUPERVISOR_DASHBOARD)) return '/system/dashboard'
+  if (hasCapability(user, CAPABILITIES.COMMERCIAL_COMPLAINTS)) return '/commercial/complaints'
+  if (hasCapability(user, CAPABILITIES.ECMD_DISPATCH)) return '/ecmd/dispatch'
   return '/profile'
-}
-
-export function adminModuleLabel(user) {
-  if (isSystemSupervisor(user)) return 'System Supervisor'
-  if (departmentCodeFor(user) === 'COMMERCIAL') return 'Commercial Department'
-  if (departmentCodeFor(user) === 'ECMD') return 'ECMD'
-  return 'Restricted Administrator'
 }

@@ -298,7 +298,7 @@ export default function AuditLogPage() {
       <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Administrator · Accountability</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Audit Log</h1>
             <p className="text-navy-300 text-sm mt-1">Who performed each important complaint, task, and staff action.</p>
           </div>

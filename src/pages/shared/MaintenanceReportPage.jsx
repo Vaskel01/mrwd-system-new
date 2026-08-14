@@ -124,7 +124,7 @@ export default function MaintenanceReportPage() {
         <section className="mt-12 grid gap-10 text-center sm:grid-cols-3">
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Prepared by</p><p className="text-[10px] text-gray-500">{report.prepared_by?.name}</p></div>
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Team Leader / Supervisor</p></div>
-          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Administrator Approval</p></div>
+          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">System Supervisor Approval</p></div>
         </section>
       </article>
     </div>

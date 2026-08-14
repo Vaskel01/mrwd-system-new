@@ -1,8 +1,8 @@
 {
-  "classifierVersion": "hybrid-sentiment-v1.2.0",
+  "classifierVersion": "hybrid-sentiment-v1.3.0",
   "classificationMethod": "Hybrid sentiment-aware dataset-backed priority scoring algorithm",
   "typeScores": {
-    "Water Interruption": 40,
+    "No Water": 40,
     "Water Leak": 35,
     "Dirty / Discolored Water": 30,
     "Low Water Pressure": 20,

@@ -4,6 +4,7 @@ import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
+import { calculateServiceDueAt, overdueServiceState } from '../src/lib/serviceTargets.js'
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({
@@ -130,7 +131,7 @@ test('classifier recognizes a suggestive phrase that does not use the canonical 
     has_photo: false,
     base_severity_score: 10,
   })
-  assert.equal(result.predicted_category, 'Water Interruption')
+  assert.equal(result.predicted_category, 'No Water')
   assert.ok(result.matched_keywords.some(item => item.matched_term === 'nothing comes out of the faucet'))
 })
 
@@ -165,4 +166,30 @@ test('customer profile fields are trimmed, nullable, and verifiable after saving
   assert.equal(customerProfileMatches(normalized, normalized), true)
   assert.equal(customerProfileMatches({ ...normalized, phone: null }, normalized), false)
   assert.equal(normalizeCustomerProfileInput({ phone: '   ' }).phone, null)
+})
+
+test('expanded local suggestive phrases classify No Water and water-quality concerns', () => {
+  const noWater = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'Wala ga agas tubig sa amon halin sang aga.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  const quality = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'Maputik na tubig ang lumalabas sa gripo.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(noWater.predicted_category, 'No Water')
+  assert.equal(quality.predicted_category, 'Dirty / Discolored Water')
+})
+
+test('service targets calculate due dates and overdue escalation severity', () => {
+  const dueAt = calculateServiceDueAt('2026-08-01T00:00:00.000Z', 24)
+  assert.equal(dueAt, '2026-08-02T00:00:00.000Z')
+  assert.deepEqual(overdueServiceState(dueAt, 4, '2026-08-02T02:00:00.000Z'), {
+    overdue: true, hoursOverdue: 2, severity: 'warning',
+  })
+  assert.equal(overdueServiceState(dueAt, 4, '2026-08-02T05:00:00.000Z').severity, 'critical')
 })

@@ -56,6 +56,7 @@ export default function AssignTaskPage() {
   const restoreComplaint = useComplaintStore(s => s.restoreComplaint)
 
   const [staffList, setStaffList] = useState([])
+  const [crewList, setCrewList] = useState([])
   const [staffError, setStaffError] = useState('')
   const [view, setView] = useState(searchParams.get('view') || (searchParams.get('staff') ? 'active' : 'unassigned'))
   const [search, setSearch] = useState(searchParams.get('q') || '')
@@ -66,9 +67,11 @@ export default function AssignTaskPage() {
   const [checked, setChecked] = useState(new Set())
   const [assignTarget, setAssignTarget] = useState(null)
   const [selectedStaff, setSelectedStaff] = useState('')
+  const [selectedCrew, setSelectedCrew] = useState('')
   const [assignNotes, setAssignNotes] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [bulkStaff, setBulkStaff] = useState('')
+  const [bulkCrew, setBulkCrew] = useState('')
   const [bulkNotes, setBulkNotes] = useState('')
   const [bulkAssigning, setBulkAssigning] = useState(false)
   const [rejectTarget, setRejectTarget] = useState(null)
@@ -81,8 +84,8 @@ export default function AssignTaskPage() {
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
   useEffect(() => {
-    apiFetch('/users/maintenance-staff')
-      .then(({ staff }) => setStaffList(staff))
+    Promise.all([apiFetch('/users/maintenance-staff'), apiFetch('/operations/crews')])
+      .then(([staffResult, crewResult]) => { setStaffList(staffResult.staff || []); setCrewList(crewResult.crews || []) })
       .catch(err => setStaffError(err.message))
   }, [])
   useEffect(() => {
@@ -157,6 +160,7 @@ export default function AssignTaskPage() {
   const openAssignment = complaint => {
     setAssignTarget(complaint)
     setSelectedStaff(complaint.assigned_to || '')
+    setSelectedCrew(complaint.assigned_crew_id || '')
     setAssignNotes('')
   }
 
@@ -164,7 +168,7 @@ export default function AssignTaskPage() {
     if (!assignTarget || !selectedStaff) return
     setAssigning(true)
     try {
-      await assignComplaint(assignTarget.id, selectedStaff, assignNotes.trim())
+      await assignComplaint(assignTarget.id, selectedStaff, assignNotes.trim(), selectedCrew)
       showToast(`“${assignTarget.complaint_type}” assigned successfully.`)
       setAssignTarget(null)
     } catch (err) {
@@ -178,10 +182,11 @@ export default function AssignTaskPage() {
     if (!selectedComplaints.length || !bulkStaff) return
     setBulkAssigning(true)
     try {
-      await bulkAssign(selectedComplaints.map(c => c.id), bulkStaff, bulkNotes.trim())
+      await bulkAssign(selectedComplaints.map(c => c.id), bulkStaff, bulkNotes.trim(), bulkCrew)
       showToast(`${selectedComplaints.length} complaints assigned.`)
       setChecked(new Set())
       setBulkStaff('')
+      setBulkCrew('')
       setBulkNotes('')
     } catch (err) {
       showToast(err.message, 'error')
@@ -355,10 +360,14 @@ export default function AssignTaskPage() {
             </div>
             <button onClick={() => setChecked(new Set())} className="text-xs font-bold text-gray-500">Clear selection</button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto_auto] gap-2">
             <select name="assigntaskpage-bulk-staff-6" aria-label="Bulk Staff" value={bulkStaff} onChange={event => setBulkStaff(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="">Assign selected to…</option>
               {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
+            </select>
+            <select aria-label="Bulk ECMD crew" value={bulkCrew} onChange={event => setBulkCrew(event.target.value)} className="input-field rounded-lg text-sm">
+              <option value="">No crew assignment</option>
+              {crewList.map(crew => <option key={crew.id} value={crew.id}>{crew.name}</option>)}
             </select>
             <input name="assigntaskpage-shared-instructions-optional-7" aria-label="Shared instructions (optional)" value={bulkNotes} onChange={event => setBulkNotes(event.target.value)} placeholder="Shared instructions (optional)" className="input-field rounded-lg text-sm" />
             <button onClick={handleBulkAssign} disabled={!bulkStaff || bulkAssigning} className="btn-primary rounded-lg disabled:opacity-50">
@@ -477,6 +486,13 @@ export default function AssignTaskPage() {
                 <select name="assigntaskpage-selected-staff-11" aria-label="Selected Staff" value={selectedStaff} onChange={event => setSelectedStaff(event.target.value)} className="input-field rounded-lg">
                   <option value="">Select Maintenance Personnel…</option>
                   {staffList.map(staff => <option key={staff.id} value={staff.id} disabled={!staff.is_active || ['on_leave', 'off_duty'].includes(staff.availability_status)}>{staff.full_name}{!staff.is_active ? ' — Inactive' : staff.availability_status && staff.availability_status !== 'available' ? ` — ${staff.availability_status.replace('_', ' ')}` : ''}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">ECMD Crew (optional)</label>
+                <select aria-label="Selected ECMD crew" value={selectedCrew} onChange={event => setSelectedCrew(event.target.value)} className="input-field rounded-lg">
+                  <option value="">No crew assignment</option>
+                  {crewList.map(crew => <option key={crew.id} value={crew.id}>{crew.name}</option>)}
                 </select>
               </div>
               <div>

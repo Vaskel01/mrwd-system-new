@@ -22,6 +22,12 @@ function parseRange(fromValue, toValue) {
   return { from, to }
 }
 
+function monthKey(value) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit' })
+    .format(new Date(value))
+}
+
 router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { from, to } = parseRange(req.query.from, req.query.to)
@@ -38,6 +44,19 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
     if (staffError) throw staffError
 
     const completed = complaints.filter(item => item.status === 'completed')
+    const monthlyMap = new Map()
+    const ensureMonth = key => {
+      if (!monthlyMap.has(key)) monthlyMap.set(key, { month: key, filed: 0, completed: 0 })
+      return monthlyMap.get(key)
+    }
+    for (const item of allComplaints) {
+      const filedAt = new Date(item.created_at)
+      if ((!from || filedAt >= from) && (!to || filedAt <= to)) ensureMonth(monthKey(item.created_at)).filed += 1
+      if (item.completed_at) {
+        const completedAt = new Date(item.completed_at)
+        if ((!from || completedAt >= from) && (!to || completedAt <= to)) ensureMonth(monthKey(item.completed_at)).completed += 1
+      }
+    }
     const resolutionHours = completed
       .map(item => item.completed_at && item.created_at
         ? (new Date(item.completed_at) - new Date(item.created_at)) / 3600000
@@ -88,6 +107,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
       by_status: countBy(complaints, item => item.status === 'en_route' ? 'in_progress' : item.status),
       by_category: countBy(complaints, item => item.complaint_type),
       by_priority: countBy(complaints, item => item.priority),
+      monthly_summary: [...monthlyMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
       technician_workload: technicianWorkload,
     })
   } catch (error) {

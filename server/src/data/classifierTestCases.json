@@ -1,10 +1,10 @@
 [
   {
     "id": "TC-001",
-    "selected_type": "Water Interruption",
+    "selected_type": "No Water",
     "description": "There has been no water since yesterday and the whole barangay is affected.",
     "has_photo": false,
-    "expected_category": "Water Interruption",
+    "expected_category": "No Water",
     "expected_priority": "high"
   },
   {
@@ -73,18 +73,18 @@
   },
   {
     "id": "TC-010",
-    "selected_type": "Water Interruption",
+    "selected_type": "No Water",
     "description": "No supply for hours at the hospital. This is urgent.",
     "has_photo": false,
-    "expected_category": "Water Interruption",
+    "expected_category": "No Water",
     "expected_priority": "high"
   },
   {
     "id": "TC-011",
-    "selected_type": "Water Interruption",
+    "selected_type": "No Water",
     "description": "Water outage for hours in our area.",
     "has_photo": false,
-    "expected_category": "Water Interruption",
+    "expected_category": "No Water",
     "expected_priority": "high"
   },
   {
@@ -137,10 +137,10 @@
   },
   {
     "id": "TC-018",
-    "selected_type": "Water Interruption",
+    "selected_type": "No Water",
     "description": "We have been without water for two days and an elderly resident is affected.",
     "has_photo": false,
-    "expected_category": "Water Interruption",
+    "expected_category": "No Water",
     "expected_priority": "high"
   },
   {
@@ -196,7 +196,7 @@
     "selected_type": "Billing Concern",
     "description": "There is no water in the whole barangay since yesterday.",
     "has_photo": false,
-    "expected_category": "Water Interruption",
+    "expected_category": "No Water",
     "expected_priority": "high"
   }
 ]

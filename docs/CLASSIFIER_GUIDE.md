@@ -26,7 +26,7 @@ The frontend does not contain a duplicate classifier. It submits the complaint t
 
 ## Dataset contents
 
-The dataset contains 129 initial canonical entries. Each entry may include:
+The dataset contains 149 initial canonical entries. The added entries expand Filipino, Hiligaynon, synonym, and suggestive-phrase coverage. Each entry may include:
 
 - word or multi-word phrase
 - synonyms and lexical alternatives

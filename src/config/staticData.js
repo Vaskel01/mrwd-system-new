@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────
 
 export const COMPLAINT_TYPES = [
-  'Water Interruption',
+  'No Water',
   'Water Leak',
   'Low Water Pressure',
   'Dirty / Discolored Water',

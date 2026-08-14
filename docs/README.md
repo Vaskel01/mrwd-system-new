@@ -4,6 +4,7 @@
 |---|---|
 | `CLASSIFIER_GUIDE.md` | Explains the dataset-backed classifier, stored outputs, privacy rules, and evaluation limits. |
 | `UAT_TEST_PLAN.md` | Manual end-to-end checks for Customer, Administrator, Maintenance Personnel, security, and data integrity. |
+| `OPERATIONS_GUIDE.md` | Explains departments, crews, shifts, service targets, escalations, imports, approvals, inventory, archival, and external notifications. |
 | `keyword-dataset.xlsx` | Formatted dataset for review and thesis documentation. |
 | `keyword-dataset.csv` | Editable dataset source. |
 | `classifier-test-cases.csv` | Human-readable development test cases. |

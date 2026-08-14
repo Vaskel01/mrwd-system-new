@@ -5,8 +5,8 @@ A web-based complaint management and maintenance task assignment system for Metr
 ## Main features
 
 - **Customer:** register, maintain service-account details, submit geotagged complaints, attach photos, track timelines, acknowledge completed work, view billing records and important advisories, receive notifications, reopen completed complaints, print receipts, and submit feedback.
-- **Administrator:** review complaints and classifier evidence, apply audited priority overrides, assign or reassign maintenance work, manage staff accounts and availability, publish important advisories, review feedback, export reports, and inspect audit logs.
-- **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress and materials, request assistance or reassignment, submit completion reports, and view customer feedback.
+- **Administrator:** review complaints and classifier evidence, apply audited priority overrides, assign personnel and crews, manage departments, team leaders, shifts and service targets, monitor escalations, process approvals, import accounts and bills, manage inventory, publish important advisories, export reports, and inspect audit logs.
+- **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress, manpower, equipment and materials, request assistance or reassignment, submit completion reports, and print official maintenance reports.
 - **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
 - **Privacy:** Customers receive no classifier internals. Maintenance Personnel receive only the operational category and priority. Administrators can review the complete classifier breakdown.
 - **Interface:** the original MRWD navy, blue, gold, wave-header, and role-based visual design is retained, with keyboard focus, reduced-motion, dialog, navigation, and status-label accessibility support.
@@ -77,7 +77,8 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 12. `supabase/migrations/20260729101153_notification_cleanup_policy.sql`
 13. `supabase/migrations/20260729193000_announcement_lifecycle.sql`
 14. `supabase/migrations/20260729204500_fix_customer_profile_persistence.sql`
-15. `supabase/migrations/20260729210000_harden_profile_update_access.sql` — run last
+15. `supabase/migrations/20260729210000_harden_profile_update_access.sql`
+16. `supabase/migrations/20260813110000_client_operations_expansion.sql` — run last
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 
@@ -164,4 +165,5 @@ Redeploy after changing any `VITE_` variable because frontend variables are embe
 
 - [`docs/CLASSIFIER_GUIDE.md`](docs/CLASSIFIER_GUIDE.md)
 - [`docs/UAT_TEST_PLAN.md`](docs/UAT_TEST_PLAN.md)
+- [`docs/OPERATIONS_GUIDE.md`](docs/OPERATIONS_GUIDE.md)
 - [`docs/README.md`](docs/README.md)

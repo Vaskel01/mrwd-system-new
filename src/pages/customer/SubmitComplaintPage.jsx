@@ -17,7 +17,7 @@ const schema = z.object({
 const STEP_LABELS = ['Type', 'Details', 'Location', 'Review']
 
 const TYPE_ICONS = {
-  'Water Interruption': 'waterOff',
+  'No Water': 'waterOff',
   'Water Leak': 'droplet',
   'Low Water Pressure': 'pressure',
   'Dirty / Discolored Water': 'alert',

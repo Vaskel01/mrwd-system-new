@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
+const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled'
 const PASSWORD_ERROR = 'Use at least 8 characters with at least one letter and one number.'
 
 function isPasswordValid(password = '') {

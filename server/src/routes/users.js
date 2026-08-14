@@ -5,7 +5,7 @@ import { writeAudit } from '../lib/activity.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../lib/profileUpdate.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until'
+const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled'
 
 router.get('/me', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', req.user.id).single()
@@ -54,6 +54,14 @@ router.patch('/me', requireAuth, async (req, res) => {
       p_service_address: expectedCustomerProfile.service_address,
       p_barangay: expectedCustomerProfile.barangay,
     }
+
+    const { data: validation, error: validationError } = await req.supabase.rpc('validate_my_customer_account', {
+      p_account_number: expectedCustomerProfile.account_number,
+    })
+    if (validationError) return res.status(400).json({ error: validationError.message })
+    if (validation?.status === 'mismatch') {
+      return res.status(400).json({ error: validation.message, account_validation: validation })
+    }
   }
 
   const { error } = await req.supabase.rpc(rpcName, rpcArguments)
@@ -83,15 +91,46 @@ router.patch('/me', requireAuth, async (req, res) => {
   res.json({ user: storedUser })
 })
 
-router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, res) => {
-  const { data, error } = await req.supabase
-    .from('profiles')
-    .select('id, full_name, email, is_active, availability_status, availability_note, availability_until')
-    .eq('role', 'maintenance_personnel')
-    .order('full_name')
-
+router.patch('/me/notification-preferences', requireAuth, async (req, res) => {
+  const { email_enabled, sms_enabled } = req.body || {}
+  if (typeof email_enabled !== 'boolean' || typeof sms_enabled !== 'boolean') {
+    return res.status(400).json({ error: 'Email and SMS preferences must be true or false.' })
+  }
+  if (sms_enabled && !req.user.phone) {
+    return res.status(400).json({ error: 'Add a phone number before enabling SMS notifications.' })
+  }
+  const { data, error } = await req.supabase.rpc('update_my_notification_preferences', {
+    p_email: email_enabled,
+    p_sms: sms_enabled,
+  })
   if (error) return res.status(400).json({ error: error.message })
-  res.json({ staff: data || [] })
+  await writeAudit(req.supabase, req.user, 'profile.notification_preferences_updated', 'profile', req.user.id, { email_enabled, sms_enabled })
+  res.json({ user: data })
+})
+
+router.get('/maintenance-staff', requireAuth, requireRole('admin'), async (req, res) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const [staffResult, scheduleResult] = await Promise.all([
+    req.supabase
+      .from('profiles')
+      .select('id, full_name, email, is_active, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id')
+      .eq('role', 'maintenance_personnel')
+      .order('full_name'),
+    req.supabase.from('staff_schedules').select('staff_id, starts_at, ends_at, shift_status, notes').eq('shift_date', today),
+  ])
+
+  const error = staffResult.error || scheduleResult.error
+  if (error) return res.status(400).json({ error: error.message })
+  const scheduleMap = Object.fromEntries((scheduleResult.data || []).map(item => [item.staff_id, item]))
+  const staff = (staffResult.data || []).map(person => {
+    const schedule = scheduleMap[person.id] || null
+    const scheduledStatus = schedule?.shift_status === 'scheduled' ? 'available' : schedule?.shift_status
+    const effectiveStatus = person.availability_status && person.availability_status !== 'available'
+      ? person.availability_status
+      : scheduledStatus || person.availability_status || 'available'
+    return { ...person, schedule, availability_status: effectiveStatus }
+  })
+  res.json({ staff })
 })
 
 router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
@@ -106,7 +145,7 @@ router.get('/staff', requireAuth, requireRole('admin'), async (req, res) => {
 })
 
 router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
-  const { email, password, full_name, role } = req.body || {}
+  const { email, password, full_name, role, department_id, staff_position, supervisor_id } = req.body || {}
   if (!email || !password || !full_name || !['admin', 'maintenance_personnel'].includes(role)) {
     return res.status(400).json({ error: 'full_name, email, password, and a valid staff role are required.' })
   }
@@ -133,8 +172,19 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   })
   if (promoteError) return res.status(400).json({ error: promoteError.message })
 
+  if (department_id || staff_position || supervisor_id) {
+    const { error: assignmentError } = await req.supabase.rpc('admin_update_staff_assignment', {
+      p_staff_id: data.user.id,
+      p_department_id: department_id || null,
+      p_staff_position: staff_position || null,
+      p_supervisor_id: supervisor_id || null,
+    })
+    if (assignmentError) return res.status(400).json({ error: assignmentError.message })
+  }
+
   await writeAudit(req.supabase, req.user, 'staff.created', 'profile', data.user.id, { role, email: email.trim().toLowerCase() })
-  res.status(201).json({ user: promoted, requiresEmailConfirmation: !data.session })
+  const { data: finalProfile } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', data.user.id).single()
+  res.status(201).json({ user: finalProfile || promoted, requiresEmailConfirmation: !data.session })
 })
 
 router.patch('/:id/active', requireAuth, requireRole('admin'), async (req, res) => {

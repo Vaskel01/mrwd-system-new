@@ -21,6 +21,7 @@ import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage'
 import StaffAccountsPage from './pages/admin/StaffAccountsPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import AuditLogPage from './pages/admin/AuditLogPage'
+import OperationsPage from './pages/admin/OperationsPage'
 
 // Maintenance
 import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
@@ -30,6 +31,7 @@ import AnnouncementsPage from './pages/shared/AnnouncementsPage'
 import ComplaintDetailsPage from './pages/shared/ComplaintDetailsPage'
 import NotificationsPage from './pages/shared/NotificationsPage'
 import ProfilePage from './pages/shared/ProfilePage'
+import MaintenanceReportPage from './pages/shared/MaintenanceReportPage'
 
 export default function App() {
   return (
@@ -59,6 +61,11 @@ export default function App() {
         <Route path="/profile" element={
           <ProtectedRoute allowedRoles={['customer', 'admin', 'maintenance_personnel']}>
             <AppLayout><ProfilePage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/maintenance-reports/:id" element={
+          <ProtectedRoute allowedRoles={['admin', 'maintenance_personnel']}>
+            <AppLayout><MaintenanceReportPage /></AppLayout>
           </ProtectedRoute>
         }/>
 
@@ -109,6 +116,11 @@ export default function App() {
         <Route path="/admin/audit" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AppLayout><AuditLogPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/admin/operations" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AppLayout><OperationsPage /></AppLayout>
           </ProtectedRoute>
         }/>
 

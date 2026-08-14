@@ -9,6 +9,7 @@ import usersRoutes from './src/routes/users.js'
 import notificationsRoutes from './src/routes/notifications.js'
 import auditRoutes from './src/routes/audit.js'
 import reportsRoutes from './src/routes/reports.js'
+import operationsRoutes from './src/routes/operations.js'
 
 const app = express()
 
@@ -29,6 +30,7 @@ app.use('/api/users', usersRoutes)
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/audit', auditRoutes)
 app.use('/api/reports', reportsRoutes)
+app.use('/api/operations', operationsRoutes)
 
 // Centralized error handler — catches anything a route forgot to try/catch
 app.use((err, req, res, next) => {

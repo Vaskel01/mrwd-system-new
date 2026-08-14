@@ -17,6 +17,7 @@ const NAV = {
     { to: '/admin/assign',        icon: AssignIcon,  label: 'Assign Tasks' },
     { to: '/admin/reports',       icon: ReportIcon,  label: 'Reports & Export' },
     { to: '/admin/audit',         icon: AuditIcon,   label: 'Audit Log' },
+    { to: '/admin/operations',    icon: WrenchIcon,  label: 'Operations' },
     { to: '/admin/announcements', icon: BellIcon,    label: 'Announcements' },
     { to: '/admin/staff',         icon: UsersIcon,   label: 'Staff Accounts' },
     { to: '/profile',             icon: ProfileIcon, label: 'My Profile' },

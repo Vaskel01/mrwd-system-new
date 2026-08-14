@@ -104,10 +104,10 @@ export const useComplaintStore = create((set, get) => ({
 
   // Assign complaint to maintenance (admin only). notes is optional —
   // instructions for Maintenance Personnel, shown on the task and timeline.
-  assignComplaint: async (complaintId, staffId, notes) => {
+  assignComplaint: async (complaintId, staffId, notes, crewId = '') => {
     const { complaint } = await apiFetch(`/complaints/${complaintId}/assign`, {
       method: 'PATCH',
-      body: JSON.stringify({ assigned_to: staffId, notes: notes || undefined }),
+      body: JSON.stringify({ assigned_to: staffId, notes: notes || undefined, crew_id: crewId || undefined }),
     })
     set(s => ({
       complaints: s.complaints.map(c => (c.id === complaintId ? complaint : c)),
@@ -172,10 +172,10 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   // Bulk-assign several complaints to one Maintenance Personnel account.
-  bulkAssign: async (complaintIds, staffId, notes) => {
+  bulkAssign: async (complaintIds, staffId, notes, crewId = '') => {
     const result = await apiFetch('/complaints/bulk-assign', {
       method: 'POST',
-      body: JSON.stringify({ complaint_ids: complaintIds, assigned_to: staffId, notes: notes || undefined }),
+      body: JSON.stringify({ complaint_ids: complaintIds, assigned_to: staffId, notes: notes || undefined, crew_id: crewId || undefined }),
     })
     await get().fetchComplaints()
     return result

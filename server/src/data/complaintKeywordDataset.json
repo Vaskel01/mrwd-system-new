@@ -1,6 +1,6 @@
 {
   "dataset_name": "MRWD Complaint Keyword Classification Dataset",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "created_for": "MRWD Centralized Complaint Management and Maintenance Task Assignment System",
   "classification_outputs": [
     "predicted complaint category",
@@ -14,7 +14,7 @@
       "id": "KW-001",
       "term": "days without water",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 10,
       "priority_weight": 20,
       "severity": "high",
@@ -31,7 +31,7 @@
       "synonyms": ["water unavailable", "water supply stopped", "dry faucets"],
       "suggestive_phrases": ["nothing comes out of the faucet", "we cannot get any water", "there is nothing coming from the tap"],
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 9,
       "priority_weight": 18,
       "severity": "high",
@@ -46,7 +46,7 @@
       "id": "KW-003",
       "term": "no supply",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 9,
       "priority_weight": 18,
       "severity": "high",
@@ -61,7 +61,7 @@
       "id": "KW-004",
       "term": "water outage",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 9,
       "priority_weight": 16,
       "severity": "high",
@@ -76,7 +76,7 @@
       "id": "KW-005",
       "term": "without water",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 8,
       "priority_weight": 15,
       "severity": "high",
@@ -91,7 +91,7 @@
       "id": "KW-006",
       "term": "water interruption",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 8,
       "priority_weight": 12,
       "severity": "high",
@@ -106,7 +106,7 @@
       "id": "KW-007",
       "term": "supply interruption",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 8,
       "priority_weight": 12,
       "severity": "high",
@@ -121,7 +121,7 @@
       "id": "KW-008",
       "term": "water cut off",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 7,
       "priority_weight": 10,
       "severity": "medium",
@@ -136,7 +136,7 @@
       "id": "KW-009",
       "term": "walang tubig",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 9,
       "priority_weight": 18,
       "severity": "high",
@@ -151,7 +151,7 @@
       "id": "KW-010",
       "term": "wala tubig",
       "match_type": "phrase",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 9,
       "priority_weight": 18,
       "severity": "high",
@@ -166,7 +166,7 @@
       "id": "KW-011",
       "term": "outage",
       "match_type": "word",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 6,
       "priority_weight": 10,
       "severity": "medium",
@@ -181,7 +181,7 @@
       "id": "KW-012",
       "term": "interrupt",
       "match_type": "word",
-      "complaint_category": "Water Interruption",
+      "complaint_category": "No Water",
       "category_weight": 5,
       "priority_weight": 7,
       "severity": "medium",
@@ -1958,6 +1958,66 @@
       "source": "Initial domain-informed thesis dataset; validate with MRWD staff",
       "rationale": "Supports a meter fault when the complaint says the meter is broken in reversed word order.",
       "active": true
+    },
+    {
+      "id": "KW-130", "term": "walang dumadaloy na tubig", "match_type": "phrase", "complaint_category": "No Water", "category_weight": 10, "priority_weight": 18, "severity": "high", "sentiment": "urgent", "context": "local synonym", "negation_sensitive": false, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Filipino phrase indicating total loss of flow.", "active": true
+    },
+    {
+      "id": "KW-131", "term": "wala ga agas tubig", "match_type": "phrase", "complaint_category": "No Water", "category_weight": 10, "priority_weight": 18, "severity": "high", "sentiment": "urgent", "context": "local synonym", "negation_sensitive": false, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Common Hiligaynon phrasing indicating no water flow.", "active": true
+    },
+    {
+      "id": "KW-132", "term": "gripo walang lumalabas", "match_type": "phrase", "complaint_category": "No Water", "category_weight": 8, "priority_weight": 14, "severity": "high", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": false, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Suggests that the service has no water output.", "active": true
+    },
+    {
+      "id": "KW-133", "term": "may tagas ang tubo", "match_type": "phrase", "complaint_category": "Water Leak", "category_weight": 10, "priority_weight": 14, "severity": "high", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Filipino phrase directly indicating a pipe leak.", "active": true
+    },
+    {
+      "id": "KW-134", "term": "ga tulo ang tubo", "match_type": "phrase", "complaint_category": "Water Leak", "category_weight": 9, "priority_weight": 13, "severity": "high", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Hiligaynon phrase indicating a leaking pipe.", "active": true
+    },
+    {
+      "id": "KW-135", "term": "water appearing on the road", "match_type": "phrase", "complaint_category": "Water Leak", "category_weight": 7, "priority_weight": 10, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Surface water without rain can suggest an underground leak.", "active": true
+    },
+    {
+      "id": "KW-136", "term": "malabo ang tubig", "match_type": "phrase", "complaint_category": "Dirty / Discolored Water", "category_weight": 9, "priority_weight": 13, "severity": "high", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Filipino phrase describing cloudy water.", "active": true
+    },
+    {
+      "id": "KW-137", "term": "may amoy ang tubig", "match_type": "phrase", "complaint_category": "Dirty / Discolored Water", "category_weight": 9, "priority_weight": 15, "severity": "high", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Unusual odor suggests a possible water-quality concern.", "active": true
+    },
+    {
+      "id": "KW-138", "term": "tubig may kalawang", "match_type": "phrase", "complaint_category": "Dirty / Discolored Water", "category_weight": 9, "priority_weight": 14, "severity": "high", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Rust-colored water suggests discoloration.", "active": true
+    },
+    {
+      "id": "KW-139", "term": "maputik na tubig", "match_type": "phrase", "complaint_category": "Dirty / Discolored Water", "category_weight": 10, "priority_weight": 16, "severity": "high", "sentiment": "urgent", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Muddy water is a strong quality indicator.", "active": true
+    },
+    {
+      "id": "KW-140", "term": "mahina ang agos", "match_type": "phrase", "complaint_category": "Low Water Pressure", "category_weight": 9, "priority_weight": 8, "severity": "medium", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Filipino phrase indicating weak water flow.", "active": true
+    },
+    {
+      "id": "KW-141", "term": "hinay ang tubig", "match_type": "phrase", "complaint_category": "Low Water Pressure", "category_weight": 8, "priority_weight": 8, "severity": "medium", "sentiment": "negative", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Hiligaynon phrase suggesting weak pressure.", "active": true
+    },
+    {
+      "id": "KW-142", "term": "barely flowing", "match_type": "phrase", "complaint_category": "Low Water Pressure", "category_weight": 8, "priority_weight": 8, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Very weak flow suggests low pressure.", "active": true
+    },
+    {
+      "id": "KW-143", "term": "umiikot kahit sarado", "match_type": "phrase", "complaint_category": "Meter Problem", "category_weight": 10, "priority_weight": 9, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "A meter moving while fixtures are closed suggests a meter or leak concern.", "active": true
+    },
+    {
+      "id": "KW-144", "term": "meter keeps spinning", "match_type": "phrase", "complaint_category": "Meter Problem", "category_weight": 10, "priority_weight": 9, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Continued meter movement suggests an abnormal reading.", "active": true
+    },
+    {
+      "id": "KW-145", "term": "reading does not match", "match_type": "phrase", "complaint_category": "Meter Problem", "category_weight": 8, "priority_weight": 6, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "A mismatched reading supports meter review.", "active": true
+    },
+    {
+      "id": "KW-146", "term": "unexpectedly high bill", "match_type": "phrase", "complaint_category": "Billing Concern", "category_weight": 9, "priority_weight": 5, "severity": "medium", "sentiment": "negative", "context": "suggestive symptom", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "An unexpected bill increase supports billing review.", "active": true
+    },
+    {
+      "id": "KW-147", "term": "charged too much", "match_type": "phrase", "complaint_category": "Billing Concern", "category_weight": 8, "priority_weight": 5, "severity": "medium", "sentiment": "negative", "context": "synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Suggests a possible overbilling concern.", "active": true
+    },
+    {
+      "id": "KW-148", "term": "gusto magpakabit", "match_type": "phrase", "complaint_category": "New Connection Request", "category_weight": 9, "priority_weight": 0, "severity": "low", "sentiment": "neutral", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Filipino phrase requesting a new service connection.", "active": true
+    },
+    {
+      "id": "KW-149", "term": "magpa connect tubig", "match_type": "phrase", "complaint_category": "New Connection Request", "category_weight": 9, "priority_weight": 0, "severity": "low", "sentiment": "neutral", "context": "local synonym", "negation_sensitive": true, "source": "Expanded synonym and suggestive-phrase dataset; validate with MRWD staff", "rationale": "Common mixed-language phrase requesting connection service.", "active": true
     }
   ]
 }

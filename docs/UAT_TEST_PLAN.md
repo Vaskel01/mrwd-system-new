@@ -127,3 +127,20 @@ where status = 'completed'
 ## Classifier evaluation
 
 The included 25 cases are development checks. Final research results should use a separate, blinded set of 50–100 anonymized complaints labeled by MRWD personnel. Do not tune the dataset using the final test set.
+
+## Operations expansion checks
+
+| ID | Test | Expected result |
+|---|---|---|
+| OPS-01 | Create Commercial and ECMD staff assignments | Department and operational position save without changing the account's security role. |
+| OPS-02 | Create a crew with a Team Leader and members | The crew appears in assignment controls and each active member is listed once. |
+| OPS-03 | Assign a complaint to personnel and a crew | One active task exists, the crew is recorded, and the assignment date/timeline are visible. |
+| OPS-04 | Add an unavailable shift for today | The staff member is shown as unavailable for assignment. |
+| OPS-05 | Change a High Priority service target and assign a complaint | The complaint receives a due date based on the active target. |
+| OPS-06 | Scan overdue High Priority complaints | One open escalation is created per overdue complaint; repeated scans do not create duplicates. |
+| OPS-07 | Request archival and attempt self-approval | Self-approval is rejected; a different authorized Administrator can approve and archive. |
+| OPS-08 | Import account-registry CSV, then save a matching/mismatching customer account | A match validates; a mismatch is rejected with a clear message. |
+| OPS-09 | Import valid and invalid billing rows | Valid rows save and invalid rows return row-level errors. |
+| OPS-10 | Record concurrent inventory usage | Stock never becomes negative and all accepted usage appears in the task report. |
+| OPS-11 | Record manpower and print the official maintenance report | Crew, personnel, hours, materials, equipment, completion, and customer acknowledgment are readable in print/PDF. |
+| OPS-12 | Enable email/SMS preferences without a provider worker | In-app notification succeeds and eligible external deliveries remain safely queued rather than falsely marked sent. |

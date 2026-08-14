@@ -45,6 +45,7 @@
 - Preserved the original wave headers, split authentication pages, typography, badges, and page layouts.
 - Extended the page headers' navy pattern to the primary sidebar and anchored one matching layered water-wave treatment at its bottom.
 - Replaced the login information panel's decorative bubbles with three subtle animated water layers contained within its lower 35%, including reduced-motion support.
+- Refined the login water artwork with clearer independent wave motion, a restrained gold crest, and gentle pointer-following parallax. The moving layers now meet a divider-anchored impact shape instead of forming a clipped circular loop. A rising crest, irregular white foam, and localized spray make the wave visibly crash against the white login panel before receding. The earlier sweeping shine and cursor glow remain removed. Feature rows retain a small hover response, while reduced-motion users receive a static treatment.
 - Replaced decorative emoji with a consistent stroke-based SVG icon system and accessible labels.
 - Kept the conventional topbar notification bell and removed the duplicate sidebar destination.
 - Added priority-band help and a visual base/dataset/sentiment/photo score composition diagram for administrators.
@@ -91,6 +92,7 @@ They add complaint references, customer profile fields, Important announcement s
 - Automated backend/core-feature tests: 12/12 passed
 - Responsive browser audit: 100/100 route-and-viewport combinations passed at 320, 375, 768, 1024, and 1366 pixels with no page-level horizontal overflow or off-screen form controls
 - Mobile Staff Accounts dialog check: passed at 320 × 700, including the taller Maintenance Personnel action dialog
+- Login motion check: passed in the production preview at the reported 1882 × 957 viewport; the impact stays flush with the white-panel divider, its foam ribbon remains attached to the rising crest, localized spray is visible during impact, and the old circular tail is gone. No cursor glow or sweeping shine remains, and reduced-motion disables both animation and pointer response
 - Original split authentication design, MRWD navy/gold palette, wave styling, and responsive form layout were preserved
 - Classifier development cases:
   - Category: 25/25
@@ -102,3 +104,41 @@ The build reports a non-blocking bundle-size advisory. Dependency installation r
 ## Security and packaging
 
 Real `.env` files remain local and are ignored by Git. They are not included in the delivered archive. Only `.env.example` files are packaged.
+
+## Client operations expansion — August 13, 2026
+
+- Renamed the complaint category **Water Interruption** to **No Water** while retaining the previous wording as a classifier synonym.
+- Added separate Commercial Department and ECMD records, operational staff positions, supervisors, Team Leaders, maintenance crews, crew membership, and optional crew assignment.
+- Added staff schedules and shift-aware availability.
+- Added Administrator-defined Low/Medium/High service targets, assignment due dates, overdue High Priority scanning, escalation acknowledgment, and resolution.
+- Added independent approval requests for sensitive actions; complaint archival requires approval by someone other than the requester.
+- Added customer account-registry import and account-number validation.
+- Added bulk billing CSV import with row-level validation results.
+- Added inventory items, stock adjustments, task materials/equipment usage, manpower records, and atomic stock deduction.
+- Added a printable official maintenance report with assignment, crew, manpower, inventory, completion evidence, and customer acknowledgment.
+- Added email/SMS opt-in preferences and an external delivery queue. Actual sending intentionally remains disabled until MRWD provides an approved provider and credentials.
+- Added monthly filed-versus-completed reporting to the existing date-scoped Reports page.
+- Expanded the classifier from 129 to 149 entries with additional synonyms, suggestive symptoms, and commonly used Filipino/Hiligaynon phrases.
+- Added an Administrator **Operations** workspace that groups oversight, departments/crews, shifts/targets, imports, inventory, approvals, and archival controls.
+
+### Required migration
+
+Run `supabase/migrations/20260813110000_client_operations_expansion.sql` after migration 15. Review and back up the database before applying it.
+
+### Boundaries requiring client confirmation
+
+- Official complaint-category terms and classifier weights remain subject to MRWD review.
+- Default service targets are provisional until MRWD approves them.
+- Email/SMS delivery needs a selected provider, credentials, verified sender, consent language, and a deployed worker.
+- The prototype uses controlled CSV import because no authorized legacy billing/account integration interface was supplied.
+- Archival is a reversible soft archive; retention and deletion policies require MRWD approval.
+
+### Final verification for this expansion
+
+- ESLint: passed with no errors; three pre-existing React Hook Form compiler advisories remain warnings only.
+- Production build: passed (200 modules transformed).
+- Backend/core-feature tests: 14/14 passed.
+- Classifier development checks: category 25/25; priority 24/25. TC-016 remains High at the documented exact score boundary of 60.
+- Browser verification: Operations, Reports, My Profile, and Official Maintenance Report passed at 1366 × 900 and 375 × 812, with no error overlays, console errors, or page-level horizontal overflow.
+- Updated classifier workbook: 149 entries, 25 test cases, no formula-error values, and visually checked Summary, Dataset, and Test Cases sheets.
+- Environment files remain present locally and are excluded from the archive.

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
+import { calculateServiceDueAt } from '../lib/serviceTargets.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
 import { getAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 
@@ -52,12 +53,27 @@ async function respondWithComplaint(req, res, id, statusCode = 200) {
   }
 }
 
-async function assignOne(req, complaintId, assignedTo, notes) {
+async function assignOne(req, complaintId, assignedTo, notes, crewId = null) {
   const previous = await getTaskForComplaint(req.supabase, complaintId)
   const complaintRow = await getComplaintRow(req.supabase, complaintId)
   if (!complaintRow) throw new Error('Complaint not found.')
   if (['completed', 'cancelled', 'rejected'].includes(complaintRow.status)) {
     throw new Error('A completed, cancelled, or rejected complaint cannot be assigned until it is reopened or restored.')
+  }
+
+  // Validate the optional crew before changing the active assignment so a bad
+  // crew selection cannot leave a complaint partially assigned.
+  let crew = null
+  if (crewId) {
+    const { data: crewData, error: crewError } = await req.supabase
+      .from('maintenance_crews')
+      .select('id, name, is_active')
+      .eq('id', crewId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (crewError) throw crewError
+    if (!crewData) throw new Error('The selected maintenance crew is unavailable.')
+    crew = crewData
   }
 
   const { data: task, error } = await req.supabase.rpc('assign_complaint_task', {
@@ -67,13 +83,32 @@ async function assignOne(req, complaintId, assignedTo, notes) {
   })
   if (error) throw error
 
+  if (crew) {
+    const { error: taskError } = await req.supabase
+      .from('maintenance_tasks')
+      .update({ assigned_crew_id: crew.id })
+      .eq('id', task.id)
+    if (taskError) throw taskError
+  }
+
+  const { data: target } = await req.supabase
+    .from('service_targets')
+    .select('resolution_hours')
+    .eq('priority', complaintRow.priority)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (target?.resolution_hours) {
+    const dueAt = calculateServiceDueAt(complaintRow.submitted_at, target.resolution_hours)
+    await req.supabase.from('complaints').update({ service_target_due_at: dueAt }).eq('id', complaintId)
+  }
+
   const maintenancePerson = await getProfile(req.supabase, assignedTo)
   const isReassignment = Boolean(previous?.assigned_staff_id && previous.assigned_staff_id !== assignedTo)
   await logTaskUpdate(
     req.supabase,
     task.id,
     req.user.id,
-    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${maintenancePerson?.full_name || 'Maintenance Personnel'}${notes ? `. Instructions: ${notes}` : '.'}`
+    `${isReassignment ? 'Reassigned' : 'Assigned'} to ${maintenancePerson?.full_name || 'Maintenance Personnel'}${crew ? ` with ${crew.name}` : ''}${notes ? `. Instructions: ${notes}` : '.'}`
   )
 
   await notifyUsers(req.supabase, req.user, [assignedTo], {
@@ -97,6 +132,8 @@ async function assignOne(req, complaintId, assignedTo, notes) {
     assigned_to: assignedTo,
     previous_assignee: previous?.assigned_staff_id || null,
     notes: notes || null,
+    assigned_crew_id: crew?.id || null,
+    assigned_crew_name: crew?.name || null,
   })
   return task
 }
@@ -166,14 +203,14 @@ router.post('/reclassify-all', requireAuth, requireRole('admin'), async (req, re
 
 // POST /api/complaints/bulk-assign — admin only
 router.post('/bulk-assign', requireAuth, requireRole('admin'), async (req, res) => {
-  const { complaint_ids, assigned_to, notes } = req.body || {}
+  const { complaint_ids, assigned_to, notes, crew_id } = req.body || {}
   if (!Array.isArray(complaint_ids) || complaint_ids.length === 0 || !assigned_to) {
     return res.status(400).json({ error: 'complaint_ids (array) and assigned_to are required.' })
   }
   const results = []
   for (const id of [...new Set(complaint_ids)]) {
     try {
-      await assignOne(req, id, assigned_to, notes?.trim())
+      await assignOne(req, id, assigned_to, notes?.trim(), crew_id || null)
       results.push({ id, ok: true })
     } catch (error) {
       results.push({ id, ok: false, error: error.message })
@@ -412,10 +449,10 @@ router.patch('/:id/acknowledge-completion', requireAuth, requireRole('customer')
 
 // Assignment / reassignment
 router.patch('/:id/assign', requireAuth, requireRole('admin'), async (req, res) => {
-  const { assigned_to, notes } = req.body || {}
+  const { assigned_to, notes, crew_id } = req.body || {}
   if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required.' })
   try {
-    await assignOne(req, req.params.id, assigned_to, String(notes || '').trim())
+    await assignOne(req, req.params.id, assigned_to, String(notes || '').trim(), crew_id || null)
     return respondWithComplaint(req, res, req.params.id)
   } catch (error) {
     return res.status(400).json({ error: error.message })

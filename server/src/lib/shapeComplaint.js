@@ -25,8 +25,9 @@ const DUPLICATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
  * returns them reshaped for the frontend. `filterFn` lets a caller
  * further narrow the query (e.g. `.eq('id', id)`) before it runs.
  */
-export async function fetchShapedComplaints(supabase, { filter } = {}) {
+export async function fetchShapedComplaints(supabase, { filter, includeArchived = false } = {}) {
   let query = supabase.from('complaints').select('*').order('submitted_at', { ascending: false })
+  if (!includeArchived) query = query.is('archived_at', null)
   if (filter) query = filter(query)
 
   const { data: rows, error } = await query
@@ -84,7 +85,7 @@ export async function fetchShapedComplaints(supabase, { filter } = {}) {
 }
 
 export async function fetchShapedComplaintById(supabase, id) {
-  const results = await fetchShapedComplaints(supabase, { filter: q => q.eq('id', id) })
+  const results = await fetchShapedComplaints(supabase, { filter: q => q.eq('id', id), includeArchived: true })
   return results[0] || null
 }
 
@@ -162,6 +163,8 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     classifier_version: row.classifier_version || null,
     classification_method: row.classification_method || null,
     assigned_to: task ? task.assigned_staff_id : null,
+    task_id: task ? task.id : null,
+    assigned_crew_id: task ? task.assigned_crew_id : null,
     assigned_name: task ? (profileMap[task.assigned_staff_id] || 'Unassigned staff') : null,
     task_status: task ? task.status : null,
     task_notes: task ? task.notes : null,
@@ -186,6 +189,10 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     reopen_reason: row.reopen_reason || null,
     customer_acknowledged_at: row.customer_acknowledged_at || null,
     customer_acknowledgment_note: row.customer_acknowledgment_note || null,
+    service_target_due_at: row.service_target_due_at || null,
+    escalated_at: row.escalated_at || null,
+    archived_at: row.archived_at || null,
+    archive_reason: row.archive_reason || null,
     created_at: row.submitted_at,
     updated_at: row.updated_at,
   }

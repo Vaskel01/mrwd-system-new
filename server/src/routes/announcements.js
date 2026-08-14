@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { requireAuth, requireCapability } from '../middleware/auth.js'
-import { CAPABILITIES } from '../lib/accessControl.js'
+import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
 
 // GET /api/announcements — any authenticated user
 router.get('/', requireAuth, async (req, res) => {
-  const includeExpired = req.user.role === 'admin' && req.query.include_expired === 'true'
+  const includeExpired = hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS) && req.query.include_expired === 'true'
   let query = req.supabase
     .from('announcements')
     .select('*')

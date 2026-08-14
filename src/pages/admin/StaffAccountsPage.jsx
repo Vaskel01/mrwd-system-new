@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useStaffStore } from '../../store/staffStore'
-import { useComplaintStore } from '../../store/complaintStore'
 import { useAuthStore } from '../../store/authStore'
 import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -12,13 +11,27 @@ import AppIcon from '../../components/ui/AppIcon'
 import { apiFetch } from '../../lib/api'
 import { staffAccessLabel } from '../../config/terminology'
 
-const ROLE_BADGE = {
-  admin: 'bg-purple-100 text-purple-800 border-purple-200',
+const ACCOUNT_BADGE = {
+  system_supervisor: 'bg-purple-100 text-purple-800 border-purple-200',
+  commercial_staff: 'bg-blue-100 text-blue-800 border-blue-200',
+  ecmd_staff: 'bg-cyan-100 text-cyan-800 border-cyan-200',
   maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
 }
-const ROLE_LABEL = {
-  admin: 'Department Staff',
+const ACCOUNT_LABEL = {
+  system_supervisor: 'System Supervisor',
+  commercial_staff: 'Commercial Services Staff',
+  ecmd_staff: 'ECMD Staff',
   maintenance_personnel: 'Maintenance Personnel',
+}
+
+function accountTypeKey(account) {
+  if (account?.role === 'maintenance_personnel') return 'maintenance_personnel'
+  if (account?.role !== 'admin') return account?.role || 'unknown'
+  if (['manager', 'supervisor'].includes(String(account.staff_position || '').toLowerCase())) return 'system_supervisor'
+  const departmentCode = String(account.department?.code || account.department_code || '').toUpperCase()
+  if (departmentCode === 'COMMERCIAL') return 'commercial_staff'
+  if (departmentCode === 'ECMD') return 'ecmd_staff'
+  return 'system_supervisor'
 }
 
 function accessModuleLabel(account) {
@@ -53,12 +66,10 @@ const schema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters')
     .regex(/[A-Za-z]/, 'Password must include a letter')
     .regex(/\d/, 'Password must include a number'),
-  role: z.enum(['admin', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select an account type' }) }),
-  access_module: z.enum(['commercial', 'ecmd', 'system'], { errorMap: () => ({ message: 'Select a department module' }) }),
+  account_type: z.enum(['system_supervisor', 'commercial_staff', 'ecmd_staff', 'maintenance_personnel'], { errorMap: () => ({ message: 'Select an account type' }) }),
 })
 
 export default function StaffAccountsPage() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const currentUser = useAuthStore(state => state.user)
   const staff = useStaffStore(s => s.staff)
@@ -68,8 +79,6 @@ export default function StaffAccountsPage() {
   const createStaff = useStaffStore(s => s.createStaff)
   const setStaffActive = useStaffStore(s => s.setStaffActive)
   const sendPasswordReset = useStaffStore(s => s.sendPasswordReset)
-  const complaints = useComplaintStore(s => s.complaints)
-  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
 
   const [showForm, setShowForm] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -90,11 +99,10 @@ export default function StaffAccountsPage() {
 
   useEffect(() => {
     fetchStaff()
-    fetchComplaints()
     apiFetch('/operations/system-bootstrap')
       .then(result => setDepartments(result.departments || []))
       .catch(() => setDepartments([]))
-  }, [fetchStaff, fetchComplaints])
+  }, [fetchStaff])
   useEffect(() => {
     const next = {}
     if (search.trim()) next.q = search.trim()
@@ -104,52 +112,32 @@ export default function StaffAccountsPage() {
     setSearchParams(next, { replace: true })
   }, [search, roleFilter, accountFilter, sortBy, setSearchParams])
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: '', email: '', password: '', role: '', access_module: '' },
+    defaultValues: { full_name: '', email: '', password: '', account_type: '' },
   })
-  const selectedRole = watch('role')
-
-  const workload = useMemo(() => {
-    const result = {}
-    for (const account of staff) {
-      const assigned = complaints.filter(c => c.assigned_to === account.id)
-      const active = assigned.filter(c => ['assigned', 'en_route', 'in_progress'].includes(c.status)).length
-      const completed = assigned.filter(c => c.status === 'completed').length
-      const rejected = assigned.filter(c => c.status === 'rejected').length
-      result[account.id] = {
-        total: assigned.length,
-        active,
-        completed,
-        rejected,
-        rate: active + completed > 0 ? Math.round(completed / (active + completed) * 100) : 0,
-      }
-    }
-    return result
-  }, [staff, complaints])
 
   const filteredStaff = useMemo(() => {
     const query = search.trim().toLowerCase()
     return staff
-      .filter(account => roleFilter === 'all' || account.role === roleFilter)
+      .filter(account => roleFilter === 'all' || accountTypeKey(account) === roleFilter)
       .filter(account => accountFilter === 'all' || (accountFilter === 'active' ? account.is_active !== false : account.is_active === false))
-      .filter(account => !query || [account.full_name, account.email, ROLE_LABEL[account.role], account.role]
+      .filter(account => !query || [account.full_name, account.email, ACCOUNT_LABEL[accountTypeKey(account)], accessModuleLabel(account), account.role]
         .some(value => String(value || '').toLowerCase().includes(query)))
       .sort((a, b) => {
         if (sortBy === 'name') return a.full_name.localeCompare(b.full_name)
         if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at)
         if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at)
-        if (sortBy === 'active') return (workload[b.id]?.active || 0) - (workload[a.id]?.active || 0)
-        if (sortBy === 'completed') return (workload[b.id]?.completed || 0) - (workload[a.id]?.completed || 0)
         return 0
       })
-  }, [staff, roleFilter, accountFilter, search, sortBy, workload])
+  }, [staff, roleFilter, accountFilter, search, sortBy])
 
   const counts = {
     all: staff.length,
-    admins: staff.filter(account => account.role === 'admin').length,
-    maintenance: staff.filter(account => account.role === 'maintenance_personnel').length,
-    activeTasks: complaints.filter(c => c.assigned_to && ['assigned', 'en_route', 'in_progress', 'blocked'].includes(c.status)).length,
+    system: staff.filter(account => accountTypeKey(account) === 'system_supervisor').length,
+    commercial: staff.filter(account => accountTypeKey(account) === 'commercial_staff').length,
+    ecmd: staff.filter(account => accountTypeKey(account) === 'ecmd_staff').length,
+    maintenance: staff.filter(account => accountTypeKey(account) === 'maintenance_personnel').length,
   }
 
   const showToast = (message, type = 'success') => {
@@ -161,17 +149,17 @@ export default function StaffAccountsPage() {
     setCreating(true)
     setError('')
     try {
-      const requestedModule = data.role === 'maintenance_personnel' ? 'ecmd' : data.access_module
+      const requestedModule = data.account_type === 'commercial_staff' ? 'commercial' : data.account_type === 'system_supervisor' ? 'system' : 'ecmd'
       const department = departments.find(item => item.code === requestedModule.toUpperCase())
       if (requestedModule !== 'system' && !department) throw new Error(`The ${requestedModule.toUpperCase()} department record is missing. Run the department-access migration first.`)
       const normalized = {
-        ...data,
         email: data.email.trim().toLowerCase(),
         full_name: data.full_name.trim(),
+        password: data.password,
+        role: data.account_type === 'maintenance_personnel' ? 'maintenance_personnel' : 'admin',
         department_id: department?.id || null,
-        staff_position: requestedModule === 'system' ? 'supervisor' : data.role === 'maintenance_personnel' ? 'crew_member' : requestedModule === 'commercial' ? 'commercial_staff' : 'department_staff',
+        staff_position: data.account_type === 'system_supervisor' ? 'supervisor' : data.account_type === 'maintenance_personnel' ? 'crew_member' : data.account_type === 'commercial_staff' ? 'commercial_staff' : 'department_staff',
       }
-      delete normalized.access_module
       const result = await createStaff(normalized)
       setCreatedCredentials({ email: normalized.email, password: normalized.password, name: normalized.full_name })
       setShowCredentialPassword(false)
@@ -191,8 +179,8 @@ export default function StaffAccountsPage() {
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
-      await Promise.all([fetchStaff(), fetchComplaints()])
-      showToast('Staff accounts and workloads refreshed.')
+      await fetchStaff()
+      showToast('Staff accounts refreshed.')
     } finally {
       setRefreshing(false)
     }
@@ -258,10 +246,6 @@ export default function StaffAccountsPage() {
   }
 
   const managedAccount = staff.find(account => account.id === manageAccountId) || null
-  const managedStats = managedAccount
-    ? workload[managedAccount.id] || { total: 0, active: 0, completed: 0, rejected: 0, rate: 0 }
-    : null
-
   const accountActions = account => (
     <div className="flex justify-end">
       <button
@@ -282,7 +266,7 @@ export default function StaffAccountsPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl tracking-tight">Staff Accounts</h1>
-            <p className="text-navy-300 text-sm mt-1">Manage access, password resets, availability, and Maintenance Personnel workload.</p>
+            <p className="text-navy-300 text-sm mt-1">Create and manage separate logins for Commercial Services, ECMD, Maintenance Personnel, and System Supervisors.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <button onClick={handleRefresh} disabled={refreshing}
@@ -333,19 +317,19 @@ export default function StaffAccountsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
-        <button onClick={() => setRoleFilter('all')} className={`card rounded-xl p-4 text-left ${roleFilter === 'all' ? 'ring-2 ring-navy-700 border-navy-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-navy-800">{counts.all}</p><p className="text-xs font-bold text-gray-500 mt-1">All Staff</p>
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 xl:grid-cols-4 gap-3">
+        <button onClick={() => setRoleFilter('commercial_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'commercial_staff' ? 'ring-2 ring-blue-600 border-blue-300' : ''}`}>
+          <p className="font-display font-black text-3xl text-blue-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">Commercial Services</p>
         </button>
-        <button onClick={() => setRoleFilter('admin')} className={`card rounded-xl p-4 text-left ${roleFilter === 'admin' ? 'ring-2 ring-purple-600 border-purple-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-purple-700">{counts.admins}</p><p className="text-xs font-bold text-gray-500 mt-1">Department Staff</p>
+        <button onClick={() => setRoleFilter('ecmd_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'ecmd_staff' ? 'ring-2 ring-cyan-600 border-cyan-300' : ''}`}>
+          <p className="font-display font-black text-3xl text-cyan-700">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff</p>
         </button>
         <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'ring-2 ring-amber-600 border-amber-300' : ''}`}>
           <p className="font-display font-black text-3xl text-amber-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
         </button>
-        <div className="card rounded-xl p-4 text-left">
-          <p className="font-display font-black text-3xl text-brand-600">{counts.activeTasks}</p><p className="text-xs font-bold text-gray-500 mt-1">Active Assignments</p>
-        </div>
+        <button onClick={() => setRoleFilter('system_supervisor')} className={`card rounded-xl p-4 text-left ${roleFilter === 'system_supervisor' ? 'ring-2 ring-purple-600 border-purple-300' : ''}`}>
+          <p className="font-display font-black text-3xl text-purple-700">{counts.system}</p><p className="text-xs font-bold text-gray-500 mt-1">System Supervisors</p>
+        </button>
       </div>
 
       {showForm && (
@@ -365,23 +349,15 @@ export default function StaffAccountsPage() {
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Account Type <span className="text-red-500">*</span></label>
-                <select aria-label="Account Type" {...register('role')} className={`input-field rounded-lg ${errors.role ? 'input-error' : ''}`}>
+                <select aria-label="Account Type" {...register('account_type')} className={`input-field rounded-lg ${errors.account_type ? 'input-error' : ''}`}>
                   <option value="">Select account type…</option>
-                  <option value="admin">Department Staff</option>
+                  <option value="commercial_staff">Commercial Services Staff</option>
+                  <option value="ecmd_staff">ECMD Staff</option>
                   <option value="maintenance_personnel">Maintenance Personnel</option>
+                  <option value="system_supervisor">System Supervisor</option>
                 </select>
-                {errors.role && <p className="mt-1 text-xs text-red-600">{errors.role.message}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Department Access <span className="text-red-500">*</span></label>
-                <select aria-label="Department module" {...register('access_module')} className={`input-field rounded-lg ${errors.access_module ? 'input-error' : ''}`}>
-                  <option value="">Select access…</option>
-                  {selectedRole !== 'maintenance_personnel' && <option value="commercial">Commercial Department</option>}
-                  <option value="ecmd">ECMD</option>
-                  {selectedRole !== 'maintenance_personnel' && <option value="system">System Supervisor</option>}
-                </select>
-                {errors.access_module && <p className="mt-1 text-xs text-red-600">{errors.access_module.message}</p>}
-                <p className="mt-1 text-[11px] text-gray-400">This controls which module and API actions the account can access.</p>
+                {errors.account_type && <p className="mt-1 text-xs text-red-600">{errors.account_type.message}</p>}
+                <p className="mt-1 text-[11px] text-gray-400">Each account opens only its own workspace and sidebar after login.</p>
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email <span className="text-red-500">*</span></label>
@@ -422,8 +398,10 @@ export default function StaffAccountsPage() {
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
             <select name="staffaccountspage-role-filter-6" aria-label="Account Type Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Account Type</option>
-              <option value="admin">Department Staff</option>
+              <option value="commercial_staff">Commercial Services Staff</option>
+              <option value="ecmd_staff">ECMD Staff</option>
               <option value="maintenance_personnel">Maintenance Personnel</option>
+              <option value="system_supervisor">System Supervisor</option>
             </select>
             <select name="staffaccountspage-account-filter-7" aria-label="Account Filter" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Account Status</option>
@@ -434,8 +412,6 @@ export default function StaffAccountsPage() {
               <option value="name">Name A–Z</option>
               <option value="newest">Newest Account</option>
               <option value="oldest">Oldest Account</option>
-              <option value="active">Most Active Tasks</option>
-              <option value="completed">Most Completed Tasks</option>
             </select>
             <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Reset Filters</button>
           </div>
@@ -445,7 +421,7 @@ export default function StaffAccountsPage() {
       {loading && staff.length === 0 ? (
         <PageLoader label="Loading staff accounts..." />
       ) : staff.length === 0 ? (
-        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet." description='Click "New Account" to create Department Staff or Maintenance Personnel access.' />
+        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet." description='Click "New Account" to create a Commercial Services, ECMD, Maintenance Personnel, or System Supervisor login.' />
       ) : filteredStaff.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
@@ -461,14 +437,13 @@ export default function StaffAccountsPage() {
               </colgroup>
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
-                  {['Staff Member', 'Account Type & Access', 'Availability', 'Workload & Completion', 'Action'].map(header => (
+                  {['Staff Member', 'Account Type & Access', 'Availability', 'Operational Workspace', 'Action'].map(header => (
                     <th key={header} className="px-5 py-3 font-black text-gray-400 uppercase tracking-wider text-xs">{header}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredStaff.map(account => {
-                  const stats = workload[account.id] || { total: 0, active: 0, completed: 0, rejected: 0, rate: 0 }
                   return (
                     <tr key={account.id} className={`hover:bg-gray-50 ${account.is_active === false ? 'bg-gray-50 opacity-75' : ''}`}>
                       <td className="px-5 py-4 align-top">
@@ -478,8 +453,8 @@ export default function StaffAccountsPage() {
                       </td>
                       <td className="px-5 py-4 align-top">
                         <div className="flex flex-col items-start gap-2">
-                          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                            {ROLE_LABEL[account.role] || account.role}
+                          <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ACCOUNT_BADGE[accountTypeKey(account)] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                            {ACCOUNT_LABEL[accountTypeKey(account)] || account.role}
                           </span>
                           <span className="text-[10px] font-bold text-navy-600">{accessModuleLabel(account)}</span>
                           <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
@@ -496,21 +471,12 @@ export default function StaffAccountsPage() {
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-5 py-4 align-top">
-                        {account.role === 'maintenance_personnel' ? (
-                          <div className="max-w-[210px]">
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                              <span className="font-bold text-brand-700">{stats.active} active</span>
-                              <span className="font-bold text-green-700">{stats.completed} completed</span>
-                              {stats.rejected > 0 && <span className="font-bold text-red-600">{stats.rejected} rejected</span>}
-                            </div>
-                            <div className="mt-2 flex items-center gap-2">
-                              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-100">
-                                <div className="h-full bg-brand-500" style={{ width: `${stats.rate}%` }} />
-                              </div>
-                              <span className="shrink-0 text-[11px] font-black text-navy-800">{stats.rate}%</span>
-                            </div>
-                          </div>
-                        ) : <span className="text-gray-300">—</span>}
+                        <p className="text-xs leading-5 text-gray-500">
+                          {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services workspace only'}
+                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD office workspace only'}
+                          {accountTypeKey(account) === 'maintenance_personnel' && 'Maintenance task workspace only'}
+                          {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
+                        </p>
                       </td>
                       <td className="px-5 py-4 align-top">{accountActions(account)}</td>
                     </tr>
@@ -522,29 +488,21 @@ export default function StaffAccountsPage() {
 
           <div className="xl:hidden space-y-3">
             {filteredStaff.map(account => {
-              const stats = workload[account.id] || { active: 0, completed: 0, rejected: 0, rate: 0 }
               return (
                 <div key={account.id} className="card rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-gray-900">{account.full_name}</p>
-                        {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')} · {stats.active} active</span> : null}
+                        {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')}</span> : null}
                       </div>
                       <p className="text-xs text-gray-400 mt-1 truncate">{account.email}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase border rounded ${ROLE_BADGE[account.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                      {ROLE_LABEL[account.role] || account.role}
+                    <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase border rounded ${ACCOUNT_BADGE[accountTypeKey(account)] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                      {ACCOUNT_LABEL[accountTypeKey(account)] || account.role}
                     </span>
                   </div>
                   <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span><span className="px-2 py-1 rounded border bg-navy-50 text-navy-700 border-navy-100 text-[10px] font-black uppercase">{accessModuleLabel(account)}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
-                  {account.role === 'maintenance_personnel' && (
-                    <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                      <div className="rounded-lg bg-brand-50 p-2"><p className="font-black text-brand-700">{stats.active}</p><p className="text-[10px] text-gray-500">Active</p></div>
-                      <div className="rounded-lg bg-green-50 p-2"><p className="font-black text-green-700">{stats.completed}</p><p className="text-[10px] text-gray-500">Done</p></div>
-                      <div className="rounded-lg bg-slate-50 p-2"><p className="font-black text-navy-800">{stats.rate}%</p><p className="text-[10px] text-gray-500">Rate</p></div>
-                    </div>
-                  )}
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
                     <p className="text-xs text-gray-400">Created {timeAgo(account.created_at)}</p>
                     {accountActions(account)}
@@ -588,8 +546,8 @@ export default function StaffAccountsPage() {
 
             <div className="overflow-y-auto p-4 sm:p-5 space-y-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ROLE_BADGE[managedAccount.role] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                  {ROLE_LABEL[managedAccount.role] || managedAccount.role}
+                <span className={`inline-flex items-center px-2.5 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ACCOUNT_BADGE[accountTypeKey(managedAccount)] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                  {ACCOUNT_LABEL[accountTypeKey(managedAccount)] || managedAccount.role}
                 </span>
                 <span className={`inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase ${managedAccount.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                   {managedAccount.is_active === false ? 'Inactive' : 'Active'}
@@ -600,41 +558,7 @@ export default function StaffAccountsPage() {
                 <span className="inline-flex px-2.5 py-1 rounded border text-[10px] font-black uppercase bg-navy-50 text-navy-700 border-navy-100">{accessModuleLabel(managedAccount)}</span>
               </div>
 
-              {managedAccount.role === 'maintenance_personnel' && managedStats && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl bg-brand-50 p-3 text-center">
-                    <p className="font-display font-black text-xl text-brand-700">{managedStats.active}</p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase">Active</p>
-                  </div>
-                  <div className="rounded-xl bg-green-50 p-3 text-center">
-                    <p className="font-display font-black text-xl text-green-700">{managedStats.completed}</p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase">Completed</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3 text-center">
-                    <p className="font-display font-black text-xl text-navy-800">{managedStats.rate}%</p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase">Rate</p>
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-2">
-                {managedAccount.role === 'maintenance_personnel' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setManageAccountId(null)
-                      navigate(`/ecmd/dispatch?staff=${managedAccount.id}`)
-                    }}
-                    className="w-full flex items-center justify-between gap-4 rounded-xl border border-navy-200 bg-navy-50 px-4 py-3 text-left hover:bg-navy-100 transition-colors"
-                  >
-                    <span>
-                      <span className="block text-sm font-black text-navy-900">View assigned tasks</span>
-                      <span className="block text-xs text-gray-500 mt-0.5">Open this Maintenance Personnel account's filtered task list.</span>
-                    </span>
-                    <span className="text-navy-700 font-black">→</span>
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={() => handlePasswordReset(managedAccount)}

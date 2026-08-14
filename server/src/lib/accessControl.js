@@ -48,9 +48,7 @@ export function isSystemSupervisor(user) {
 
 export function capabilitiesForUser(user) {
   if (user?.role !== 'admin') return []
-  if (isSystemSupervisor(user)) {
-    return [...new Set([...COMMERCIAL_CAPABILITIES, ...ECMD_CAPABILITIES, ...SYSTEM_CAPABILITIES])]
-  }
+  if (isSystemSupervisor(user)) return SYSTEM_CAPABILITIES
 
   const departmentCode = departmentCodeFor(user)
   if (departmentCode === 'COMMERCIAL') return COMMERCIAL_CAPABILITIES

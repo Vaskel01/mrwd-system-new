@@ -165,3 +165,16 @@ Run `supabase/migrations/20260814100000_department_module_access.sql` after `202
 - ESLint: passed with no errors; four existing React Hook Form compiler advisories remain warnings only.
 - Backend/core-feature tests: 16/16 passed, including capability isolation and ECMD classifier-privacy checks.
 - Backend route syntax checks: passed.
+
+## Separate staff workspaces correction — August 14, 2026
+
+This section **supersedes** the earlier statement that System Supervisors retain cross-department operational access.
+
+- Commercial Services, ECMD, Maintenance Personnel, and System Supervisor are now separate login/account experiences.
+- Commercial Services accounts receive only the Commercial workspace and sidebar.
+- ECMD accounts receive only the ECMD workspace and sidebar.
+- System Supervisors receive only System Administration tools and no longer inherit Commercial or ECMD capabilities.
+- Staff Accounts creates the account type directly instead of combining a generic role with a department/module selector.
+- A new migration, `supabase/migrations/20260814122500_separate_department_workspaces.sql`, updates database capability checks and department notification recipients to match this isolation.
+- The database keeps its existing `admin` role constraint internally for compatibility; distinct Auth users plus department/staff-position assignments provide the department identity.
+- Verification: 86 JS/JSX files with 0 syntax errors, 0 missing relative imports, and 17/17 backend tests passing.

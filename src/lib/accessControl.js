@@ -36,7 +36,7 @@ export function isSystemSupervisor(user) {
 
 export function capabilitiesForUser(user) {
   if (user?.role !== 'admin') return []
-  if (isSystemSupervisor(user)) return [...new Set([...commercial, ...ecmd, ...system])]
+  if (isSystemSupervisor(user)) return system
   if (departmentCodeFor(user) === 'COMMERCIAL') return commercial
   if (departmentCodeFor(user) === 'ECMD') return ecmd
   return []

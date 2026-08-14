@@ -1,74 +1,94 @@
-# Complaint-System Department Modules Report
+# MRWD Separate Department Workspaces — Change Report
 
 Date: August 14, 2026
 
-## Corrected scope
+## Final scope
 
-The MRWD project remains a **complaint management system**. It has only **two operational department modules**:
+The project remains a **complaint management system**. The operational staff workspaces are intentionally separated into distinct login experiences:
 
-1. **Commercial Services Department**
-2. **Engineering, Construction and Maintenance Department (ECMD)**
+1. **Commercial Services Staff**
+2. **ECMD Staff**
+3. **Maintenance Personnel**
+4. **System Supervisor**
 
-System Administration is retained only for access control, staff accounts, audit records, and cross-department supervision. It is not treated as a third operational department. Customer and Maintenance Personnel pages are also retained because they are part of the complaint lifecycle.
+Commercial Services and ECMD are no longer presented as sections that a generic administrator can switch between. Each staff member is a separate Supabase Auth user and is assigned to the correct workspace when the System Supervisor creates the account.
 
-## Department access matrix
+## Login and workspace behavior
 
-| Department | Complaint-system responsibilities |
-|---|---|
-| Commercial Services | Department dashboard, complaint review and validation, classifier evidence, priority review/override, customer-account and billing concerns, service advisories, complaint reports, and archival requests |
-| ECMD | Department dashboard, complaint dispatch/reassignment, field operations, crews/manpower, service targets, escalations, inventory/resources, task completion, and maintenance reports |
+| Account type shown in Staff Accounts | Internal profile mapping | Home page | Workspace visible after login |
+|---|---|---|---|
+| Commercial Services Staff | `role=admin`, Commercial department, `staff_position=commercial_staff` | `/commercial/dashboard` | Commercial Services only |
+| ECMD Staff | `role=admin`, ECMD department, `staff_position=department_staff` | `/ecmd/dashboard` | ECMD only |
+| Maintenance Personnel | `role=maintenance_personnel`, ECMD department, `staff_position=crew_member` | `/maintenance/tasks` | Assigned maintenance tasks only |
+| System Supervisor | `role=admin`, no operational department, `staff_position=supervisor` | `/system/dashboard` | System Administration only |
 
-System Supervisors and Managers retain cross-department oversight. Ordinary Department Staff receive only the pages for their assigned department.
+The existing database `role` constraint is deliberately retained for compatibility. Separation is enforced using separate Auth users, department membership, staff position, frontend/server capabilities, and PostgreSQL RLS/capability checks.
 
-## Department pages
+## Commercial Services module
 
-| Department | Canonical pages |
-|---|---|
-| Commercial Services | `/commercial/dashboard`, `/commercial/complaints`, `/commercial/accounts-billing`, `/commercial/service-advisories`, `/commercial/reports` |
-| ECMD | `/ecmd/dashboard`, `/ecmd/dispatch`, `/ecmd/field-operations` |
-| System support | `/system/dashboard`, `/system/departments-access`, `/system/staff-accounts`, `/system/audit-log` |
+Commercial Services staff receive their own sidebar and routes:
 
-The new department dashboards summarize live complaint records and link only to tools that belong to the complaint-management workflow.
+- `/commercial/dashboard`
+- `/commercial/complaints`
+- `/commercial/accounts-billing`
+- `/commercial/service-advisories`
+- `/commercial/reports`
 
-## Commercial Services dashboard
+They do **not** receive ECMD or System Administration navigation.
 
-- Pending complaints needing review
-- Active High-priority complaints
-- Billing/account-related complaint count
-- Completed complaint count
-- Quick access to Complaint Review, Accounts & Billing, Service Advisories, and Complaint Reports
-- A live **Needs Commercial Attention** list
+## ECMD module
 
-## ECMD dashboard
+ECMD staff receive their own sidebar and routes:
 
-- Unassigned dispatch queue
-- Active field work
-- Blocked complaints needing attention
-- Completed complaint count
-- Quick access to Complaint Dispatch and Field Operations
-- A live **Needs ECMD Attention** list
+- `/ecmd/dashboard`
+- `/ecmd/dispatch`
+- `/ecmd/field-operations`
 
-## Access behavior
+They do **not** receive Commercial Services or System Administration navigation.
 
-- Commercial Services staff land on `/commercial/dashboard` after sign-in.
-- ECMD staff land on `/ecmd/dashboard` after sign-in.
-- System Supervisors continue to land on `/system/dashboard` and may access both department modules for oversight.
-- Maintenance Personnel continue to use `/maintenance/tasks` for assigned complaint work.
-- Customers continue to use the customer complaint pages.
+## System Administration
 
-## Database scope
+System Supervisors receive only:
 
-No Finance, Administrative Services, Production, HR, accounting, water-quality, or generic department-work tables were added.
+- `/system/dashboard`
+- `/system/staff-accounts`
+- `/system/departments-access`
+- `/system/audit-log`
 
-The existing department-access migration remains the relevant migration:
+The System Supervisor dashboard is now account/access focused and no longer acts as a combined Commercial + ECMD operational dashboard.
 
-1. `supabase/migrations/20260813110000_client_operations_expansion.sql` if it has not already been applied.
-2. `supabase/migrations/20260814100000_department_module_access.sql`.
+## Staff account creation
 
-There is **no full-department-workspace migration** in this corrected project.
+The Staff Accounts form now has one direct **Account Type** selector instead of a generic role plus a second department/module selector. Available account types are:
+
+- Commercial Services Staff
+- ECMD Staff
+- Maintenance Personnel
+- System Supervisor
+
+When an account is created, the application automatically applies the matching department and staff position. Each created staff record corresponds to a separate Supabase Auth login with its own email/password.
+
+## Authorization changes
+
+- System Supervisors no longer inherit Commercial or ECMD operational capabilities.
+- Commercial Services capabilities are granted only to active admin-type staff assigned to `COMMERCIAL`.
+- ECMD capabilities are granted only to active admin-type staff assigned to `ECMD`.
+- Protected React routes and Express API routes use the same capability model.
+- PostgreSQL `current_user_has_capability()` is updated so direct Data API/RLS access follows the same separation.
+- Routine department notifications resolve to members of that department rather than System Supervisors.
+
+## Required SQL migration
+
+Run this migration after the existing department-access migration:
+
+`supabase/migrations/20260814122500_separate_department_workspaces.sql`
+
+This migration is required for the **database/RLS layer** to match the newly separated frontend and backend authorization model.
 
 ## Verification
 
-- Parsed all project JavaScript/JSX source files: **94 files, 0 syntax errors**.
-- Confirmed the corrected archive contains no Administrative Services, Finance Services, Production Department, or generic department-workspace implementation.
-- Backend complaint workflow and database logic are unchanged from the department-separated source version; this correction only adds the two complaint-focused department dashboards and navigation/home routing.
+- 86 JavaScript/JSX files checked: **0 syntax errors**.
+- Relative import check: **0 missing imports**.
+- Backend/core-feature test suite: **17/17 passed**.
+- Server route syntax check: passed.
+

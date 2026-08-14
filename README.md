@@ -102,7 +102,8 @@ Run the SQL files below in the Supabase SQL Editor in this order. The files are 
 14. `supabase/migrations/20260729204500_fix_customer_profile_persistence.sql`
 15. `supabase/migrations/20260729210000_harden_profile_update_access.sql`
 16. `supabase/migrations/20260813110000_client_operations_expansion.sql`
-17. `supabase/migrations/20260814100000_department_module_access.sql` — run last
+17. `supabase/migrations/20260814100000_department_module_access.sql`
+18. `supabase/migrations/20260814122500_separate_department_workspaces.sql` — run last
 
 See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
 

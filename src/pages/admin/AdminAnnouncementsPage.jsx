@@ -163,7 +163,7 @@ export default function AdminAnnouncementsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
-        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Department</p>
+        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
         <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Service Advisories</h1>
           <button onClick={() => showForm ? closeForm() : openNewForm()}
@@ -231,7 +231,7 @@ export default function AdminAnnouncementsPage() {
             <div>
               <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Active Until <span className="normal-case font-medium text-gray-400">(optional)</span></label>
               <input aria-label="Active Until" type="datetime-local" {...register('active_until')} className="input-field" />
-              <p className="mt-1.5 text-xs text-gray-500">After this date, Customers and Maintenance Personnel will no longer see the advisory. Commercial Department Staff can still review it here.</p>
+              <p className="mt-1.5 text-xs text-gray-500">After this date, Customers and Maintenance Personnel will no longer see the advisory. Commercial Services Staff can still review it here.</p>
             </div>
             <div className="flex gap-3 pt-1">
               <button type="submit" disabled={posting}

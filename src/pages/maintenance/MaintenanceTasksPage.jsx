@@ -21,7 +21,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
 function matchesSearch(task, query) {
   if (!query) return true
   return [
@@ -143,7 +143,7 @@ export default function MaintenanceTasksPage() {
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           ['active', 'Active', counts.active, 'text-brand-600'],
-          ['completed', 'Completed', counts.completed, 'text-green-600'],
+          ['completed', 'Field Work Complete', counts.completed, 'text-green-600'],
           ['rejected', 'Rejected', counts.rejected, 'text-red-600'],
           ['all', 'All Tasks', counts.all, 'text-navy-800'],
         ].map(([value, label, count, color]) => (
@@ -183,8 +183,8 @@ export default function MaintenanceTasksPage() {
             <select name="maintenancetaskspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="priority">Priority</option>
               <option value="updated">Recently Updated</option>
-              <option value="newest">Newest Filed</option>
-              <option value="oldest">Oldest Filed</option>
+              <option value="newest">Newest Submitted</option>
+              <option value="oldest">Oldest Submitted</option>
               <option value="type">Type A–Z</option>
             </select>
             <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
@@ -200,14 +200,14 @@ export default function MaintenanceTasksPage() {
         </div>
       ) : (
         <>
-          <div className="hidden xl:block card rounded-xl overflow-x-auto p-2">
-            <table className="w-full min-w-[780px] table-fixed text-sm">
+          <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
+            <table className="w-full table-fixed text-sm">
               <colgroup>
-                <col className="w-[33%]" />
+                <col className="w-[31%]" />
                 <col className="w-[24%]" />
                 <col className="w-[17%]" />
                 <col className="w-[14%]" />
-                <col className="w-[124px]" />
+                <col className="w-[14%]" />
               </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
@@ -231,7 +231,7 @@ export default function MaintenanceTasksPage() {
                       {task.task_notes && <p className="mt-2 line-clamp-2 text-xs text-amber-700"><b>Instructions:</b> {task.task_notes}</p>}
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <p className="truncate text-sm font-semibold text-gray-700">{task.customer_name}</p>
+                      <p className="break-words text-sm font-semibold text-gray-700">{task.customer_name}</p>
                       <p className="mt-1 flex min-w-0 items-start gap-1 text-xs text-gray-500">
                         <AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span className="line-clamp-2">{task.address}</span>
@@ -244,7 +244,7 @@ export default function MaintenanceTasksPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <p className="whitespace-nowrap text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
+                      <p className="break-words text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
                       {task.status === 'blocked' && <p className="mt-2 text-[10px] font-bold text-orange-700">Attention requested</p>}
                     </td>
                     <td className="px-4 py-3 align-top">{renderAction(task)}</td>

@@ -5,12 +5,12 @@ A web-based complaint management and maintenance task assignment system for Metr
 ## Main features
 
 - **Customer:** register, maintain service-account details, submit geotagged complaints, attach photos, track timelines, acknowledge completed work, view billing records and important advisories, receive notifications, reopen completed complaints, print receipts, and submit feedback.
-- **Commercial Department:** review complaints and classifier evidence, apply audited priority overrides, manage customer accounts and billing imports, publish important advisories, request archival, and export complaint reports.
+- **Commercial Services Department:** review complaints and classifier evidence, apply audited priority overrides, manage customer accounts and billing imports, publish important advisories, request archival, and export complaint reports.
 - **Engineering, Construction and Maintenance Department (ECMD):** dispatch complaints, manage personnel and crews, maintain shifts and service targets, monitor escalations, manage equipment and materials, and review official maintenance reports.
 - **System Supervisor:** access the cross-department dashboard, create and assign staff accounts, manage department access, review independent approvals, archive approved records, and inspect the audit trail.
 - **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress, manpower, equipment and materials, request assistance or reassignment, submit completion reports, and print official maintenance reports.
 - **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
-- **Privacy:** Customers receive no classifier internals. Maintenance Personnel and ECMD Staff receive only the operational category and priority. Commercial Department Staff receive the classifier breakdown; System Supervisors retain oversight access.
+- **Privacy:** Customers receive no classifier internals. Maintenance Personnel and ECMD Staff receive only the operational category and priority. Commercial Services Staff receive the classifier breakdown; System Supervisors retain oversight access.
 - **Interface:** the original MRWD navy, blue, gold, wave-header, and role-based visual design is retained, with keyboard focus, reduced-motion, dialog, navigation, and status-label accessibility support.
 
 ## Canonical interface terminology
@@ -20,7 +20,7 @@ Use these labels in pages, documentation, training, and demonstrations:
 | Area | Approved label |
 |---|---|
 | Customer account | **Customer** |
-| Complaint review, classifier, billing, and advisories | **Commercial Department Staff** |
+| Complaint review, classifier, billing, and advisories | **Commercial Services Staff** |
 | Dispatch and field coordination | **ECMD Staff** |
 | Governance, access, approvals, and audit | **System Supervisor** |
 | Assigned field account | **Maintenance Personnel** |
@@ -35,7 +35,7 @@ Internal values such as `admin`, `maintenance_personnel`, and legacy `en_route` 
 
 ```text
 src/                       React frontend
-src/pages/commercial/      Commercial Department pages
+src/pages/commercial/      Commercial Services Department pages
 src/pages/ecmd/            ECMD pages
 src/pages/system/          System Administration pages
 server/                    Express API and canonical classifier
@@ -123,7 +123,7 @@ set role = 'admin',
 where email = 'admin@example.com';
 ```
 
-After that, the System Supervisor can create Commercial Department Staff, ECMD Staff, and Maintenance Personnel accounts through **Staff Accounts**.
+After that, the System Supervisor can create Commercial Services Staff, ECMD Staff, and Maintenance Personnel accounts through **Staff Accounts**.
 
 ## Local development
 

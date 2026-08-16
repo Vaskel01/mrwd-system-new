@@ -77,13 +77,13 @@ export default function MaintenanceReportPage() {
           <h2 className="font-display text-base font-black">Complaint and Assignment</h2>
           <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Detail label="Customer" value={complaint.customer_name || complaint.resident_name} />
-            <Detail label="Category" value={complaint.complaint_type} />
+            <Detail label="Complaint Type" value={complaint.complaint_type} />
             <Detail label="Priority" value={titleCase(complaint.priority)} />
             <Detail label="Location" value={complaint.address} />
-            <Detail label="Assigned Personnel" value={complaint.assigned_name || complaint.assigned_to_name || task.assigned_to_name} />
+            <Detail label="Assigned Maintenance Personnel" value={complaint.assigned_name || complaint.assigned_to_name || task.assigned_to_name} />
             <Detail label="Assigned Crew" value={report.crew?.name || 'No crew assigned'} />
             <Detail label="Assigned On" value={displayDate(complaint.assigned_at || task.assigned_at, true)} />
-            <Detail label="Completed On" value={displayDate(complaint.completed_at || task.completed_at, true)} />
+            <Detail label="Field Work Completed" value={displayDate(complaint.completed_at || task.completed_at, true)} />
             <Detail label="Status" value={titleCase(complaint.status)} />
           </div>
           <div className="mt-4 rounded-lg border border-gray-200 p-4">
@@ -103,20 +103,20 @@ export default function MaintenanceReportPage() {
             <h2 className="font-display text-base font-black">Manpower Record</h2>
             <p className="text-xs text-gray-500">Recorded personnel: {totals.personnel} · Labor hours: {totals.hours}</p>
           </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[600px] border-collapse text-left text-xs">
-              <thead><tr className="bg-gray-50"><th className="border p-2">Date</th><th className="border p-2">Personnel</th><th className="border p-2">Hours</th><th className="border p-2">Notes</th></tr></thead>
-              <tbody>{report.manpower?.length ? report.manpower.map(item => <tr key={item.id}><td className="border p-2">{displayDate(item.work_date)}</td><td className="border p-2">{item.personnel_count}</td><td className="border p-2">{item.hours_worked}</td><td className="border p-2">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No manpower entries recorded.</td></tr>}</tbody>
+          <div className="mt-3 min-w-0 overflow-hidden">
+            <table className="w-full table-fixed border-collapse text-left text-xs">
+              <thead><tr className="bg-gray-50"><th className="break-words border p-2 align-top">Date</th><th className="break-words border p-2 align-top">Personnel</th><th className="break-words border p-2 align-top">Hours</th><th className="break-words border p-2 align-top">Notes</th></tr></thead>
+              <tbody>{report.manpower?.length ? report.manpower.map(item => <tr key={item.id}><td className="break-words border p-2 align-top">{displayDate(item.work_date)}</td><td className="break-words border p-2 align-top">{item.personnel_count}</td><td className="break-words border p-2 align-top">{item.hours_worked}</td><td className="break-words border p-2 align-top">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No manpower entries recorded.</td></tr>}</tbody>
             </table>
           </div>
         </section>
 
         <section className="mt-6">
           <h2 className="font-display text-base font-black">Equipment and Materials Used</h2>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[600px] border-collapse text-left text-xs">
-              <thead><tr className="bg-gray-50"><th className="border p-2">SKU</th><th className="border p-2">Item</th><th className="border p-2">Quantity</th><th className="border p-2">Notes</th></tr></thead>
-              <tbody>{report.inventory_usage?.length ? report.inventory_usage.map(item => <tr key={item.id}><td className="border p-2">{item.item?.sku || '—'}</td><td className="border p-2">{item.item?.name || 'Inventory item'}</td><td className="border p-2">{item.quantity} {item.item?.unit || ''}</td><td className="border p-2">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No inventory usage recorded.</td></tr>}</tbody>
+          <div className="mt-3 min-w-0 overflow-hidden">
+            <table className="w-full table-fixed border-collapse text-left text-xs">
+              <thead><tr className="bg-gray-50"><th className="break-words border p-2 align-top">SKU</th><th className="break-words border p-2 align-top">Item</th><th className="break-words border p-2 align-top">Quantity</th><th className="break-words border p-2 align-top">Notes</th></tr></thead>
+              <tbody>{report.inventory_usage?.length ? report.inventory_usage.map(item => <tr key={item.id}><td className="break-words border p-2 align-top">{item.item?.sku || '—'}</td><td className="break-words border p-2 align-top">{item.item?.name || 'Inventory item'}</td><td className="break-words border p-2 align-top">{item.quantity} {item.item?.unit || ''}</td><td className="break-words border p-2 align-top">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No inventory usage recorded.</td></tr>}</tbody>
             </table>
           </div>
         </section>

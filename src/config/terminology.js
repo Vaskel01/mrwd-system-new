@@ -1,22 +1,46 @@
 export const TERMS = Object.freeze({
   CUSTOMER: 'Customer',
-  COMMERCIAL_DEPARTMENT: 'Commercial Department',
-  COMMERCIAL_STAFF: 'Commercial Department Staff',
+  COMMERCIAL_SERVICES: 'Commercial Services',
+  COMMERCIAL_SERVICES_DEPARTMENT: 'Commercial Services Department',
+  COMMERCIAL_DEPARTMENT: 'Commercial Services Department',
+  COMMERCIAL_STAFF: 'Commercial Services Staff',
+  ACCOUNTS_BILLING: 'Accounts & Billing',
   ECMD: 'Engineering, Construction and Maintenance Department (ECMD)',
   ECMD_SHORT: 'ECMD',
   ECMD_STAFF: 'ECMD Staff',
   SYSTEM_ADMINISTRATION: 'System Administration',
   SYSTEM_SUPERVISOR: 'System Supervisor',
-  DEPARTMENT_STAFF: 'Department Staff',
+  DEPARTMENT_STAFF: 'Staff Account',
   MAINTENANCE_PERSONNEL: 'Maintenance Personnel',
   TEAM_LEADER: 'Team Leader',
+  CREW_MEMBER: 'Maintenance Crew Member',
   CREW: 'Maintenance Crew',
   COMPLAINT: 'Complaint',
   REFERENCE_NUMBER: 'Complaint Reference Number',
   IMPORTANT_ADVISORY: 'Important Advisory',
-  IN_PROGRESS: 'In Progress',
   NO_WATER: 'No Water',
 })
+
+export const STATUS_LABELS = Object.freeze({
+  pending: 'Pending Review',
+  forwarded: 'Forwarded to ECMD',
+  assigned: 'Assigned',
+  en_route: 'In Progress',
+  in_progress: 'In Progress',
+  awaiting_verification: 'Awaiting ECMD Verification',
+  resolved: 'Resolved',
+  completed: 'Resolved',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
+  blocked: 'Needs Attention',
+})
+
+export function departmentDisplayName(department) {
+  const code = String(department?.code || department || '').trim().toUpperCase()
+  if (code === 'COMMERCIAL') return TERMS.COMMERCIAL_SERVICES_DEPARTMENT
+  if (code === 'ECMD') return TERMS.ECMD
+  return department?.name || String(department || 'Department')
+}
 
 export function staffAccessLabel(account) {
   if (!account) return 'Restricted Staff Account'
@@ -28,12 +52,12 @@ export function staffAccessLabel(account) {
   const departmentCode = String(account.department?.code || account.department_code || '').toUpperCase()
   if (departmentCode === 'COMMERCIAL') return TERMS.COMMERCIAL_STAFF
   if (departmentCode === 'ECMD') return TERMS.ECMD_STAFF
-  return 'Restricted Department Staff'
+  return 'Restricted Staff Account'
 }
 
 export function securityRoleLabel(role) {
   if (role === 'customer') return TERMS.CUSTOMER
   if (role === 'maintenance_personnel') return TERMS.MAINTENANCE_PERSONNEL
-  if (role === 'admin') return TERMS.DEPARTMENT_STAFF
+  if (role === 'admin') return 'Staff Account'
   return 'Staff Account'
 }

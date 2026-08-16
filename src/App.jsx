@@ -123,7 +123,7 @@ export default function App() {
           </ProtectedRoute>
         }/>
 
-        {/* ── Engineering, Construction and Maintenance Department ── */}
+        {/* ── Engineering, Construction and Maintenance Department (ECMD) ── */}
         <Route path="/ecmd/dashboard" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_DISPATCH]}>
             <AppLayout><EcmdDashboardPage /></AppLayout>

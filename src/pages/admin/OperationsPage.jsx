@@ -2,17 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
+import { departmentDisplayName } from '../../config/terminology'
 
 const MODULE_CONFIG = {
   commercial: {
-    eyebrow: 'Commercial Department',
-    title: 'Customer Accounts & Billing',
+    eyebrow: 'Commercial Services Department',
+    title: 'Accounts & Billing',
     description: 'Manage customer-account validation, bulk billing records, and requests to archive closed complaint records.',
     endpoint: '/operations/commercial-bootstrap',
     tabs: [['billing', 'Accounts & Billing'], ['inventory', 'Records & Archival']],
   },
   ecmd: {
-    eyebrow: 'Engineering, Construction and Maintenance Department',
+    eyebrow: 'Engineering, Construction and Maintenance Department (ECMD)',
     title: 'ECMD Field Operations',
     description: 'Coordinate crews, manpower, shifts, equipment, and materials.',
     endpoint: '/operations/ecmd-bootstrap',
@@ -36,7 +37,7 @@ const STAFF_POSITION_LABELS = Object.freeze({
   supervisor: 'System Supervisor',
   team_leader: 'Team Leader',
   crew_member: 'Maintenance Crew Member',
-  commercial_staff: 'Commercial Department Staff',
+  commercial_staff: 'Commercial Services Staff',
   department_staff: 'ECMD Staff',
 })
 
@@ -71,7 +72,7 @@ function parseCsv(text) {
 }
 
 function Section({ title, description, action, children }) {
-  return <section className="card rounded-xl p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="font-display font-black text-navy-900">{title}</h2>{description && <p className="mt-1 text-xs text-gray-500">{description}</p>}</div>{action}</div><div className="mt-4">{children}</div></section>
+  return <section className="card min-w-0 overflow-hidden rounded-xl p-4 sm:p-5"><div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><h2 className="font-display font-black text-navy-900">{title}</h2>{description && <p className="mt-1 text-xs text-gray-500">{description}</p>}</div>{action}</div><div className="mt-4">{children}</div></section>
 }
 
 function Field({ label, children, className = '' }) {
@@ -183,7 +184,7 @@ function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
     </Section>}
 
     {module === 'system' && <Section title="Independent System Supervisor Approval" description="The requester cannot approve their own request. Archival requires a separate System Supervisor.">
-      {pendingApprovals.length === 0 ? <p className="text-sm text-gray-500">No approval requests are awaiting review.</p> : <div className="space-y-3">{pendingApprovals.map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="text-sm font-black text-navy-900">{titleCase(item.request_type)}</p><p className="mt-1 text-xs text-gray-600">{item.reason}</p><p className="mt-1 text-[10px] text-gray-400">Requested by {staffMap[item.requested_by]?.full_name || 'Department Staff'} · {formatDate(item.created_at)}</p><div className="mt-3 flex gap-2"><button onClick={() => run(`approve-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'approved' }) }), 'Request approved.')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-black text-white">Approve</button><button onClick={() => run(`reject-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'rejected' }) }), 'Request rejected.')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Reject</button></div></div>)}</div>}
+      {pendingApprovals.length === 0 ? <p className="text-sm text-gray-500">No approval requests are awaiting review.</p> : <div className="space-y-3">{pendingApprovals.map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="text-sm font-black text-navy-900">{titleCase(item.request_type)}</p><p className="mt-1 text-xs text-gray-600">{item.reason}</p><p className="mt-1 text-[10px] text-gray-400">Requested by {staffMap[item.requested_by]?.full_name || 'Staff Member'} · {formatDate(item.created_at)}</p><div className="mt-3 flex gap-2"><button onClick={() => run(`approve-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'approved' }) }), 'Request approved.')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-black text-white">Approve</button><button onClick={() => run(`reject-${item.id}`, () => apiFetch(`/operations/approvals/${item.id}`, { method: 'PATCH', body: JSON.stringify({ decision: 'rejected' }) }), 'Request rejected.')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Reject</button></div></div>)}</div>}
     </Section>}
 
     {module === 'system' && <Section title="Email and SMS Delivery Queue" description="In-app notifications are queued automatically for each user's enabled channels.">
@@ -209,14 +210,14 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
         : ['manager', 'supervisor']
   return <div className="space-y-5">
     {module === 'system' && <Section title="Department Responsibilities" description="Commercial manages customer and billing records; ECMD coordinates engineering and field work.">
-      <div className="grid gap-3 md:grid-cols-2">{(data?.departments || []).map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="font-black text-navy-900">{item.name}</p><p className="mt-1 text-xs text-gray-600">{item.responsibilities}</p></div>)}</div>
+      <div className="grid gap-3 md:grid-cols-2">{(data?.departments || []).map(item => <div key={item.id} className="rounded-xl border border-gray-200 p-4"><p className="font-black text-navy-900">{departmentDisplayName(item)}</p><p className="mt-1 text-xs text-gray-600">{item.responsibilities}</p></div>)}</div>
     </Section>}
 
     {module === 'ecmd' && <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Create ECMD Crew" description="Assign a team leader and expected manpower.">
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('crew', () => apiFetch('/operations/crews', { method: 'POST', body: JSON.stringify(crew) }), 'Crew created.').then(ok => ok && setCrew({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })) }}>
           <Field label="Crew Name"><input required value={crew.name} onChange={event => setCrew(value => ({ ...value, name: event.target.value }))} className="input-field rounded-lg" /></Field>
-          <Field label="Department"><select required value={crew.department_id} onChange={event => setCrew(value => ({ ...value, department_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label="Department"><select required value={crew.department_id} onChange={event => setCrew(value => ({ ...value, department_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
           <Field label="Team Leader"><select value={crew.team_leader_id} onChange={event => setCrew(value => ({ ...value, team_leader_id: event.target.value }))} className="input-field rounded-lg"><option value="">Assign later</option>{maintenance.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
           <Field label="Default Manpower"><input type="number" min="1" required value={crew.default_manpower} onChange={event => setCrew(value => ({ ...value, default_manpower: event.target.value }))} className="input-field rounded-lg" /></Field>
           <button disabled={busy === 'crew'} className="btn-primary rounded-lg sm:col-span-2">Create Crew</button>
@@ -225,7 +226,7 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
 
       <Section title="Add Crew Member" description="Record team roles and manpower units.">
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('member', () => apiFetch('/operations/crew-members', { method: 'POST', body: JSON.stringify(member) }), 'Crew member saved.') }}>
-          <Field label="Crew"><select required value={member.crew_id} onChange={event => setMember(value => ({ ...value, crew_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select crew</option>{(data?.crews || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label="Crew"><select required value={member.crew_id} onChange={event => setMember(value => ({ ...value, crew_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select crew</option>{(data?.crews || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
           <Field label="Maintenance Personnel"><select required value={member.staff_id} onChange={event => setMember(value => ({ ...value, staff_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select staff</option>{maintenance.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
           <Field label="Crew Role"><select value={member.crew_role} onChange={event => setMember(value => ({ ...value, crew_role: event.target.value }))} className="input-field rounded-lg">{['team_leader', 'crew_member', 'driver', 'specialist', 'helper'].map(item => <option key={item} value={item}>{titleCase(item)}</option>)}</select></Field>
           <Field label="Manpower Units"><input type="number" min="0.25" step="0.25" value={member.manpower_units} onChange={event => setMember(value => ({ ...value, manpower_units: event.target.value }))} className="input-field rounded-lg" /></Field>
@@ -234,19 +235,19 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
       </Section>
     </div>}
 
-    {module === 'system' && <Section title="Staff Department & Access" description="Designate Commercial Department Staff, ECMD Staff, Team Leaders, Maintenance Crew members, and System Supervisors. Department assignment determines the available pages.">
+    {module === 'system' && <Section title="Staff Department & Access" description="Designate Commercial Services Staff, ECMD Staff, Team Leaders, Maintenance Crew Members, and System Supervisors. Department assignment determines the available pages.">
       <form className="grid gap-3 md:grid-cols-4" onSubmit={event => { event.preventDefault(); run('assignment', () => apiFetch('/operations/staff-assignment', { method: 'POST', body: JSON.stringify(assignment) }), 'Staff assignment updated.') }}>
         <Field label="Staff"><select required value={assignment.staff_id} onChange={event => { const staff = (data?.staff || []).find(item => item.id === event.target.value); setAssignment({ staff_id: event.target.value, department_id: staff?.department_id || '', staff_position: staff?.staff_position || '', supervisor_id: staff?.supervisor_id || '' }) }} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
-        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value, staff_position: '' }))} className="input-field rounded-lg"><option value="">System Administration</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value, staff_position: '' }))} className="input-field rounded-lg"><option value="">System Administration</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
         <Field label="Access Designation"><select required value={assignment.staff_position} onChange={event => setAssignment(value => ({ ...value, staff_position: event.target.value }))} className="input-field rounded-lg"><option value="">Select access</option>{assignmentPositionOptions.map(item => <option key={item} value={item}>{staffPositionLabel(item)}</option>)}</select></Field>
         <Field label="Reports To"><select value={assignment.supervisor_id} onChange={event => setAssignment(value => ({ ...value, supervisor_id: event.target.value }))} className="input-field rounded-lg"><option value="">None</option>{supervisors.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
         <button disabled={busy === 'assignment'} className="btn-primary rounded-lg md:col-span-4">Save Assignment</button>
       </form>
-      <p className="mt-3 text-xs text-gray-500">Commercial Department Staff receive only Commercial pages; ECMD Staff receive only ECMD pages; System Supervisors use System Administration. Maintenance Personnel can be designated as a Team Leader or Maintenance Crew Member within ECMD.</p>
+      <p className="mt-3 text-xs text-gray-500">Commercial Services Staff receive only the Commercial Services workspace; ECMD Staff receive only the ECMD workspace; System Supervisors use System Administration. Maintenance Personnel can be designated as a Team Leader or Maintenance Crew Member within ECMD.</p>
     </Section>}
 
     {module === 'ecmd' && <Section title="Current Crews">
-      <div className="grid gap-3 md:grid-cols-2">{(data?.crews || []).map(item => { const members = (data?.crew_members || []).filter(memberItem => memberItem.crew_id === item.id); return <div key={item.id} className="rounded-xl border border-gray-200 p-4"><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{item.name}</p><p className="text-xs text-gray-500">{departmentMap[item.department_id]?.name || 'Department'} · Default manpower {item.default_manpower}</p></div><span className="rounded-full bg-green-50 px-2 py-1 text-[10px] font-black text-green-700">{item.is_active ? 'ACTIVE' : 'INACTIVE'}</span></div><p className="mt-3 text-xs font-bold text-gray-700">Team Leader: {staffMap[item.team_leader_id]?.full_name || 'Not assigned'}</p><div className="mt-2 flex flex-wrap gap-1.5">{members.map(memberItem => <span key={memberItem.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-bold text-gray-600">{staffMap[memberItem.staff_id]?.full_name || 'Staff'} · {titleCase(memberItem.crew_role)}</span>)}</div></div> })}</div>
+      <div className="grid gap-3 md:grid-cols-2">{(data?.crews || []).map(item => { const members = (data?.crew_members || []).filter(memberItem => memberItem.crew_id === item.id); return <div key={item.id} className="rounded-xl border border-gray-200 p-4"><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{item.name}</p><p className="text-xs text-gray-500">{departmentDisplayName(departmentMap[item.department_id])} · Default manpower {item.default_manpower}</p></div><span className="rounded-full bg-green-50 px-2 py-1 text-[10px] font-black text-green-700">{item.is_active ? 'ACTIVE' : 'INACTIVE'}</span></div><p className="mt-3 text-xs font-bold text-gray-700">Team Leader: {staffMap[item.team_leader_id]?.full_name || 'Not assigned'}</p><div className="mt-2 flex flex-wrap gap-1.5">{members.map(memberItem => <span key={memberItem.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-bold text-gray-600">{staffMap[memberItem.staff_id]?.full_name || 'Staff'} · {titleCase(memberItem.crew_role)}</span>)}</div></div> })}</div>
     </Section>}
   </div>
 }
@@ -284,21 +285,21 @@ function BillingTab({ data, busy, run }) {
   return <div className="space-y-5">
     <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Customer Account Registry" description="Enables automatic account-number validation in My Profile.">
-        <div className="rounded-lg bg-gray-50 p-3 font-mono text-[10px] text-gray-600">account_number, registered_name, service_address, barangay, meter_number, is_active</div>
-        <input type="file" accept=".csv,text/csv" onChange={event => setAccountFile(event.target.files?.[0] || null)} className="input-field mt-3 rounded-lg" />
+        <div className="max-w-full break-all rounded-lg bg-gray-50 p-3 font-mono text-[10px] leading-5 text-gray-600">account_number, registered_name, service_address, barangay, meter_number, is_active</div>
+        <input type="file" accept=".csv,text/csv" onChange={event => setAccountFile(event.target.files?.[0] || null)} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
         <button disabled={!accountFile || busy === 'account-import'} onClick={() => run('account-import', () => importFile('accounts', accountFile), 'Customer account registry imported.')} className="btn-primary mt-3 w-full rounded-lg">Import Account Registry</button>
         <p className="mt-3 text-xs text-gray-500">{data?.account_registry?.length || 0} registry accounts are currently visible.</p>
       </Section>
 
       <Section title="Bulk Billing Import" description="Validates account numbers, then inserts or updates each customer's billing period.">
-        <div className="rounded-lg bg-gray-50 p-3 font-mono text-[10px] text-gray-600">account_number, billing_period, previous_reading, current_reading, consumption, amount_due, due_date, status</div>
-        <input type="file" accept=".csv,text/csv" onChange={event => setBillingFile(event.target.files?.[0] || null)} className="input-field mt-3 rounded-lg" />
+        <div className="max-w-full break-all rounded-lg bg-gray-50 p-3 font-mono text-[10px] leading-5 text-gray-600">account_number, billing_period, previous_reading, current_reading, consumption, amount_due, due_date, status</div>
+        <input type="file" accept=".csv,text/csv" onChange={event => setBillingFile(event.target.files?.[0] || null)} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
         <button disabled={!billingFile || busy === 'billing-import'} onClick={() => run('billing-import', () => importFile('billing', billingFile), 'Billing file processed. Review the batch results below.')} className="btn-primary mt-3 w-full rounded-lg">Import Billing CSV</button>
       </Section>
     </div>
 
     <Section title="Recent Billing Imports">
-      {(data?.billing_batches || []).length === 0 ? <p className="text-sm text-gray-500">No billing files have been imported.</p> : <div className="space-y-2">{data.billing_batches.map(item => <div key={item.id} className="grid gap-1 rounded-lg border border-gray-200 p-3 text-xs sm:grid-cols-4"><span className="font-black text-navy-900">{item.filename}</span><span>{item.imported_count}/{item.row_count} imported</span><span className={item.failed_count ? 'font-bold text-red-700' : 'text-green-700'}>{item.failed_count} failed</span><span>{formatDate(item.created_at)}</span></div>)}</div>}
+      {(data?.billing_batches || []).length === 0 ? <p className="text-sm text-gray-500">No billing files have been imported.</p> : <div className="space-y-2">{data.billing_batches.map(item => <div key={item.id} className="grid min-w-0 gap-2 rounded-lg border border-gray-200 p-3 text-xs sm:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]"><span className="min-w-0 break-all font-black text-navy-900">{item.filename}</span><span>{item.imported_count}/{item.row_count} imported</span><span className={item.failed_count ? 'font-bold text-red-700' : 'text-green-700'}>{item.failed_count} failed</span><span>{formatDate(item.created_at)}</span></div>)}</div>}
     </Section>
   </div>
 }

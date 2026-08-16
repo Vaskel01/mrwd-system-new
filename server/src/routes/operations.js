@@ -237,13 +237,13 @@ router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYS
   const isEcmdStaff = position === 'department_staff'
   const isMaintenancePosition = ['team_leader', 'crew_member'].includes(position)
   if (isSystemSupervisor && (staff.role !== 'admin' || department_id)) {
-    return res.status(400).json({ error: 'System Supervisors must use a Department Staff account without a department assignment.' })
+    return res.status(400).json({ error: 'System Supervisors must use a staff account without a department assignment.' })
   }
   if (isCommercialStaff && (staff.role !== 'admin' || departmentCode !== 'COMMERCIAL')) {
-    return res.status(400).json({ error: 'Commercial Department Staff must use a Department Staff account assigned to the Commercial Department.' })
+    return res.status(400).json({ error: 'Commercial Services Staff must use a staff account assigned to the Commercial Services Department.' })
   }
   if (isEcmdStaff && (staff.role !== 'admin' || departmentCode !== 'ECMD')) {
-    return res.status(400).json({ error: 'ECMD Staff must use a Department Staff account assigned to ECMD.' })
+    return res.status(400).json({ error: 'ECMD Staff must use a staff account assigned to ECMD.' })
   }
   if (isMaintenancePosition && (staff.role !== 'maintenance_personnel' || departmentCode !== 'ECMD')) {
     return res.status(400).json({ error: 'Team Leaders and Maintenance Crew Members must use a Maintenance Personnel account assigned to ECMD.' })

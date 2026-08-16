@@ -261,7 +261,7 @@ export default function ComplaintDetailsPage() {
   const openEdit = () => { setEditForm({ complaint_type: complaint.complaint_type, description: complaint.description, address: complaint.address }); setEditOpen(true) }
   const handleEdit = async event => { event.preventDefault(); if (await run(() => store.editComplaint(id, editForm), 'Pending complaint updated.')) setEditOpen(false) }
   const handleCancel = async () => { if (await run(() => store.cancelComplaint(id, cancelReason), 'Complaint cancelled.')) setCancelOpen(false) }
-  const handleReopen = async () => { if (await run(() => store.reopenComplaint(id, reopenReason), 'Complaint reopened and returned for Commercial Department review.')) setReopenOpen(false) }
+  const handleReopen = async () => { if (await run(() => store.reopenComplaint(id, reopenReason), 'Complaint reopened and returned for Commercial Services Department review.')) setReopenOpen(false) }
   const handleTaskStatus = status => run(() => store.updateStatus(id, status), 'Task status updated.')
   const handlePlan = async event => { event.preventDefault(); if (await run(() => store.updateTaskPlan(id, { materials_used: plan.materials_used }), 'Work plan updated.')) setPlanOpen(false) }
   const handleComplete = async event => { event.preventDefault(); if (await run(() => store.completeTask(id, completion, user.id), 'Completion notes submitted for ECMD verification.')) setCompleteOpen(false) }
@@ -314,8 +314,8 @@ export default function ComplaintDetailsPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Status</p><div className="mt-1"><StatusBadge status={complaint.status} /></div></div>
         <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Priority</p><div className="mt-1"><PriorityBadge priority={complaint.priority} /></div></div>
-        <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Assigned To</p><p className="mt-1 truncate text-xs font-bold text-gray-800">{complaint.assigned_name || 'Not assigned'}</p></div>
-        <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Filed</p><p className="mt-1 text-xs font-semibold text-gray-700">{formatDate(complaint.created_at)}</p></div>
+        <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Assigned Maintenance Personnel</p><p className="mt-1 truncate text-xs font-bold text-gray-800">{complaint.assigned_name || 'Not assigned'}</p></div>
+        <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Submitted</p><p className="mt-1 text-xs font-semibold text-gray-700">{formatDate(complaint.created_at)}</p></div>
         <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Forwarded to ECMD</p><p className="mt-1 text-xs font-semibold text-gray-700">{formatDate(complaint.forwarded_to_ecmd_at)}</p></div>
         <div><p className="text-[9px] font-black uppercase tracking-wider text-gray-400">Last Updated</p><p className="mt-1 text-xs font-semibold text-gray-700">{formatDate(complaint.updated_at)}</p></div>
       </div>
@@ -331,7 +331,7 @@ export default function ComplaintDetailsPage() {
 
         <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Attached Photo</h2>{photo && !photoError ? <a href={photo} target="_blank" rel="noreferrer"><img src={photo} alt="Complaint attachment" onError={() => setPhotoError(true)} className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border" /><p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p></a> : <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center"><AppIcon name="camera" className="mx-auto mb-2 h-8 w-8 text-gray-400" /><p className="font-bold text-gray-700">No photo attached</p><p className="text-sm text-gray-400 mt-1">{photoError ? 'The attached photo could not be loaded.' : 'This complaint was submitted without a photo.'}</p></div>}</div>
 
-        {(complaint.completion_notes || complaint.materials_used || complaint.resolution_notes) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Resolution Report</h2><DetailRow label="Maintenance Resolution Notes">{complaint.completion_notes || 'No resolution notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials Used">{complaint.materials_used}</DetailRow>}<DetailRow label="Field Work Completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.verified_at && <DetailRow label="ECMD Verified">{formatDate(complaint.verified_at)}</DetailRow>}{complaint.resolution_notes && <DetailRow label="ECMD Verification Notes">{complaint.resolution_notes}</DetailRow>}</div>}
+        {(complaint.completion_notes || complaint.materials_used || complaint.resolution_notes) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Resolution Report</h2><DetailRow label="Maintenance Completion Notes">{complaint.completion_notes || 'No resolution notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials Used">{complaint.materials_used}</DetailRow>}<DetailRow label="Field Work Completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.verified_at && <DetailRow label="ECMD Verified">{formatDate(complaint.verified_at)}</DetailRow>}{complaint.resolution_notes && <DetailRow label="ECMD Verification Notes">{complaint.resolution_notes}</DetailRow>}</div>}
 
         {(canEcmdOperate || isMaintenance) && complaint.assigned_to && <TaskResourcesPanel complaintId={complaint.id} />}
       </div>
@@ -378,7 +378,7 @@ export default function ComplaintDetailsPage() {
     {(canCommercialReview || canEcmdOperate) && <section className="card rounded-xl overflow-hidden no-print">
       <div className="border-b border-gray-100 px-5 pt-5">
         <div><h2 className="font-display font-bold text-navy-900">Staff Workspace</h2><p className="mt-1 text-xs text-gray-500">Internal notes, customer communication, and related complaint records stay together here instead of stacking separate action cards.</p></div>
-        <div className="mt-4 flex gap-1 overflow-x-auto">
+        <div className="mt-4 flex flex-wrap gap-1">
           <button onClick={() => setWorkspaceTab('notes')} className={`shrink-0 border-b-2 px-3 py-2 text-xs font-black ${workspaceTab === 'notes' ? 'border-navy-800 text-navy-900' : 'border-transparent text-gray-400'}`}>Internal Notes <span className="ml-1 text-[10px]">({opsContext.notes.length})</span></button>
           <button onClick={() => setWorkspaceTab('contact')} className={`shrink-0 border-b-2 px-3 py-2 text-xs font-black ${workspaceTab === 'contact' ? 'border-navy-800 text-navy-900' : 'border-transparent text-gray-400'}`}>Customer Contact <span className="ml-1 text-[10px]">({opsContext.contacts.length})</span></button>
           <button onClick={() => setWorkspaceTab('related')} className={`shrink-0 border-b-2 px-3 py-2 text-xs font-black ${workspaceTab === 'related' ? 'border-navy-800 text-navy-900' : 'border-transparent text-gray-400'}`}>Related Complaints <span className="ml-1 text-[10px]">({(complaint.similar_count || 0) + opsContext.related.length})</span></button>

@@ -137,7 +137,7 @@ export default function BillingPage() {
         ) : (
         <>
         {/* Mobile: card list */}
-        <div className="sm:hidden divide-y divide-gray-100">
+        <div className="lg:hidden divide-y divide-gray-100">
           {bills.map(b => (
             <div key={b.id} className={`p-4 ${isOverdue(b.due_date, b.status) ? 'bg-red-50' : ''}`}>
               <div className="flex justify-between items-start mb-2">
@@ -161,29 +161,29 @@ export default function BillingPage() {
         </div>
 
         {/* Desktop: table */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden min-w-0 overflow-hidden lg:block">
+          <table className="w-full table-fixed text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left">
                 {['Period','Consumption','Reading','Amount','Due Date','Status'].map(h => (
-                  <th key={h} className="px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {bills.map(b => (
                 <tr key={b.id} className={`transition-colors hover:bg-gray-50 ${isOverdue(b.due_date, b.status) ? 'bg-red-50/60' : ''}`}>
-                  <td className="px-5 py-3.5 font-semibold text-gray-900">{b.billing_period}</td>
-                  <td className="px-5 py-3.5 text-gray-600">{b.consumption} cu.m.</td>
-                  <td className="px-5 py-3.5 text-gray-400 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
-                  <td className="px-5 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5 font-semibold text-gray-900">{b.billing_period}</td>
+                  <td className="px-3 py-3.5 text-gray-600">{b.consumption} cu.m.</td>
+                  <td className="px-3 py-3.5 text-gray-400 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
+                  <td className="px-3 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
+                  <td className="px-3 py-3.5">
                     <span className={`text-sm ${isOverdue(b.due_date, b.status) ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
                       {isOverdue(b.due_date, b.status) && <AppIcon name="alert" className="mr-1 inline h-3.5 w-3.5" />}
                       {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     {b.status === 'paid'
                       ? <span className="inline-flex items-center px-2 py-0.5 text-xs font-bold bg-green-100 text-green-800">✓ PAID</span>
                       : <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold ${isOverdue(b.due_date,b.status) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>

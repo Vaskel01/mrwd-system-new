@@ -425,7 +425,7 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
 
   const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {
-    title: 'Completed complaint reopened', message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
+    title: 'Resolved complaint reopened', message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
   await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'reopened', title: 'Complaint reopened', message: reason, customerVisible: true })
   await writeAudit(req.supabase, req.user, 'complaint.reopened', 'complaint', req.params.id, { reason })
@@ -572,7 +572,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
     if (!hasCapability(req.user, requiredCapability)) {
       return res.status(403).json({
         error: requestedStatus === 'rejected'
-          ? 'Complaint rejection is restricted to the Commercial Department.'
+          ? 'Complaint rejection is restricted to the Commercial Services Department.'
           : 'Complaint field-status changes are restricted to ECMD.',
       })
     }
@@ -586,9 +586,9 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
   const status = requestedStatus === 'en_route' ? 'in_progress' : requestedStatus
   if (['awaiting_verification','resolved'].includes(status)) return res.status(400).json({ error: 'Use the completion and ECMD verification actions for these workflow states.' })
   if (req.user.role === 'admin' && status !== 'rejected') {
-    return res.status(400).json({ error: 'Department Staff must use the designated review, dispatch, restoration, or completion actions instead of forcing a workflow status.' })
+    return res.status(400).json({ error: 'Staff must use the designated review, dispatch, restoration, or completion actions instead of forcing a workflow status.' })
   }
-  if (status === 'rejected' && req.user.role !== 'admin') return res.status(403).json({ error: 'Only authorized Commercial Department Staff can reject a complaint.' })
+  if (status === 'rejected' && req.user.role !== 'admin') return res.status(403).json({ error: 'Only authorized Commercial Services Staff can reject a complaint.' })
   if (status === 'rejected' && String(rejection_reason || '').trim().length < 3) {
     return res.status(400).json({ error: 'A rejection reason of at least 3 characters is required.' })
   }

@@ -14,7 +14,7 @@ const QUEUE_FILTERS = [
   { key: 'assigned', label: 'Assigned', test: item => item.status === 'assigned' },
   { key: 'field_work', label: 'Field Work', test: item => ['en_route', 'in_progress'].includes(item.status) },
   { key: 'blocked', label: 'Needs Attention', test: item => item.status === 'blocked' },
-  { key: 'verification', label: 'Awaiting Verification', test: item => item.status === 'awaiting_verification' },
+  { key: 'verification', label: 'Awaiting ECMD Verification', test: item => item.status === 'awaiting_verification' },
 ]
 
 const availabilityLabel = value => ({ available: 'Available', busy: 'Busy', on_leave: 'On Leave', off_duty: 'Off Duty' }[value] || value || 'Available')
@@ -112,7 +112,7 @@ export default function EcmdDispatchPage() {
   return (
     <div className="space-y-5">
       <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p>
         <div className="mt-1 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-2xl font-black text-white sm:text-3xl">Complaint Dispatch</h1>
@@ -130,12 +130,12 @@ export default function EcmdDispatchPage() {
 
       <section className="card overflow-hidden rounded-xl">
         <div className="border-b border-gray-100 px-4 pt-4 sm:px-5">
-          <div className="flex gap-2 overflow-x-auto pb-3">
+          <div className="flex flex-wrap gap-2 pb-3">
             {QUEUE_FILTERS.map(filter => (
               <button
                 key={filter.key}
                 onClick={() => setQueueFilter(filter.key)}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black transition ${queueFilter === filter.key ? 'border-navy-700 bg-navy-700 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-navy-200 hover:text-navy-800'}`}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black transition ${queueFilter === filter.key ? 'border-navy-700 bg-navy-700 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-navy-200 hover:text-navy-800'}`}
               >
                 {filter.label}
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${queueFilter === filter.key ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[filter.key] || 0}</span>
@@ -162,40 +162,37 @@ export default function EcmdDispatchPage() {
               <div><h2 className="font-display font-black text-navy-900">Dispatch Queue</h2><p className="mt-0.5 text-xs text-gray-500">{filtered.length} complaint{filtered.length === 1 ? '' : 's'} shown</p></div>
             </div>
 
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full text-left">
+            <div className="hidden min-w-0 overflow-hidden lg:block">
+              <table className="w-full table-fixed text-left">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-[10px] font-black uppercase tracking-wider text-gray-400">
                   <tr>
-                    <th className="px-5 py-3">Complaint</th>
-                    <th className="px-4 py-3">Location / Customer</th>
-                    <th className="px-4 py-3">Priority</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Assignment</th>
-                    <th className="px-5 py-3 text-right">Action</th>
+                    <th className="w-[36%] px-4 py-3">Complaint</th>
+                    <th className="w-[12%] px-3 py-3">Priority</th>
+                    <th className="w-[17%] px-3 py-3">Status</th>
+                    <th className="w-[18%] px-3 py-3">Assignment</th>
+                    <th className="w-[17%] px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(item => (
                     <tr key={item.id} className="group hover:bg-navy-50/30">
-                      <td className="px-5 py-4 align-top">
-                        <button onClick={() => navigate(`/complaints/${item.id}`)} className="text-left">
-                          <p className="font-mono text-[10px] font-bold text-gray-400">{item.reference_number}</p>
-                          <p className="mt-1 text-sm font-black text-navy-900 group-hover:text-brand-700">{item.complaint_type}</p>
+                      <td className="px-4 py-4 align-top">
+                        <button onClick={() => navigate(`/complaints/${item.id}`)} className="min-w-0 text-left">
+                          <p className="break-all font-mono text-[10px] font-bold text-gray-400">{item.reference_number}</p>
+                          <p className="mt-1 break-words text-sm font-black text-navy-900 group-hover:text-brand-700">{item.complaint_type}</p>
+                          <p className="mt-1 line-clamp-2 break-words text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
+                          <p className="mt-1 break-words text-[11px] text-gray-400">{item.customer_name || 'Customer'}</p>
                           {item.similar_count ? <p className="mt-1 text-[10px] font-bold text-amber-700">{item.similar_count} nearby/related report{item.similar_count === 1 ? '' : 's'}</p> : null}
                         </button>
                       </td>
-                      <td className="max-w-[260px] px-4 py-4 align-top">
-                        <p className="truncate text-xs font-semibold text-gray-700">{item.address || 'No address'}</p>
-                        <p className="mt-1 truncate text-[11px] text-gray-400">{item.customer_name || 'Customer'}</p>
-                      </td>
-                      <td className="px-4 py-4 align-top"><PriorityBadge priority={item.priority}/></td>
-                      <td className="px-4 py-4 align-top"><StatusBadge status={item.status}/></td>
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-3 py-4 align-top"><PriorityBadge priority={item.priority}/></td>
+                      <td className="px-3 py-4 align-top"><StatusBadge status={item.status}/></td>
+                      <td className="px-3 py-4 align-top">
                         <p className="text-xs font-bold text-gray-700">{item.assigned_name || 'Unassigned'}</p>
                         {item.assigned_name && <p className="mt-1 text-[10px] text-gray-400">Maintenance Personnel</p>}
                       </td>
-                      <td className="px-5 py-4 align-top text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-4 py-4 align-top text-right">
+                        <div className="flex flex-col items-stretch justify-end gap-1.5 2xl:flex-row 2xl:items-center">
                           <button onClick={() => navigate(`/complaints/${item.id}`)} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-[11px] font-black text-gray-700 hover:border-navy-200">View</button>
                           {item.status === 'awaiting_verification' ? (
                             <button onClick={() => navigate(`/complaints/${item.id}`)} className="rounded-lg bg-violet-600 px-3 py-2 text-[11px] font-black text-white">Verify</button>
@@ -206,7 +203,7 @@ export default function EcmdDispatchPage() {
                       </td>
                     </tr>
                   ))}
-                  {!filtered.length && <tr><td colSpan="6" className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-500">No complaints in this queue.</p><p className="mt-1 text-xs text-gray-400">Try another status or clear the filters.</p></td></tr>}
+                  {!filtered.length && <tr><td colSpan="5" className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-500">No complaints in this queue.</p><p className="mt-1 text-xs text-gray-400">Try another status or clear the filters.</p></td></tr>}
                 </tbody>
               </table>
             </div>

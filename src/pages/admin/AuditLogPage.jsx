@@ -203,7 +203,7 @@ function DetailsCell({ details, profileDirectory }) {
   }
 
   return (
-    <dl className="space-y-2 min-w-[230px]">
+    <dl className="min-w-0 space-y-2">
       {entries.map(([key, value]) => (
         <div key={key} className="grid grid-cols-1 sm:grid-cols-[112px_minmax(0,1fr)] gap-1 sm:gap-2 items-start">
           <dt className="font-bold text-gray-500 leading-5">{detailLabel(key)}</dt>

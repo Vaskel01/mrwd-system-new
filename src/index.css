@@ -331,7 +331,15 @@
   .badge-en_route    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 2px; }
   .badge-in_progress { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 2px; }
   .badge-completed   { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 2px; }
+  .badge-pending, .badge-assigned, .badge-en_route, .badge-in_progress, .badge-completed { max-width: 100%; white-space: normal; text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
+
+  /* Keep data tables inside the content column. Long names, addresses, IDs,
+     and labels wrap instead of forcing a horizontal page/table scroller. */
+  .app-main table { max-width: 100%; }
+  .app-main th,
+  .app-main td { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
 }
+
 
 @keyframes login-wave-drift {
   0%, 100% { transform: translate3d(-3.5%, 1%, 0) scaleY(.98); }
@@ -383,8 +391,9 @@
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 2px; }
-  .mobile-scroll-table { overflow-x: auto; }
-  .mobile-scroll-table table { min-width: 100%; }
+  .mobile-scroll-table { overflow-x: hidden; }
+  .mobile-scroll-table table { width: 100%; table-layout: fixed; }
+  .wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
 }
 
 @media print {

@@ -23,7 +23,7 @@ create table if not exists public.departments (
 
 insert into public.departments (code, name, responsibilities)
 values
-  ('COMMERCIAL', 'Commercial Department', 'Monitors customer complaints, billing concerns, submissions, and management reports.'),
+  ('COMMERCIAL', 'Commercial Services Department', 'Monitors customer complaints, billing concerns, submissions, and management reports.'),
   ('ECMD', 'Engineering, Construction and Maintenance Department', 'Coordinates field crews, maintenance assignments, equipment, materials, and completion reports.')
 on conflict (code) do update
 set name = excluded.name,

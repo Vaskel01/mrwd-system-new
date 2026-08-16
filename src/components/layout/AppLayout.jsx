@@ -32,7 +32,7 @@ function adminNavigation(user) {
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial Dashboard' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
   add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
-  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Customer Accounts & Billing' })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & Billing' })
   add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dashboard', icon: DashIcon, label: 'ECMD Dashboard' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint Dispatch' })
@@ -46,7 +46,7 @@ function adminNavigation(user) {
 
 const ROLE_CONFIG = {
   customer:    { tag: 'Customer',      gradient: 'from-blue-500 to-blue-600', dot: '#60a5fa' },
-  admin:       { tag: 'Department Staff', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
+  admin:       { tag: 'Staff Account', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
   maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
 }
 
@@ -299,7 +299,7 @@ export default function AppLayout({ children }) {
 
           {/* ── Page content ── */}
           <main id="main-content" tabIndex={-1} className="app-main min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="mx-auto w-full min-w-0 max-w-5xl px-3 min-[360px]:px-4 sm:px-6 py-5 sm:py-8">
+            <div className="mx-auto w-full min-w-0 max-w-7xl px-3 min-[360px]:px-4 sm:px-6 py-5 sm:py-8">
               {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
             </div>

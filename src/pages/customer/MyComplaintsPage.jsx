@@ -25,10 +25,10 @@ const STATUS_CONFIG = {
   assigned: { bar: 35, color: '#7c3aed', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned.' },
   en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In Progress', message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Awaiting Verification', message: 'Field work is complete and ECMD is verifying the resolution.' },
+  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Awaiting ECMD Verification', message: 'Field work is complete and ECMD is verifying the resolution.' },
   resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'ECMD verified the completed field work and resolved the complaint.' },
   completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
-  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Department.' },
+  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },
   cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
   blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs Attention', message: 'Maintenance Personnel requested ECMD assistance.' },
 }
@@ -159,7 +159,7 @@ export default function MyComplaintsPage() {
               className="input-field pl-9 rounded-lg" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {[['all', 'All'], ['pending', 'Pending'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+            {[['all', 'All'], ['pending', 'Pending Review'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
               <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="px-4 py-2 rounded-full text-sm font-semibold"
                 style={filter === value ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>

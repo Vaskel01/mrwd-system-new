@@ -25,7 +25,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
 
 export default function AllComplaintsPage() {
   const navigate = useNavigate()
@@ -89,7 +89,7 @@ export default function AllComplaintsPage() {
       <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Department</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Complaint Review</h1>
           </div>
           <div className="text-right">
@@ -106,7 +106,7 @@ export default function AllComplaintsPage() {
           <AppIcon name="search" className="mt-0.5 h-5 w-5 shrink-0 text-navy-700" />
           <div>
             <p className="font-display font-bold text-navy-900">Records and review</p>
-            <p className="mt-1 text-sm text-gray-600">Use this page to verify complaint information, review classification results, and complete Commercial Department actions. ECMD handles dispatch and field work on its separate pages.</p>
+            <p className="mt-1 text-sm text-gray-600">Use this page to verify complaint information, review classification results, and complete Commercial Services Department actions. ECMD handles dispatch and field work on its separate pages.</p>
           </div>
         </div>
       </div>
@@ -141,8 +141,8 @@ export default function AllComplaintsPage() {
             <option value="score">Highest Score</option>
             <option value="priority">Priority, Highest Score</option>
             <option value="type">Complaint Type A–Z</option>
-            <option value="date">Newest Filed</option>
-            <option value="oldest">Oldest Filed</option>
+            <option value="date">Newest Submitted</option>
+            <option value="oldest">Oldest Submitted</option>
           </select>
           <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
         </div>
@@ -151,31 +151,31 @@ export default function AllComplaintsPage() {
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[42%]" />
-            <col className="w-[14%]" />
-            <col className="w-[10%]" />
+            <col className="w-[31%]" />
             <col className="w-[13%]" />
+            <col className="w-[10%]" />
             <col className="w-[12%]" />
+            <col className="w-[14%]" />
             <col className="w-[9%]" />
-            <col className="w-[136px]" />
+            <col className="w-[11%]" />
           </colgroup>
           <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Filed', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
+            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Submitted', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">{h}</th>)}
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (
               <tr key={c.id} className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]} ${c.priority === 'high' && c.status === 'pending' ? 'bg-red-50/60' : ''}`}>
                 <td className="px-4 py-3">
-                  <p className="font-bold text-gray-900 truncate">{c.complaint_type}</p>
-                  <p className="text-xs text-gray-400 truncate">{c.description}</p>
-                  <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{c.reference_number}</p>
-                  {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
+                  <p className="font-bold text-gray-900 break-words">{c.complaint_type}</p>
+                  <p className="text-xs text-gray-400 line-clamp-2 break-words">{c.description}</p>
+                  <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 break-all">{c.reference_number}</p>
+                  {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 break-words"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
                 </td>
-                <td className="px-4 py-3 text-gray-700 truncate">{c.customer_name}</td>
+                <td className="px-4 py-3 text-gray-700 break-words">{c.customer_name}</td>
                 <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
                 <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                <td className="px-4 py-3 text-gray-500"><p className="truncate">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{timeAgo(c.created_at)}</td>
+                <td className="px-4 py-3 text-gray-500"><p className="break-words">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs break-words">{timeAgo(c.created_at)}</td>
                 <td className="px-4 py-3 pr-5">
                   <button onClick={() => navigate(`/complaints/${c.id}`)} className={TABLE_ACTION_CLASS}>
                     Open
@@ -195,7 +195,7 @@ export default function AllComplaintsPage() {
                 <p className="font-bold text-gray-900">{c.complaint_type}</p>
                 <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{c.reference_number}</p>
                 <p className="text-xs text-gray-500 mt-1">{c.customer_name} · {timeAgo(c.created_at)}</p>
-                <p className="text-xs text-gray-400 truncate mt-1 inline-flex items-center gap-1"><AppIcon name="location" className="w-3.5 h-3.5" />{c.address}</p>
+                <p className="text-xs text-gray-400 line-clamp-2 break-words mt-1 inline-flex items-center gap-1"><AppIcon name="location" className="w-3.5 h-3.5" />{c.address}</p>
               </div>
               <span className="font-display font-black text-2xl text-navy-800" aria-label={`Priority score ${c.priority_score} out of 100`}>{c.priority_score}</span>
             </div>

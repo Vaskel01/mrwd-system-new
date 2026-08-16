@@ -58,7 +58,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
       return {
         cards: [
-          ['Pending Review', pendingReview.length, 'New complaints waiting for Commercial validation and routing.', 'clipboard'],
+          ['Pending Review', pendingReview.length, 'New complaints waiting for Commercial Services review and routing.', 'clipboard'],
           ['Forwarded to ECMD', forwarded.length, 'Complaints already handed off and waiting for field dispatch.', 'assignment'],
           ['Billing-related', withBillingConcern.length, 'Complaints involving billing, account, or payment concerns.', 'billing'],
           ['Resolved Today', resolvedToday.length, 'Complaints verified and resolved today.', 'check'],
@@ -89,7 +89,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
       cards: [
         ['Dispatch Queue', readyForDispatch.length, 'Commercial-validated complaints ready for ECMD assignment.', 'assignment'],
         ['Active Field Work', activeFieldWork.length, 'Complaints currently assigned or being handled in the field.', 'tool'],
-        ['Awaiting Verification', awaitingVerification.length, 'Maintenance-completed complaints awaiting ECMD verification.', 'alert'],
+        ['Awaiting ECMD Verification', awaitingVerification.length, 'Complaints with completed field work awaiting ECMD verification.', 'alert'],
         ['Resolved Today', resolvedToday.length, 'Complaints verified and resolved by ECMD today.', 'check'],
       ],
       attention: [...complaints]

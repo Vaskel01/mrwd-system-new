@@ -5,7 +5,7 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 ## Prerequisites
 
 1. Run every required migration listed in `supabase/README.md`, ending with `migrations/20260814100000_department_module_access.sql`.
-2. Create one Customer, two Maintenance Personnel accounts, one Commercial Department Staff account, one ECMD Staff account, and one System Supervisor.
+2. Create one Customer, two Maintenance Personnel accounts, one Commercial Services Staff account, one ECMD Staff account, and one System Supervisor.
 3. Give one Maintenance Personnel account `Available` status and the other `On Leave`.
 4. Keep browser developer tools open to record unexpected API errors.
 
@@ -23,7 +23,7 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | C-08 | Update account number, phone, service address, and barangay | My Profile saves and reloads the updated customer information. |
 | C-09 | Acknowledge a completed complaint | Confirmation date is saved, shown in details, added to the timeline, and visible to staff. |
 | C-10 | Print complaint receipt | Print preview omits navigation and includes complaint details/timeline. |
-| C-11 | Reopen a completed complaint | Complaint returns to Pending and Commercial Department Staff receive a notification. |
+| C-11 | Reopen a completed complaint | Complaint returns to Pending and Commercial Services Staff receive a notification. |
 | C-12 | Submit feedback | One rating/comment is saved; duplicate feedback is rejected. |
 | C-13 | Inspect the complaint API response | No priority score, keywords, confidence, sentiment, or predicted category is exposed. |
 
@@ -37,15 +37,15 @@ Use a separate Supabase test project or test accounts. Record the actual result,
 | A-04 | Send staff password reset | Staff receives a reset email; action appears in the audit log. |
 | A-05 | As ECMD Staff, assign a complaint | Exactly one current task exists; the Customer and assigned Maintenance Personnel are notified. |
 | A-06 | As ECMD Staff, reassign the complaint | The old task becomes historical/inactive, the newly assigned Maintenance Personnel receives the current task, and the previous assignee loses active access. |
-| A-07 | As Commercial Department Staff, reject and undo rejection | Reason is required; the Customer sees it; restore returns to Pending or Assigned correctly. |
+| A-07 | As Commercial Services Staff, reject and undo rejection | Reason is required; the Customer sees it; restore returns to Pending or Assigned correctly. |
 | A-08 | Open ECMD Complaint Dispatch on laptop width | Action column remains visible; horizontal scrolling does not clip buttons. |
-| A-09 | As Commercial Department Staff, open Complaint Reports and export CSV | Counts match records and CSV opens with correct columns. ECMD workload details are not included. |
+| A-09 | As Commercial Services Staff, open Complaint Reports and export CSV | Counts match records and CSV opens with correct columns. ECMD workload details are not included. |
 | A-10 | Print Complaint Reports | Browser print/save-PDF produces a readable report without navigation. |
 | A-11 | As System Supervisor, open Audit Log | Assignment, reassignment, rejection, staff, completion, and feedback actions are recorded. |
-| A-12 | As Commercial Department Staff, override a priority score with a reason | Operational score changes, classifier score remains visible, manual override is clearly labeled, and audit details contain previous/new values and reason. |
+| A-12 | As Commercial Services Staff, override a priority score with a reason | Operational score changes, classifier score remains visible, manual override is clearly labeled, and audit details contain previous/new values and reason. |
 | A-13 | Restore the classifier priority | Operational priority returns to the stored classifier score and the reset is audited. |
 | A-14 | Mark a service advisory Important | The Important advisory appears above regular advisories for every role; removing Important status restores normal date ordering. |
-| A-15 | Review classifier | Full evidence is visible only to Commercial Department Staff and System Supervisors. |
+| A-15 | Review classifier | Full evidence is visible only to Commercial Services Staff and System Supervisors. |
 | A-16 | Open Commercial Complaint Review without URL filters | Pending is selected, records are grouped High → Medium → Low, and the oldest record appears first within each priority group. |
 
 ## Maintenance workflow
@@ -122,7 +122,7 @@ where status = 'completed'
 | QOL-09 | Click Reset Filters on the Resolved dispatch view | The page returns to the default Unassigned dispatch queue. |
 | QOL-10 | Acknowledge an assignment from Maintenance > My Tasks | The task is acknowledged without opening details and the list updates immediately. |
 | QOL-11 | Edit an announcement | Its content changes without replacing its original author or posting timestamp; an audit event is recorded. |
-| QOL-12 | Set a service advisory Active Until time in the past | Customers and Maintenance Personnel no longer see it; Commercial Department Staff see it marked Expired. |
+| QOL-12 | Set a service advisory Active Until time in the past | Customers and Maintenance Personnel no longer see it; Commercial Services Staff see it marked Expired. |
 
 ## Classifier evaluation
 
@@ -147,11 +147,11 @@ The included 25 cases are development checks. Final research results should use 
 
 ## Department access checks
 
-Use one Commercial Department Staff account, one ECMD Staff account, one System Supervisor, and one unassigned Department Staff account. Test both normal navigation and direct URL/API access.
+Use one Commercial Services Staff account, one ECMD Staff account, one System Supervisor, and one unassigned Department Staff account. Test both normal navigation and direct URL/API access.
 
 | ID | Test | Expected result |
 |---|---|---|
-| DEPT-01 | Sign in as Commercial Department Staff and inspect the sidebar | Complaint Review, Complaint Reports, Customer Accounts & Billing, and Service Advisories are available; Complaint Dispatch, Field Operations, Staff Accounts, approvals, and Audit Log are absent. |
+| DEPT-01 | Sign in as Commercial Services Staff and inspect the sidebar | Complaint Review, Complaint Reports, Accounts & Billing, and Service Advisories are available; Complaint Dispatch, Field Operations, Staff Accounts, approvals, and Audit Log are absent. |
 | DEPT-02 | As Commercial, directly open an ECMD URL or call an ECMD endpoint | Access is denied and no ECMD record is changed. |
 | DEPT-03 | Sign in as ECMD Staff and inspect the sidebar | Complaint Dispatch and Field Operations are available; classifier review, billing, reports, service advisories, staff management, approvals, and audit are absent. |
 | DEPT-04 | As ECMD, open a complaint | Final category and operational priority are visible; numerical score, sentiment, confidence, matched phrases, and priority-override controls are absent from the response and page. |

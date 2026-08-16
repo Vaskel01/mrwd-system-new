@@ -6,7 +6,7 @@ Run `supabase/migrations/20260813110000_client_operations_expansion.sql`, follow
 
 | Module | Intended accounts | Main functions |
 |---|---|---|
-| Commercial Services Department | Commercial Department Staff (`COMMERCIAL`) | Department dashboard, complaint review and classifier evidence, audited priority overrides, complaint reports, customer accounts/billing concerns, Important advisories, and archival requests |
+| Commercial Services Department | Commercial Services Staff (`COMMERCIAL`) | Department dashboard, complaint review and classifier evidence, audited priority overrides, complaint reports, customer accounts/billing concerns, Important advisories, and archival requests |
 | ECMD | ECMD Staff (`ECMD`) and assigned Maintenance Personnel | Department dashboard, complaint dispatch, crew and manpower management, shifts, service targets, escalations, inventory, field operations, and official maintenance reports |
 | System Administration | System Supervisor (`Supervisor` or `Manager`) | Cross-department dashboard, departments and staff access, approvals, approved archival, delivery records, and audit logs |
 
@@ -17,7 +17,7 @@ The two operational department page families are `/commercial/*` and `/ecmd/*`. 
 ## Departments, positions, crews, and team leaders
 
 - Seeded operational departments: **Commercial Services Department** and **Engineering, Construction and Maintenance Department (ECMD)**. No Finance, Administrative Services, Production, HR, or other department module is part of this complaint system.
-- A staff account keeps its internal security role (`admin` or `maintenance_personnel`) and may also receive an operational access designation such as System Supervisor, Commercial Department Staff, ECMD Staff, Team Leader, or Maintenance Crew member.
+- A staff account keeps its internal security role (`admin` or `maintenance_personnel`) and may also receive an operational access designation such as System Supervisor, Commercial Services Staff, ECMD Staff, Team Leader, or Maintenance Crew Member.
 - Team Leader is an operational position, not a new authentication role. Access remains protected by the ECMD module and the existing Maintenance Personnel role.
 - A Maintenance Crew can have one active Team Leader and multiple members. ECMD Staff may assign an individual Maintenance Personnel account, an optional crew, or both to a complaint.
 - Staff schedules record date, shift start/end, availability, and notes. The available-staff list considers the current day's schedule.

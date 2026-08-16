@@ -84,7 +84,7 @@ export default function SystemDashboardPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
-        <StatCard label="Commercial Accounts" value={summary.commercial} detail="Separate staff logins assigned only to Commercial Services." icon="billing" />
+        <StatCard label="Commercial Services Accounts" value={summary.commercial} detail="Separate staff logins assigned only to Commercial Services." icon="billing" />
         <StatCard label="ECMD Accounts" value={summary.ecmd} detail="Separate ECMD office logins for dispatch and field operations." icon="assignment" />
         <StatCard label="Maintenance Personnel" value={summary.maintenance} detail="Field personnel accounts used for assigned maintenance tasks." icon="tool" />
         <StatCard label="Pending Approvals" value={summary.approvals} detail="System-level requests waiting for supervisor action." icon="alert" />

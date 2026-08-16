@@ -84,7 +84,7 @@ begin
   end if;
   if new.staff_position = 'commercial_staff'
      and (new.role <> 'admin' or new_department_code <> 'COMMERCIAL') then
-    raise exception 'Commercial Department Staff must be assigned to the Commercial Department';
+    raise exception 'Commercial Services Staff must be assigned to the Commercial Services Department';
   end if;
   if new.staff_position = 'department_staff'
      and (new.role <> 'admin' or new_department_code <> 'ECMD') then

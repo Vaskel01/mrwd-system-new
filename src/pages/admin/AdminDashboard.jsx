@@ -99,9 +99,9 @@ export default function AdminDashboard() {
 
   const total = scopedComplaints.length
   const inProgress = scopedComplaints.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status)).length
-  const completed = scopedComplaints.filter(item => item.status === 'completed').length
+  const resolved = scopedComplaints.filter(item => ['resolved', 'completed'].includes(item.status)).length
   const high = scopedComplaints.filter(item => item.priority === 'high').length
-  const resolveRate = total > 0 ? Math.round((completed / total) * 100) : 0
+  const resolveRate = total > 0 ? Math.round((resolved / total) * 100) : 0
   const unassigned = complaints.filter(item => !item.assigned_to && item.status === 'pending').length
 
   const activeMaintenancePersonnel = staff.filter(account =>
@@ -238,10 +238,10 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Filed" value={total} color="text-navy-800" />
+          <StatCard label="Submitted" value={total} color="text-navy-800" />
           <StatCard label="In Progress" value={inProgress} color="text-brand-600" />
           <StatCard label="High Priority" value={high} color="text-red-600" />
-          <StatCard label="Completed" value={completed} color="text-green-600" />
+          <StatCard label="Resolved" value={resolved} color="text-green-600" />
         </div>
       </section>
 
@@ -300,12 +300,12 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        <section className="card overflow-hidden rounded-xl" aria-labelledby="recently-filed-title">
+        <section className="card overflow-hidden rounded-xl" aria-labelledby="recently-submitted-title">
           <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-br from-gray-50 to-white px-5 py-4">
             <div>
               <div className="flex items-center gap-2.5">
                 <div className="h-4 w-1 rounded-full bg-gold-500" />
-                <h2 id="recently-filed-title" className="text-xs font-black uppercase tracking-widest text-gray-600">Recently Filed</h2>
+                <h2 id="recently-submitted-title" className="text-xs font-black uppercase tracking-widest text-gray-600">Recently Submitted</h2>
               </div>
               <p className="mt-1 pl-3.5 text-xs text-gray-400">Latest reports not already listed for immediate attention.</p>
             </div>

@@ -127,7 +127,7 @@ export default function FeedbackBox({ complaintId }) {
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
         <AppIcon name="feedback" className="mx-auto mb-2 h-8 w-8 text-gray-400" />
         <p className="font-bold text-gray-700">No customer feedback yet</p>
-        <p className="text-sm text-gray-400 mt-1">The customer has not submitted a rating or comment for this completed complaint.</p>
+        <p className="text-sm text-gray-400 mt-1">The customer has not submitted a rating or comment for this resolved complaint.</p>
       </div>
     )
   }

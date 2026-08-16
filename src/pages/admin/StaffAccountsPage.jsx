@@ -251,7 +251,7 @@ export default function StaffAccountsPage() {
       <button
         type="button"
         onClick={() => setManageAccountId(account.id)}
-        className="inline-flex items-center justify-center min-w-[92px] px-3 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
+        className="inline-flex max-w-full items-center justify-center px-2.5 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
       >
         Manage
       </button>
@@ -426,14 +426,14 @@ export default function StaffAccountsPage() {
         <div className="card rounded-xl p-10 text-center text-gray-400">No staff accounts match your search and filters.</div>
       ) : (
         <>
-          <div className="hidden xl:block card rounded-xl overflow-x-auto p-2">
-            <table className="w-full min-w-[820px] table-fixed text-sm">
+          <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
+            <table className="w-full table-fixed text-sm">
               <colgroup>
                 <col className="w-[25%]" />
-                <col className="w-[21%]" />
-                <col className="w-[18%]" />
+                <col className="w-[22%]" />
+                <col className="w-[16%]" />
                 <col className="w-[25%]" />
-                <col className="w-[110px]" />
+                <col className="w-[12%]" />
               </colgroup>
               <thead>
                 <tr className="bg-gray-50 border-b-2 border-gray-200 text-left">
@@ -448,7 +448,7 @@ export default function StaffAccountsPage() {
                     <tr key={account.id} className={`hover:bg-gray-50 ${account.is_active === false ? 'bg-gray-50 opacity-75' : ''}`}>
                       <td className="px-5 py-4 align-top">
                         <p className="font-bold text-gray-900">{account.full_name}</p>
-                        <p className="mt-1 truncate text-xs text-gray-500">{account.email}</p>
+                        <p className="mt-1 break-all text-xs text-gray-500">{account.email}</p>
                         <p className="mt-1.5 text-[10px] font-medium text-gray-400">Created {timeAgo(account.created_at)}</p>
                       </td>
                       <td className="px-5 py-4 align-top">
@@ -466,14 +466,14 @@ export default function StaffAccountsPage() {
                         {account.role === 'maintenance_personnel' ? (
                           <div>
                             <p className="text-xs font-bold capitalize text-gray-700">{String(account.availability_status || 'available').replace('_', ' ')}</p>
-                            <p className="mt-1 text-[10px] text-gray-400">{account.availability_note || 'No availability note'}</p>
+                            <p className="mt-1 break-words text-[10px] text-gray-400">{account.availability_note || 'No availability note'}</p>
                           </div>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-5 py-4 align-top">
-                        <p className="text-xs leading-5 text-gray-500">
+                        <p className="text-xs leading-5 break-words text-gray-500">
                           {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services workspace only'}
-                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD office workspace only'}
+                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD workspace only'}
                           {accountTypeKey(account) === 'maintenance_personnel' && 'Maintenance task workspace only'}
                           {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
                         </p>

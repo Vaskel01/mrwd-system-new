@@ -25,7 +25,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex w-24 items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
 
 function matchesSearch(complaint, query) {
   if (!query) return true
@@ -299,7 +299,7 @@ export default function AssignTaskPage() {
         {[
           ['unassigned', 'Unassigned', counts.unassigned, 'text-amber-600'],
           ['active', 'Active', counts.active, 'text-brand-600'],
-          ['resolved', 'Completed', counts.resolved, 'text-green-600'],
+          ['resolved', 'Resolved', counts.resolved, 'text-green-600'],
           ['all', 'All Records', counts.all, 'text-navy-800'],
         ].map(([value, label, count, color]) => (
           <button key={value} onClick={() => { setView(value); setPage(1) }}
@@ -328,10 +328,10 @@ export default function AssignTaskPage() {
           </select>
           <select name="assigntaskpage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Status</option>
-            <option value="pending">Pending</option>
+            <option value="pending">Pending Review</option>
             <option value="assigned">Assigned</option>
             <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
+            <option value="completed">Resolved</option>
             <option value="blocked">Needs Attention</option>
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
@@ -381,14 +381,14 @@ export default function AssignTaskPage() {
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
           <colgroup>
-            <col className="w-[44px]" />
-            <col className="w-[32%]" />
-            <col className="w-[14%]" />
-            <col className="w-[10%]" />
+            <col className="w-[5%]" />
+            <col className="w-[27%]" />
             <col className="w-[12%]" />
-            <col className="w-[14%]" />
-            <col className="w-[8%]" />
-            <col className="w-[136px]" />
+            <col className="w-[10%]" />
+            <col className="w-[11%]" />
+            <col className="w-[13%]" />
+            <col className="w-[9%]" />
+            <col className="w-[13%]" />
           </colgroup>
           <thead>
             <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
@@ -400,7 +400,7 @@ export default function AssignTaskPage() {
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Priority</th>
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Status</th>
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assigned</th>
-              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Filed</th>
+              <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Submitted</th>
               <th className="px-3 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
             </tr>
           </thead>
@@ -416,16 +416,16 @@ export default function AssignTaskPage() {
                     {selectable && <input name="assigntaskpage-checkbox-field-9" type="checkbox" checked={checked.has(complaint.id)} onChange={() => toggleChecked(complaint.id)} className="accent-brand-600" aria-label={`Select ${complaint.complaint_type}`} />}
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <p className="font-bold text-gray-900 truncate">{complaint.complaint_type}</p>
-                    <p className="text-xs text-gray-400 truncate">{complaint.description}</p>
-                    <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 truncate">{complaint.reference_number}</p>
-                    {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1 truncate"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
+                    <p className="font-bold text-gray-900 break-words">{complaint.complaint_type}</p>
+                    <p className="text-xs text-gray-400 line-clamp-2 break-words">{complaint.description}</p>
+                    <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 break-all">{complaint.reference_number}</p>
+                    {complaint.status === 'rejected' && <p className="text-xs text-red-600 mt-1 break-words"><b>Reason:</b> {complaint.rejection_reason || 'Not recorded'}</p>}
                   </td>
-                  <td className="px-3 py-3 text-gray-700 align-top truncate">{complaint.customer_name}</td>
+                  <td className="px-3 py-3 text-gray-700 align-top break-words">{complaint.customer_name}</td>
                   <td className="px-3 py-3 align-top"><PriorityBadge priority={complaint.priority} /></td>
                   <td className="px-3 py-3 align-top"><StatusBadge status={complaint.status} /></td>
-                  <td className="px-3 py-3 text-gray-500 align-top"><p className="truncate">{complaint.assigned_name || 'Unassigned'}</p>{complaint.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(complaint.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
-                  <td className="px-3 py-3 text-gray-400 text-xs align-top whitespace-nowrap">{timeAgo(complaint.created_at)}</td>
+                  <td className="px-3 py-3 text-gray-500 align-top"><p className="break-words">{complaint.assigned_name || 'Unassigned'}</p>{complaint.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(complaint.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
+                  <td className="px-3 py-3 text-gray-400 text-xs align-top break-words">{timeAgo(complaint.created_at)}</td>
                   <td className="px-3 py-3 pr-5 align-top">{renderActions(complaint)}</td>
                 </tr>
               )

@@ -7,6 +7,15 @@ import { isPasswordValid } from '../../lib/passwordPolicy'
 import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
 import { staffAccessLabel } from '../../config/terminology'
 
+
+function authenticatorQrSource(value) {
+  if (!value) return ''
+  const qr = String(value).trim()
+  if (qr.startsWith('data:image/')) return qr
+  if (qr.startsWith('<svg')) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr)}`
+  return qr
+}
+
 export default function ProfilePage() {
   const currentUser = useAuthStore(s => s.user)
   const updateStoredUser = useAuthStore(s => s.updateStoredUser)
@@ -42,6 +51,8 @@ export default function ProfilePage() {
   const [mfaEnrollment, setMfaEnrollment] = useState(null)
   const [mfaCode, setMfaCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
+  const [mfaQrFailed, setMfaQrFailed] = useState(false)
+  const [mfaSecretCopied, setMfaSecretCopied] = useState(false)
   const [securityMessage, setSecurityMessage] = useState('')
   const [securityError, setSecurityError] = useState('')
 
@@ -124,7 +135,13 @@ export default function ProfilePage() {
 
   const beginMfaEnrollment = async () => {
     setSecurityError(''); setSecurityMessage(''); setMfaBusy(true)
-    try { const enrollment = await enrollMfa('MRWD System Supervisor'); setMfaEnrollment(enrollment); setMfaCode('') }
+    try {
+      const enrollment = await enrollMfa('MRWD System Supervisor')
+      setMfaEnrollment(enrollment)
+      setMfaCode('')
+      setMfaQrFailed(false)
+      setMfaSecretCopied(false)
+    }
     catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
   }
 
@@ -134,7 +151,7 @@ export default function ProfilePage() {
     setMfaBusy(true); setSecurityError('')
     try {
       await verifyMfa(mfaEnrollment.id, mfaCode)
-      setMfaEnrollment(null); setMfaCode(''); setMfaStatus(await getMfaStatus())
+      setMfaEnrollment(null); setMfaCode(''); setMfaQrFailed(false); setMfaSecretCopied(false); setMfaStatus(await getMfaStatus())
       setSecurityMessage('Authenticator verification is now enabled for this account.')
     } catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
   }
@@ -227,7 +244,39 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-black text-navy-900">Authenticator app</p><p className="mt-1 text-xs text-gray-500">{profile?.mfa_required ? 'Required for System Supervisor access.' : 'Optional additional protection for this staff account.'}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') ? 'Enabled' : 'Not enabled'}</span></div>
           {(mfaStatus?.factors?.totp || []).filter(item => item.status === 'verified').map(item => <div key={item.id} className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3"><div><p className="text-xs font-black text-gray-800">{item.friendly_name || 'MRWD Authenticator'}</p><p className="text-[11px] text-gray-400">Verified authenticator</p></div><button type="button" disabled={mfaBusy} onClick={() => removeMfa(item.id)} className="btn-secondary rounded-lg text-xs">Remove</button></div>)}
           {!(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') && !mfaEnrollment && <button type="button" onClick={beginMfaEnrollment} disabled={mfaBusy} className="btn-primary mt-3 rounded-lg text-xs">Set Up Authenticator</button>}
-          {mfaEnrollment && <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="text-sm font-black text-blue-900">Scan this QR code</p><p className="mt-1 text-xs text-blue-700">Use Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP-compatible app.</p>{mfaEnrollment.totp?.qr_code && <img className="mx-auto my-4 h-44 w-44 rounded-lg bg-white p-2" alt="Authenticator QR code" src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaEnrollment.totp.qr_code)}`}/>}<div className="flex gap-2"><input inputMode="numeric" maxLength={6} value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))} className="input-field rounded-lg text-center font-mono tracking-[0.25em]" placeholder="000000"/><button type="button" onClick={confirmMfaEnrollment} disabled={mfaBusy} className="btn-primary rounded-lg">Verify</button></div></div>}
+          {mfaEnrollment && <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-sm font-black text-blue-900">Scan this QR code</p>
+            <p className="mt-1 text-xs text-blue-700">Use Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP-compatible app.</p>
+            {authenticatorQrSource(mfaEnrollment.totp?.qr_code) && !mfaQrFailed ? (
+              <img
+                className="mx-auto my-4 h-48 w-48 rounded-lg border border-blue-100 bg-white p-2"
+                alt="Authenticator QR code"
+                src={authenticatorQrSource(mfaEnrollment.totp?.qr_code)}
+                onError={() => setMfaQrFailed(true)}
+              />
+            ) : (
+              <div className="my-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">The QR image could not be displayed. Use the setup key below to add MRWD manually in your authenticator app.</div>
+            )}
+            {mfaEnrollment.totp?.secret && <details className="mb-4 rounded-lg border border-blue-100 bg-white p-3" open={mfaQrFailed}>
+              <summary className="cursor-pointer text-xs font-black text-navy-900">Can’t scan the QR code? Use a setup key</summary>
+              <p className="mt-2 text-xs text-gray-500">Choose the manual setup option in your authenticator app, then enter this key.</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <code className="min-w-0 flex-1 break-all rounded-lg bg-gray-50 px-3 py-2 text-xs font-bold text-navy-900">{mfaEnrollment.totp.secret}</code>
+                <button type="button" className="btn-secondary rounded-lg text-xs" onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(mfaEnrollment.totp.secret)
+                    setMfaSecretCopied(true)
+                  } catch {
+                    setSecurityError('Clipboard access is blocked. Select and copy the setup key manually.')
+                  }
+                }}>{mfaSecretCopied ? 'Copied' : 'Copy Setup Key'}</button>
+              </div>
+            </details>}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input inputMode="numeric" autoComplete="one-time-code" aria-label="Authenticator verification code" maxLength={6} value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))} className="input-field rounded-lg text-center font-mono tracking-[0.25em]" placeholder="000000"/>
+              <button type="button" onClick={confirmMfaEnrollment} disabled={mfaBusy || mfaCode.length !== 6} className="btn-primary rounded-lg disabled:opacity-50">Verify</button>
+            </div>
+          </div>}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 p-4"><div><p className="text-sm font-black text-navy-900">Other signed-in sessions</p><p className="mt-1 text-xs text-gray-500">Keep this device signed in and log out sessions on other browsers or devices.</p></div><button type="button" disabled={mfaBusy} onClick={logoutOtherSessions} className="btn-secondary rounded-lg text-xs">Sign Out Other Sessions</button></div>
       </section>}

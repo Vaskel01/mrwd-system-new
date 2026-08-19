@@ -65,6 +65,7 @@
   /* ── Buttons ── */
   .btn-primary {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    white-space: nowrap; overflow-wrap: normal; word-break: normal;
     padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #1b3366 0%, #0f2240 100%);
     color: #fff; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.01em;
@@ -77,6 +78,7 @@
 
   .btn-gold {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    white-space: nowrap; overflow-wrap: normal; word-break: normal;
     padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #e6b020 0%, #c9921a 100%);
     color: #0f2240; font-weight: 700; font-size: 0.875rem;
@@ -87,6 +89,7 @@
 
   .btn-secondary {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    white-space: nowrap; overflow-wrap: normal; word-break: normal;
     padding: 0.625rem 1.25rem;
     background: #fff; color: #374151; font-weight: 600; font-size: 0.875rem;
     border: 1px solid #e5e7eb; transition: all 0.15s;
@@ -96,6 +99,7 @@
 
   .btn-danger {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    white-space: nowrap; overflow-wrap: normal; word-break: normal;
     padding: 0.625rem 1.25rem;
     background: #dc2626; color: #fff; font-weight: 600; font-size: 0.875rem;
     border: 1px solid #b91c1c; transition: all 0.15s;
@@ -338,6 +342,10 @@
   .app-main table { max-width: 100%; }
   .app-main th,
   .app-main td { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+  /* Table cells may wrap long data, but interactive controls must never split a word
+     (for example, Reassign becoming Reassi / gn). */
+  .app-main button { overflow-wrap: normal; word-break: normal; }
+  .app-main table button { white-space: nowrap; }
 }
 
 
@@ -406,4 +414,57 @@
   .leaflet-print-map .screen-map,
   .leaflet-print-map .leaflet-container { display: none !important; }
   .leaflet-print-map .print-map-summary { display: block !important; }
+}
+
+/* ── Quality-of-life interaction polish ─────────────────────────────── */
+@media (min-width: 1024px) {
+  .app-main table > thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    box-shadow: 0 1px 0 rgba(15, 34, 64, .08);
+  }
+}
+
+.qol-clickable-row {
+  cursor: pointer;
+  transition: background-color .12s ease, box-shadow .12s ease;
+}
+.qol-clickable-row:hover { background-color: rgba(239, 246, 255, .58); }
+.qol-clickable-row:focus-within { box-shadow: inset 3px 0 0 #3463b0; }
+
+.qol-filter-bar {
+  position: relative;
+}
+@media (min-width: 1024px) {
+  .qol-filter-bar {
+    position: sticky;
+    top: .75rem;
+    z-index: 9;
+  }
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(1px);
+}
+.btn-primary:active,
+.btn-secondary:active,
+.btn-gold:active,
+.btn-danger:active { transform: translateY(1px); }
+
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

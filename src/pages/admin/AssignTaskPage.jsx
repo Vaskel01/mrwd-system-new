@@ -7,6 +7,7 @@ import { PageLoader, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import RejectionDialog from '../../components/ui/RejectionDialog'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
+import SearchField from '../../components/ui/SearchField'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -25,7 +26,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
 
 function matchesSearch(complaint, query) {
   if (!query) return true
@@ -310,15 +311,8 @@ export default function AssignTaskPage() {
         ))}
       </div>
 
-      <div className="card rounded-xl p-4 space-y-3">
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input name="assigntaskpage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
-            placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
-            className="input-field pl-9 rounded-lg" />
-        </div>
+      <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+        <SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Search reference, complaint type, customer, address, status or Maintenance Personnel…" />
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-5 gap-2">
           <select name="assigntaskpage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
@@ -347,7 +341,7 @@ export default function AssignTaskPage() {
             <option value="type">Type A–Z</option>
             <option value="staff">Maintenance Personnel A–Z</option>
           </select>
-          <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Reset Filters</button>
+          <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear Filters</button>
         </div>
       </div>
 

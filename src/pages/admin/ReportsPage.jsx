@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
+import { addDaysYmd, manilaDateYmd, manilaMonthRange } from '../../lib/date'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 
@@ -12,18 +13,10 @@ function escapeCsv(value) {
   return `"${text.replaceAll('"', '""')}"`
 }
 
-function toDateInput(date) {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-  return local.toISOString().slice(0, 10)
+function thisMonthRange() {
+  return manilaMonthRange()
 }
 
-function thisMonthRange() {
-  const today = new Date()
-  return {
-    from: toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)),
-    to: toDateInput(today),
-  }
-}
 
 function BarList({ data, total }) {
   const entries = Object.entries(data || {}).sort((a, b) => b[1] - a[1])
@@ -85,7 +78,7 @@ export default function ReportsPage() {
   }
 
   const selectPreset = preset => {
-    const today = new Date()
+    const today = manilaDateYmd()
     if (preset === 'month') {
       const range = thisMonthRange()
       setFromDate(range.from)
@@ -93,16 +86,15 @@ export default function ReportsPage() {
       return
     }
     if (preset === '30days') {
-      const from = new Date(today)
-      from.setDate(from.getDate() - 29)
-      setFromDate(toDateInput(from))
-      setToDate(toDateInput(today))
+      setFromDate(addDaysYmd(today, -29))
+      setToDate(today)
       return
     }
     if (preset === 'quarter') {
-      const quarterStartMonth = Math.floor(today.getMonth() / 3) * 3
-      setFromDate(toDateInput(new Date(today.getFullYear(), quarterStartMonth, 1)))
-      setToDate(toDateInput(today))
+      const [year, month] = today.split('-').map(Number)
+      const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1
+      setFromDate(`${year}-${String(quarterStartMonth).padStart(2, '0')}-01`)
+      setToDate(today)
     }
   }
 

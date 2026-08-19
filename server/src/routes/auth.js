@@ -1,11 +1,28 @@
 import { Router } from 'express'
-import { supabaseAnonClient } from '../supabaseClient.js'
+import { supabaseAnonClient, supabaseAdminClient } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, department:departments(id, code, name)'
+const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)'
 const PASSWORD_ERROR = 'Use at least 8 characters with at least one letter and one number.'
+
+
+async function securityEvent({ actorId = null, email = null, eventType, success = true, details = {} }) {
+  try {
+    const admin = supabaseAdminClient()
+    if (!admin) return
+    await admin.from('security_events').insert({
+      actor_id: actorId,
+      actor_email: email ? String(email).trim().toLowerCase() : null,
+      event_type: eventType,
+      success,
+      details,
+    })
+  } catch (error) {
+    console.warn('[security-event]', error?.message || error)
+  }
+}
 
 function isPasswordValid(password = '') {
   return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password)
@@ -16,8 +33,12 @@ router.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' })
 
   const client = supabaseAnonClient()
-  const { data, error } = await client.auth.signInWithPassword({ email, password })
-  if (error || !data?.session) return res.status(401).json({ error: 'Incorrect email or password.' })
+  const normalizedEmail = String(email).trim().toLowerCase()
+  const { data, error } = await client.auth.signInWithPassword({ email: normalizedEmail, password })
+  if (error || !data?.session) {
+    await securityEvent({ email: normalizedEmail, eventType: 'login.failed', success: false, details: { reason: 'invalid_credentials' } })
+    return res.status(401).json({ error: 'Incorrect email or password.' })
+  }
 
   const { data: profile, error: profileErr } = await client
     .from('profiles')
@@ -25,12 +46,20 @@ router.post('/login', async (req, res) => {
     .eq('id', data.user.id)
     .single()
 
-  if (profileErr || !profile) return res.status(403).json({ error: 'No profile found for this account. Contact the district office.' })
+  if (profileErr || !profile) {
+    await securityEvent({ actorId: data.user.id, email: normalizedEmail, eventType: 'login.blocked', success: false, details: { reason: 'missing_profile' } })
+    return res.status(403).json({ error: 'No profile found for this account. Contact the district office.' })
+  }
   if (profile.is_active === false) {
-    await client.auth.signOut()
+    await securityEvent({ actorId: profile.id, email: profile.email, eventType: 'login.blocked', success: false, details: { reason: 'deactivated' } })
+    await client.auth.signOut({ scope: 'local' })
     return res.status(403).json({ error: 'This account has been deactivated. Contact a System Supervisor.' })
   }
 
+  const loginAt = new Date().toISOString()
+  const { data: recordedLoginAt } = await client.rpc('record_my_login')
+  profile.last_login_at = recordedLoginAt || loginAt
+  await securityEvent({ actorId: profile.id, email: profile.email, eventType: 'login.succeeded', success: true })
   res.json({ user: profile, access_token: data.session.access_token, refresh_token: data.session.refresh_token })
 })
 
@@ -96,7 +125,9 @@ router.patch('/password', requireAuth, async (req, res) => {
   const { error } = await client.auth.updateUser({ password })
   if (error) return res.status(400).json({ error: error.message })
 
+  await req.supabase.rpc('record_my_password_change')
   await writeAudit(req.supabase, req.user, 'account.password_changed', 'profile', req.user.id)
+  await securityEvent({ actorId: req.user.id, email: req.user.email, eventType: 'password.changed', success: true })
   const { data: sessionData } = await client.auth.getSession()
   res.json({
     ok: true,
@@ -104,6 +135,14 @@ router.patch('/password', requireAuth, async (req, res) => {
     access_token: sessionData?.session?.access_token || signInData.session?.access_token,
     refresh_token: sessionData?.session?.refresh_token || signInData.session?.refresh_token,
   })
+})
+
+router.post('/password-reset-completed', requireAuth, async (req, res) => {
+  const { error } = await req.supabase.rpc('record_my_password_change')
+  if (error) return res.status(400).json({ error: error.message })
+  await writeAudit(req.supabase, req.user, 'account.password_reset_completed', 'profile', req.user.id)
+  await securityEvent({ actorId: req.user.id, email: req.user.email, eventType: 'password.reset_completed', success: true })
+  res.json({ ok: true })
 })
 
 router.get('/me', requireAuth, (req, res) => res.json({ user: req.user }))

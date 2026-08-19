@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
+import SearchField from '../../components/ui/SearchField'
+import ScheduledReportsPanel from '../../components/ui/ScheduledReportsPanel'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -226,6 +228,14 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0)
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [mode, setMode] = useState('audit')
+  const [actorFilter, setActorFilter] = useState('')
+  const [actionFilter, setActionFilter] = useState('')
+  const [entityFilter, setEntityFilter] = useState('')
+  const [securityEvents, setSecurityEvents] = useState([])
+  const [securityTotal, setSecurityTotal] = useState(0)
+  const [eventType, setEventType] = useState('')
+  const [eventSuccess, setEventSuccess] = useState('all')
   const pageSize = 25
 
   const load = async () => {
@@ -235,10 +245,22 @@ export default function AuditLogPage() {
       const params = new URLSearchParams({ page: String(page), limit: String(pageSize) })
       if (fromDate) params.set('from', fromDate)
       if (toDate) params.set('to', toDate)
-      const response = await apiFetch(`/audit?${params}`)
-      setLogs(response.logs || [])
-      setProfileDirectory(response.profiles || {})
-      setTotal(response.pagination?.total || 0)
+      if (mode === 'security') {
+        if (actorFilter.trim()) params.set('actor', actorFilter.trim())
+        if (eventType.trim()) params.set('event_type', eventType.trim())
+        if (eventSuccess !== 'all') params.set('success', eventSuccess)
+        const response = await apiFetch(`/production/security-events?${params}`)
+        setSecurityEvents(response.events || [])
+        setSecurityTotal(response.pagination?.total || 0)
+      } else {
+        if (actorFilter.trim()) params.set('actor', actorFilter.trim())
+        if (actionFilter.trim()) params.set('action', actionFilter.trim())
+        if (entityFilter) params.set('entity_type', entityFilter)
+        const response = await apiFetch(`/audit?${params}`)
+        setLogs(response.logs || [])
+        setProfileDirectory(response.profiles || {})
+        setTotal(response.pagination?.total || 0)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -247,25 +269,9 @@ export default function AuditLogPage() {
   }
 
   useEffect(() => {
-    let active = true
-    const params = new URLSearchParams({ page: String(page), limit: String(pageSize) })
-    if (fromDate) params.set('from', fromDate)
-    if (toDate) params.set('to', toDate)
-    apiFetch(`/audit?${params}`)
-      .then(response => {
-        if (!active) return
-        setLogs(response.logs || [])
-        setProfileDirectory(response.profiles || {})
-        setTotal(response.pagination?.total || 0)
-      })
-      .catch(err => {
-        if (active) setError(err.message)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => { active = false }
-  }, [page, fromDate, toDate])
+    const timer = window.setTimeout(() => { load() }, 180)
+    return () => window.clearTimeout(timer)
+  }, [page, fromDate, toDate, mode, actorFilter, actionFilter, entityFilter, eventType, eventSuccess])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -290,8 +296,9 @@ export default function AuditLogPage() {
 
   const effectivePage = page
   const shown = filtered
+  const visibleTotal = mode === 'security' ? securityTotal : total
 
-  if (loading && logs.length === 0) return <PageLoader label="Loading audit history..." />
+  if (loading && logs.length === 0 && securityEvents.length === 0) return <PageLoader label="Loading audit history..." />
 
   return (
     <div className="space-y-5">
@@ -300,21 +307,31 @@ export default function AuditLogPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Audit Log</h1>
-            <p className="text-navy-300 text-sm mt-1">Who performed each important complaint, task, and staff action.</p>
+            <p className="text-navy-300 text-sm mt-1">Operational and security history for important complaint, staff, authentication, export, and governance actions.</p>
           </div>
-          <p className="font-display font-black text-4xl sm:text-5xl text-gold-400 shrink-0">{total}</p>
+          <p className="font-display font-black text-4xl sm:text-5xl text-gold-400 shrink-0">{visibleTotal}</p>
         </div>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <div className="card rounded-xl p-4 space-y-3">
-        <input name="auditlogpage-search-actor-action-complaint-reference-user-or-details-1" aria-label="Search actor, action, complaint reference, user, or details..."
-          value={search}
-          onChange={event => { setSearch(event.target.value); setPage(1) }}
-          className="input-field rounded-lg"
-          placeholder="Search actor, action, complaint reference, user, or details..."
-        />
+      <div className="card grid gap-2 rounded-xl p-2 sm:grid-cols-2" role="tablist" aria-label="Audit log type">
+        <button type="button" role="tab" aria-selected={mode === 'audit'} onClick={() => { setMode('audit'); setPage(1); setSearch('') }} className={`rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'audit' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Operational Audit</button>
+        <button type="button" role="tab" aria-selected={mode === 'security'} onClick={() => { setMode('security'); setPage(1); setSearch('') }} className={`rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'security' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Security Events</button>
+      </div>
+
+      <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+        <SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder={mode === 'security' ? 'Filter the loaded security events by email, event type or details…' : 'Filter the loaded audit page by actor, action, record or details…'} />
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-2">
+          <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-500">Actor / Email</label><input value={actorFilter} onChange={event => { setActorFilter(event.target.value); setPage(1) }} className="input-field rounded-lg" placeholder="Name or email" /></div>
+          {mode === 'audit' ? <>
+            <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-500">Action</label><input value={actionFilter} onChange={event => { setActionFilter(event.target.value); setPage(1) }} className="input-field rounded-lg" placeholder="e.g. complaint, staff, export" /></div>
+            <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-500">Record Type</label><select value={entityFilter} onChange={event => { setEntityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg"><option value="">Any Record</option><option value="complaint">Complaint</option><option value="maintenance_task">Maintenance Task</option><option value="profile">Staff Account</option><option value="announcement">Announcement</option><option value="report_schedule">Report Schedule</option><option value="system_backup_check">Backup Check</option></select></div>
+          </> : <>
+            <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-500">Event Type</label><input value={eventType} onChange={event => { setEventType(event.target.value); setPage(1) }} className="input-field rounded-lg" placeholder="e.g. auth.login" /></div>
+            <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-gray-500">Result</label><select value={eventSuccess} onChange={event => { setEventSuccess(event.target.value); setPage(1) }} className="input-field rounded-lg"><option value="all">Any Result</option><option value="true">Successful</option><option value="false">Failed</option></select></div>
+          </>}
+        </div>
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-2">
           <div>
             <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">From</label>
@@ -324,13 +341,26 @@ export default function AuditLogPage() {
             <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">To</label>
             <input type="date" value={toDate} min={fromDate || undefined} onChange={event => { setToDate(event.target.value); setPage(1) }} className="input-field rounded-lg" />
           </div>
-          <button type="button" onClick={() => { setFromDate(''); setToDate(''); setSearch(''); setPage(1) }} className="btn-secondary rounded-lg self-end">Reset Filters</button>
+          <button type="button" onClick={() => { setFromDate(''); setToDate(''); setSearch(''); setActorFilter(''); setActionFilter(''); setEntityFilter(''); setEventType(''); setEventSuccess('all'); setPage(1) }} className="btn-secondary rounded-lg self-end">Clear Filters</button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-          <span>Showing {logs.length} of {total} audit entries. Use the pages below to review older activity.</span>
+          <span>Showing {mode === 'security' ? securityEvents.length : logs.length} of {visibleTotal} {mode === 'security' ? 'security events' : 'audit entries'}. Use the filters to narrow server-side history.</span>
           <span><b className="text-red-700">High-stakes</b> · <b className="text-amber-700">Review</b> · <b className="text-navy-700">Routine</b></span>
         </div>
       </div>
+
+      {mode === 'security' ? <>
+        <div className="space-y-3">
+          {(securityEvents.filter(item => { const q = search.trim().toLowerCase(); return !q || [item.actor_email, item.event_type, JSON.stringify(item.details || {})].some(value => String(value || '').toLowerCase().includes(q)) })).map(item => (
+            <article key={item.id} className="card rounded-xl p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="break-words font-black text-navy-900">{label(item.event_type)}</p><span className={`rounded-full px-2 py-1 text-[10px] font-black ${item.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{item.success ? 'SUCCESS' : 'FAILED'}</span></div><p className="mt-1 break-all text-xs text-gray-500">{item.actor_email || 'Unknown / pre-authentication event'}</p></div><p className="shrink-0 text-xs text-gray-400">{formatDate(item.created_at)}</p></div>
+              {item.details && Object.keys(item.details).length > 0 && <div className="mt-3 rounded-lg bg-gray-50 p-3 text-xs"><DetailsCell details={item.details} profileDirectory={profileDirectory}/></div>}
+            </article>
+          ))}
+          {securityEvents.length === 0 && <div className="card rounded-xl p-10 text-center text-gray-400">No security events match.</div>}
+        </div>
+        <Pagination page={effectivePage} pageSize={pageSize} total={securityTotal} onPageChange={setPage} label="security events" />
+      </> : <>
 
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
@@ -396,6 +426,8 @@ export default function AuditLogPage() {
         onPageChange={setPage}
         label="audit entries"
       />
+      </>}
+      <ScheduledReportsPanel allowedTypes={['audit_summary']} defaultType="audit_summary" title="Scheduled Audit Summaries" description="Generate recurring audit-volume summaries for governance review. Security-event detail remains in the live audit view above." />
     </div>
   )
 }

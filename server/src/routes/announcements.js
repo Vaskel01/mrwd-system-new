@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { requireAuth, requireCapability } from '../middleware/auth.js'
-import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
+import { CAPABILITIES, hasCapability, isSystemSupervisor } from '../lib/accessControl.js'
 import { writeAudit } from '../lib/activity.js'
 
 const router = Router()
 
 // GET /api/announcements — any authenticated user
 router.get('/', requireAuth, async (req, res) => {
-  const includeExpired = hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS) && req.query.include_expired === 'true'
+  const includeExpired = (hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS) || isSystemSupervisor(req.user)) && req.query.include_expired === 'true'
   let query = req.supabase
     .from('announcements')
     .select('*')
@@ -29,8 +29,13 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 // POST /api/announcements — admin only
-router.post('/', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
+  const commercial = hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS)
+  const system = isSystemSupervisor(req.user)
+  if (!commercial && !system) return res.status(403).json({ error: 'Announcement management is restricted to Commercial Services or the System Supervisor.' })
   const { title, content, category, is_important = false, active_until = null } = req.body || {}
+  const audience = system ? String(req.body?.audience || 'all_staff') : 'customer'
+  const isInternal = system ? audience !== 'customer' && audience !== 'all' : false
   if (!title || !content || !category) {
     return res.status(400).json({ error: 'title, content, and category are required.' })
   }
@@ -45,6 +50,8 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCE
       active_until: active_until || null,
       created_by: req.user.id,
       created_by_name: req.user.full_name,
+      audience,
+      is_internal: isInternal,
     })
     .select()
     .single()
@@ -59,8 +66,13 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCE
 })
 
 // PATCH /api/announcements/:id — admin only
-router.patch('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
+router.patch('/:id', requireAuth, async (req, res) => {
+  const commercial = hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS)
+  const system = isSystemSupervisor(req.user)
+  if (!commercial && !system) return res.status(403).json({ error: 'Announcement management is restricted to Commercial Services or the System Supervisor.' })
   const { title, content, category, is_important = false, active_until = null } = req.body || {}
+  const audience = system ? String(req.body?.audience || 'all_staff') : 'customer'
+  const isInternal = system ? audience !== 'customer' && audience !== 'all' : false
   if (!title || !content || !category) {
     return res.status(400).json({ error: 'title, content, and category are required.' })
   }
@@ -73,6 +85,8 @@ router.patch('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNO
       category,
       is_important: Boolean(is_important),
       active_until: active_until || null,
+      audience,
+      is_internal: isInternal,
       updated_at: new Date().toISOString(),
     })
     .eq('id', req.params.id)
@@ -90,7 +104,8 @@ router.patch('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNO
 })
 
 // PATCH /api/announcements/:id/importance — admin only
-router.patch('/:id/importance', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
+router.patch('/:id/importance', requireAuth, async (req, res) => {
+  if (!hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS) && !isSystemSupervisor(req.user)) return res.status(403).json({ error: 'Announcement management is restricted.' })
   if (typeof req.body?.is_important !== 'boolean') {
     return res.status(400).json({ error: 'is_important must be true or false.' })
   }
@@ -115,7 +130,8 @@ router.patch('/:id/importance', requireAuth, requireCapability(CAPABILITIES.COMM
 })
 
 // DELETE /api/announcements/:id — admin only
-router.delete('/:id', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS), async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
+  if (!hasCapability(req.user, CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS) && !isSystemSupervisor(req.user)) return res.status(403).json({ error: 'Announcement management is restricted.' })
   const { error } = await req.supabase
     .from('announcements')
     .delete()

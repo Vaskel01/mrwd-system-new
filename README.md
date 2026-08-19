@@ -194,3 +194,34 @@ Redeploy after changing any `VITE_` variable because frontend variables are embe
 - [`docs/UAT_TEST_PLAN.md`](docs/UAT_TEST_PLAN.md)
 - [`docs/OPERATIONS_GUIDE.md`](docs/OPERATIONS_GUIDE.md)
 - [`docs/README.md`](docs/README.md)
+
+---
+
+## Production Readiness Suite (2026-08-19)
+
+The current build adds a production-readiness layer around the complaint workflow: advanced audit/security events, first-login password replacement, System Supervisor MFA, saved views/watchlists/recent items, duplicate merge, customer information requests, bulk actions, crew management/substitutions, assignment history, maintenance note templates, hardened CSV validation, exports/scheduled reports, dashboard drill-down, internal announcements, availability calendar, archive recovery, backup-verification records, and System Health.
+
+### Required final migration
+
+After the earlier migrations through `20260814133000_operational_complaint_features.sql`, apply:
+
+```text
+supabase/migrations/20260819100000_production_readiness_features.sql
+```
+
+### Production server secrets
+
+Configure these on the server/deployment platform, never in frontend `VITE_*` variables:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY=...
+CRON_SECRET=...
+```
+
+`vercel.json` contains the scheduled-report cron check. Scheduled reports still support **Run Now** if cron is not configured during local development.
+
+After the migration, the existing System Supervisor is required to enroll authenticator MFA before using System Administration capabilities.
+
+See `docs/PRODUCTION_RUNBOOK.md` for deployment, account-security, CSV-import, report scheduling, backup verification, recovery, and post-deployment smoke-test procedures.
+
+The system remains complaint-only and intentionally excludes SLA/response-time tracking, maintenance acceptance, and required maintenance before/after completion photos.

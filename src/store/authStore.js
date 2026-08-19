@@ -46,6 +46,8 @@ export const useAuthStore = create((set, get) => ({
   // user back to /login before the app has a chance to render.
   user: storedAccessToken ? loadStoredUser() : null,
   loading: false,
+  mfaPending: false,
+  mfaEnrollmentRequired: false,
 
   signIn: async (email, password) => {
     set({ loading: true })
@@ -55,7 +57,17 @@ export const useAuthStore = create((set, get) => ({
         body: JSON.stringify({ email, password }),
       })
       await applySession(set, user, access_token, refresh_token)
-      return user
+      let currentLevel = 'aal1'
+      let nextLevel = 'aal1'
+      try {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        currentLevel = aal?.currentLevel || 'aal1'
+        nextLevel = aal?.nextLevel || currentLevel
+      } catch (_) {}
+      const mfaPending = currentLevel !== 'aal2' && nextLevel === 'aal2'
+      const mfaEnrollmentRequired = Boolean(user?.mfa_required && currentLevel !== 'aal2' && nextLevel !== 'aal2')
+      set({ mfaPending, mfaEnrollmentRequired })
+      return { user, mfaPending, mfaEnrollmentRequired }
     } catch (err) {
       set({ loading: false })
       throw err
@@ -99,6 +111,12 @@ export const useAuthStore = create((set, get) => ({
   updatePassword: async password => {
     const { error } = await supabase.auth.updateUser({ password })
     if (error) throw new Error(error.message)
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData?.session?.access_token) {
+      setToken(sessionData.session.access_token)
+      if (sessionData.session.refresh_token) localStorage.setItem(REFRESH_KEY, sessionData.session.refresh_token)
+      await apiFetch('/auth/password-reset-completed', { method: 'POST' })
+    }
     return true
   },
 
@@ -113,6 +131,66 @@ export const useAuthStore = create((set, get) => ({
     return result
   },
 
+  getMfaStatus: async () => {
+    const [{ data: factors, error: factorsError }, { data: aal, error: aalError }] = await Promise.all([
+      supabase.auth.mfa.listFactors(),
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+    ])
+    if (factorsError) throw new Error(factorsError.message)
+    if (aalError) throw new Error(aalError.message)
+    return { factors: factors || { totp: [], phone: [] }, aal }
+  },
+
+  refreshMfaState: async () => {
+    const user = get().user
+    if (!user || user.role === 'customer') {
+      set({ mfaPending: false, mfaEnrollmentRequired: false })
+      return { mfaPending: false, mfaEnrollmentRequired: false }
+    }
+    try {
+      const { data: aal, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (error) throw error
+      const currentLevel = aal?.currentLevel || 'aal1'
+      const nextLevel = aal?.nextLevel || currentLevel
+      const mfaPending = currentLevel !== 'aal2' && nextLevel === 'aal2'
+      const mfaEnrollmentRequired = Boolean(user.mfa_required && currentLevel !== 'aal2' && nextLevel !== 'aal2')
+      set({ mfaPending, mfaEnrollmentRequired })
+      return { mfaPending, mfaEnrollmentRequired }
+    } catch {
+      return { mfaPending: false, mfaEnrollmentRequired: Boolean(user.mfa_required) }
+    }
+  },
+
+  enrollMfa: async friendlyName => {
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: friendlyName || 'MRWD Authenticator' })
+    if (error) throw new Error(error.message)
+    return data
+  },
+
+  verifyMfa: async (factorId, code) => {
+    const { data, error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
+    if (error) throw new Error(error.message)
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData?.session) {
+      setToken(sessionData.session.access_token)
+      localStorage.setItem(REFRESH_KEY, sessionData.session.refresh_token)
+    }
+    set({ mfaPending: false, mfaEnrollmentRequired: false })
+    return data
+  },
+
+  unenrollMfa: async factorId => {
+    const { data, error } = await supabase.auth.mfa.unenroll({ factorId })
+    if (error) throw new Error(error.message)
+    return data
+  },
+
+  signOutOtherSessions: async () => {
+    const { error } = await supabase.auth.signOut({ scope: 'others' })
+    if (error) throw new Error(error.message)
+    return true
+  },
+
   updateStoredUser: user => {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     set({ user })
@@ -123,7 +201,7 @@ export const useAuthStore = create((set, get) => ({
     setToken(null)
     localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(USER_KEY)
-    set({ user: null })
+    set({ user: null, mfaPending: false, mfaEnrollmentRequired: false })
   },
 }))
 
@@ -142,6 +220,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     setToken(null)
     localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(USER_KEY)
-    useAuthStore.setState({ user: null, loading: false })
+    useAuthStore.setState({ user: null, loading: false, mfaPending: false, mfaEnrollmentRequired: false })
   }
 })

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useComplaintStore } from '../../store/complaintStore'
-import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
+import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import { departmentDisplayName } from '../../config/terminology'
+import { useToastStore } from '../../store/toastStore'
 
 const MODULE_CONFIG = {
   commercial: {
@@ -81,7 +83,10 @@ function Field({ label, children, className = '' }) {
 
 export default function OperationsPage({ module = 'system' }) {
   const moduleConfig = MODULE_CONFIG[module] || MODULE_CONFIG.system
-  const [tab, setTab] = useState(moduleConfig.tabs[0][0])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const [tab, setTab] = useState(() => moduleConfig.tabs.some(([value]) => value === initialTab) ? initialTab : moduleConfig.tabs[0][0])
+  const pushToast = useToastStore(state => state.push)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
@@ -103,6 +108,12 @@ export default function OperationsPage({ module = 'system' }) {
   }
 
   useEffect(() => {
+    const next = {}
+    if (tab !== moduleConfig.tabs[0][0]) next.tab = tab
+    setSearchParams(next, { replace: true })
+  }, [tab, moduleConfig.tabs, setSearchParams])
+
+  useEffect(() => {
     let active = true
     Promise.all([apiFetch(moduleConfig.endpoint), fetchComplaints()])
       .then(([result]) => {
@@ -122,10 +133,12 @@ export default function OperationsPage({ module = 'system' }) {
     try {
       await action()
       setMessage(success)
+      pushToast(success, 'success')
       await load()
       return true
     } catch (actionError) {
       setError(actionError.message)
+      pushToast(actionError.message, 'error')
       return false
     } finally {
       setBusy('')
@@ -163,7 +176,7 @@ export default function OperationsPage({ module = 'system' }) {
   )
 }
 
-function OverviewTab({ data, busy, run, complaintMap, staffMap, module }) {
+function OverviewTab({ data, run, complaintMap, staffMap, module }) {
   const pendingApprovals = (data?.approvals || []).filter(item => item.status === 'pending')
   const pendingDeliveries = (data?.notification_deliveries || []).filter(item => item.status === 'pending').length
   const maintenancePersonnel = (data?.staff || []).filter(item => item.role === 'maintenance_personnel')
@@ -274,27 +287,83 @@ function SchedulesTab({ data, busy, run, staffMap }) {
 function BillingTab({ data, busy, run }) {
   const [accountFile, setAccountFile] = useState(null)
   const [billingFile, setBillingFile] = useState(null)
-  const importFile = async (kind, file) => {
+  const [previews, setPreviews] = useState({ accounts: null, billing: null })
+  const [validationBusy, setValidationBusy] = useState('')
+  const [validationError, setValidationError] = useState('')
+
+  const rowsForFile = async file => {
     if (!file) throw new Error('Select a CSV file first.')
     const rows = parseCsv(await file.text())
     if (!rows.length) throw new Error('The CSV file does not contain any data rows.')
+    return rows
+  }
+
+  const validateFile = async (kind, file) => {
+    setValidationBusy(kind)
+    setValidationError('')
+    try {
+      const rows = await rowsForFile(file)
+      const preview = await apiFetch(kind === 'accounts' ? '/operations/accounts/validate-import' : '/operations/billing/validate-import', {
+        method: 'POST', body: JSON.stringify({ rows }),
+      })
+      setPreviews(value => ({ ...value, [kind]: preview }))
+    } catch (error) {
+      setValidationError(error.message)
+      setPreviews(value => ({ ...value, [kind]: null }))
+    } finally {
+      setValidationBusy('')
+    }
+  }
+
+  const importFile = async (kind, file) => {
+    const rows = await rowsForFile(file)
     return apiFetch(kind === 'accounts' ? '/operations/accounts/import' : '/operations/billing/import', {
       method: 'POST', body: JSON.stringify(kind === 'accounts' ? { rows } : { filename: file.name, rows }),
     })
   }
+
+  const downloadErrors = (kind, preview) => {
+    const rows = preview?.errors || []
+    if (!rows.length) return
+    const keys = [...new Set(rows.flatMap(row => Object.keys(row)))]
+    const escape = value => `"${String(value ?? '').replaceAll('"', '""')}"`
+    const csv = [keys, ...rows.map(row => keys.map(key => row[key] ?? ''))].map(row => row.map(escape).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${kind}-import-errors.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const previewCard = (kind, preview) => preview && (
+    <div className={`mt-3 rounded-xl border p-3 ${preview.invalid_count ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+        <div><p className="font-black text-gray-900">{preview.total}</p><p className="text-gray-500">Rows</p></div>
+        <div><p className="font-black text-green-700">{preview.valid_count}</p><p className="text-gray-500">Valid</p></div>
+        <div><p className={`font-black ${preview.invalid_count ? 'text-red-700' : 'text-gray-500'}`}>{preview.invalid_count}</p><p className="text-gray-500">Invalid</p></div>
+        {kind === 'accounts' ? <div><p className="font-black text-navy-800">{preview.new_count} new · {preview.update_count} update</p><p className="text-gray-500">Registry effect</p></div> : <div><p className="font-black text-navy-800">{preview.can_import ? 'Ready' : 'Fix file'}</p><p className="text-gray-500">Import status</p></div>}
+      </div>
+      {preview.errors?.length > 0 && <div className="mt-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black text-red-800">Validation issues</p><button type="button" onClick={() => downloadErrors(kind, preview)} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-black text-red-700">Download Error Rows</button></div><div className="mt-2 max-h-40 space-y-1 overflow-y-auto pr-1">{preview.errors.slice(0, 12).map((item, index) => <p key={`${item.row}-${index}`} className="break-words text-[11px] text-red-800"><b>Row {item.row}:</b> {item.error}</p>)}</div>{preview.errors.length > 12 && <p className="mt-1 text-[10px] text-red-600">+{preview.errors.length - 12} more issue(s) in the downloadable file.</p>}</div>}
+    </div>
+  )
+
   return <div className="space-y-5">
+    {validationError && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">{validationError}</div>}
     <div className="grid gap-5 lg:grid-cols-2">
-      <Section title="Customer Account Registry" description="Enables automatic account-number validation in My Profile.">
+      <Section title="Customer Account Registry" description="Preview and validate every row before updating the account-number registry used by customer profiles.">
         <div className="max-w-full break-all rounded-lg bg-gray-50 p-3 font-mono text-[10px] leading-5 text-gray-600">account_number, registered_name, service_address, barangay, meter_number, is_active</div>
-        <input type="file" accept=".csv,text/csv" onChange={event => setAccountFile(event.target.files?.[0] || null)} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
-        <button disabled={!accountFile || busy === 'account-import'} onClick={() => run('account-import', () => importFile('accounts', accountFile), 'Customer account registry imported.')} className="btn-primary mt-3 w-full rounded-lg">Import Account Registry</button>
+        <input type="file" accept=".csv,text/csv" onChange={event => { setAccountFile(event.target.files?.[0] || null); setPreviews(value => ({ ...value, accounts: null })) }} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" disabled={!accountFile || validationBusy === 'accounts'} onClick={() => validateFile('accounts', accountFile)} className="btn-secondary rounded-lg">{validationBusy === 'accounts' ? 'Validating…' : 'Validate File'}</button><button type="button" disabled={!accountFile || !previews.accounts?.can_import || busy === 'account-import'} onClick={async () => { const ok = await run('account-import', () => importFile('accounts', accountFile), 'Customer account registry imported.'); if (ok) setPreviews(value => ({ ...value, accounts: null })) }} className="btn-primary rounded-lg disabled:opacity-50">Import Validated Registry</button></div>
+        {previewCard('accounts', previews.accounts)}
         <p className="mt-3 text-xs text-gray-500">{data?.account_registry?.length || 0} registry accounts are currently visible.</p>
       </Section>
 
-      <Section title="Bulk Billing Import" description="Validates account numbers, then inserts or updates each customer's billing period.">
+      <Section title="Bulk Billing Import" description="Validate customer links, duplicate periods, required dates, and numeric values before any billing record is written.">
         <div className="max-w-full break-all rounded-lg bg-gray-50 p-3 font-mono text-[10px] leading-5 text-gray-600">account_number, billing_period, previous_reading, current_reading, consumption, amount_due, due_date, status</div>
-        <input type="file" accept=".csv,text/csv" onChange={event => setBillingFile(event.target.files?.[0] || null)} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
-        <button disabled={!billingFile || busy === 'billing-import'} onClick={() => run('billing-import', () => importFile('billing', billingFile), 'Billing file processed. Review the batch results below.')} className="btn-primary mt-3 w-full rounded-lg">Import Billing CSV</button>
+        <input type="file" accept=".csv,text/csv" onChange={event => { setBillingFile(event.target.files?.[0] || null); setPreviews(value => ({ ...value, billing: null })) }} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" disabled={!billingFile || validationBusy === 'billing'} onClick={() => validateFile('billing', billingFile)} className="btn-secondary rounded-lg">{validationBusy === 'billing' ? 'Validating…' : 'Validate File'}</button><button type="button" disabled={!billingFile || !previews.billing?.can_import || busy === 'billing-import'} onClick={async () => { const ok = await run('billing-import', () => importFile('billing', billingFile), 'Billing file processed. Review the batch results below.'); if (ok) setPreviews(value => ({ ...value, billing: null })) }} className="btn-primary rounded-lg disabled:opacity-50">Import Validated Billing</button></div>
+        {previewCard('billing', previews.billing)}
       </Section>
     </div>
 
@@ -308,7 +377,7 @@ function InventoryTab({ data, busy, run, complaints, staffMap, module }) {
   const [item, setItem] = useState({ sku: '', name: '', category: 'material', unit: 'piece', quantity_on_hand: 0, reorder_level: 0, location: '' })
   const [adjustment, setAdjustment] = useState({ id: '', quantity_delta: '', reason: '' })
   const [archive, setArchive] = useState({ complaint_id: '', reason: '' })
-  const closed = complaints.filter(complaint => ['completed', 'rejected', 'cancelled'].includes(complaint.status) && !complaint.archived_at)
+  const closed = complaints.filter(complaint => ['resolved', 'completed', 'rejected', 'cancelled'].includes(complaint.status) && !complaint.archived_at)
   const approvedArchives = (data?.approvals || []).filter(approval => approval.request_type === 'archive_complaint' && approval.status === 'approved')
   return <div className="space-y-5">
     {module === 'ecmd' && <div className="grid gap-5 lg:grid-cols-2">

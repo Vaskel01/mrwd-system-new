@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
@@ -10,6 +11,12 @@ export default function ProfilePage() {
   const currentUser = useAuthStore(s => s.user)
   const updateStoredUser = useAuthStore(s => s.updateStoredUser)
   const changeAccountPassword = useAuthStore(s => s.changePassword)
+  const getMfaStatus = useAuthStore(s => s.getMfaStatus)
+  const enrollMfa = useAuthStore(s => s.enrollMfa)
+  const verifyMfa = useAuthStore(s => s.verifyMfa)
+  const unenrollMfa = useAuthStore(s => s.unenrollMfa)
+  const signOutOtherSessions = useAuthStore(s => s.signOutOtherSessions)
+  const [searchParams] = useSearchParams()
   const [profile, setProfile] = useState(null)
   const [fullName, setFullName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -31,6 +38,12 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('')
   const [passwordMessage, setPasswordMessage] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
+  const [mfaStatus, setMfaStatus] = useState(null)
+  const [mfaEnrollment, setMfaEnrollment] = useState(null)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaBusy, setMfaBusy] = useState(false)
+  const [securityMessage, setSecurityMessage] = useState('')
+  const [securityError, setSecurityError] = useState('')
 
   const effectiveRole = profile?.role || currentUser?.role
 
@@ -53,6 +66,11 @@ export default function ProfilePage() {
       applyProfile(user)
     }).catch(err => setError(err.message)).finally(() => setLoading(false))
   }, [applyProfile])
+
+  useEffect(() => {
+    if (!currentUser || currentUser.role === 'customer') return
+    getMfaStatus().then(setMfaStatus).catch(() => {})
+  }, [currentUser, getMfaStatus])
 
   const save = async event => {
     event.preventDefault(); setSaving(true); setError(''); setMessage('')
@@ -94,6 +112,8 @@ export default function ProfilePage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      const refreshed = await apiFetch('/users/me')
+      if (refreshed?.user) { applyProfile(refreshed.user); updateStoredUser(refreshed.user) }
       setPasswordMessage(result.message || 'Password changed successfully.')
     } catch (err) {
       setPasswordError(err.message)
@@ -102,11 +122,43 @@ export default function ProfilePage() {
     }
   }
 
+  const beginMfaEnrollment = async () => {
+    setSecurityError(''); setSecurityMessage(''); setMfaBusy(true)
+    try { const enrollment = await enrollMfa('MRWD System Supervisor'); setMfaEnrollment(enrollment); setMfaCode('') }
+    catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
+  }
+
+  const confirmMfaEnrollment = async () => {
+    if (!mfaEnrollment?.id) return
+    if (!/^\d{6}$/.test(mfaCode)) return setSecurityError('Enter the 6-digit authenticator code.')
+    setMfaBusy(true); setSecurityError('')
+    try {
+      await verifyMfa(mfaEnrollment.id, mfaCode)
+      setMfaEnrollment(null); setMfaCode(''); setMfaStatus(await getMfaStatus())
+      setSecurityMessage('Authenticator verification is now enabled for this account.')
+    } catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
+  }
+
+  const removeMfa = async factorId => {
+    if (!window.confirm('Remove this authenticator from your account?')) return
+    setMfaBusy(true); setSecurityError('')
+    try { await unenrollMfa(factorId); setMfaStatus(await getMfaStatus()); setSecurityMessage('Authenticator removed.') }
+    catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
+  }
+
+  const logoutOtherSessions = async () => {
+    setMfaBusy(true); setSecurityError('')
+    try { await signOutOtherSessions(); setSecurityMessage('Other signed-in sessions have been logged out.') }
+    catch (err) { setSecurityError(err.message) } finally { setMfaBusy(false) }
+  }
+
   if (loading) return <PageLoader label="Loading your profile..." />
 
   return (
     <div className="space-y-5">
       <div className="page-band wave-header rounded-2xl px-6 py-6"><p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Account Center</p><h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Profile</h1><p className="text-navy-300 text-sm mt-1">Keep your account and contact information up to date.</p></div>
+      {(profile?.must_change_password || searchParams.get('change-password') === '1') && <div className="max-w-2xl rounded-xl border border-amber-300 bg-amber-50 p-4"><p className="font-black text-amber-900">Temporary password must be replaced</p><p className="mt-1 text-sm text-amber-800">This staff account was issued a temporary password. Change it below before using the operational modules.</p></div>}
+      {(profile?.mfa_required && searchParams.get('setup-mfa') === '1') && <div className="max-w-2xl rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="font-black text-blue-900">System Supervisor verification required</p><p className="mt-1 text-sm text-blue-700">Enroll an authenticator below to unlock System Administration tools.</p></div>}
       {error && <ErrorBanner message={error} />}
       {message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{message}</div>}
       <form onSubmit={save} className="card rounded-xl p-5 sm:p-6 space-y-5 max-w-2xl">
@@ -166,6 +218,19 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      {effectiveRole !== 'customer' && <section className="card max-w-2xl rounded-xl p-5 sm:p-6 space-y-4">
+        <div><h2 className="font-display font-bold text-navy-900">Session & Two-Step Verification</h2><p className="mt-1 text-xs text-gray-500">Protect staff access and remove old signed-in sessions. System Supervisor accounts require an authenticator.</p></div>
+        {securityError && <ErrorBanner message={securityError}/>} 
+        {securityMessage && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{securityMessage}</div>}
+        <div className="rounded-xl border border-gray-200 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-black text-navy-900">Authenticator app</p><p className="mt-1 text-xs text-gray-500">{profile?.mfa_required ? 'Required for System Supervisor access.' : 'Optional additional protection for this staff account.'}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') ? 'Enabled' : 'Not enabled'}</span></div>
+          {(mfaStatus?.factors?.totp || []).filter(item => item.status === 'verified').map(item => <div key={item.id} className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-3"><div><p className="text-xs font-black text-gray-800">{item.friendly_name || 'MRWD Authenticator'}</p><p className="text-[11px] text-gray-400">Verified authenticator</p></div><button type="button" disabled={mfaBusy} onClick={() => removeMfa(item.id)} className="btn-secondary rounded-lg text-xs">Remove</button></div>)}
+          {!(mfaStatus?.factors?.totp || []).some(item => item.status === 'verified') && !mfaEnrollment && <button type="button" onClick={beginMfaEnrollment} disabled={mfaBusy} className="btn-primary mt-3 rounded-lg text-xs">Set Up Authenticator</button>}
+          {mfaEnrollment && <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="text-sm font-black text-blue-900">Scan this QR code</p><p className="mt-1 text-xs text-blue-700">Use Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP-compatible app.</p>{mfaEnrollment.totp?.qr_code && <img className="mx-auto my-4 h-44 w-44 rounded-lg bg-white p-2" alt="Authenticator QR code" src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaEnrollment.totp.qr_code)}`}/>}<div className="flex gap-2"><input inputMode="numeric" maxLength={6} value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g,'').slice(0,6))} className="input-field rounded-lg text-center font-mono tracking-[0.25em]" placeholder="000000"/><button type="button" onClick={confirmMfaEnrollment} disabled={mfaBusy} className="btn-primary rounded-lg">Verify</button></div></div>}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 p-4"><div><p className="text-sm font-black text-navy-900">Other signed-in sessions</p><p className="mt-1 text-xs text-gray-500">Keep this device signed in and log out sessions on other browsers or devices.</p></div><button type="button" disabled={mfaBusy} onClick={logoutOtherSessions} className="btn-secondary rounded-lg text-xs">Sign Out Other Sessions</button></div>
+      </section>}
     </div>
   )
 }

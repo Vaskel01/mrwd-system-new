@@ -9,6 +9,7 @@ export const DEPARTMENT_MODULES = Object.freeze({
       { to: '/commercial/accounts-billing', label: 'Accounts & Billing', description: 'Handle customer account and billing information connected to complaint concerns.', icon: 'billing' },
       { to: '/commercial/service-advisories', label: 'Service Advisories', description: 'Publish and manage customer-facing MRWD service advisories.', icon: 'announcement' },
       { to: '/commercial/reports', label: 'Complaint Reports', description: 'View complaint trends, status totals, priority distribution, and resolution performance.', icon: 'chart' },
+      { to: '/commercial/export-center', label: 'Export & Scheduled Reports', description: 'Export filtered complaint records and manage recurring report schedules.', icon: 'download' },
     ],
   },
   ecmd: {
@@ -19,6 +20,8 @@ export const DEPARTMENT_MODULES = Object.freeze({
     links: [
       { to: '/ecmd/dispatch', label: 'Complaint Dispatch', description: 'Assign complaints to Maintenance Personnel and ECMD crews for field action.', icon: 'assignment' },
       { to: '/ecmd/field-operations', label: 'Field Operations', description: 'Monitor active assignments, maintenance workload and availability, complaint hotspots, grouped incidents, materials, and ECMD resolution verification.', icon: 'tool' },
+      { to: '/ecmd/crews', label: 'Crew Management', description: 'Manage ECMD crews, crew members, substitutions, and maintenance completion-note templates.', icon: 'users' },
+      { to: '/ecmd/availability', label: 'Availability Calendar', description: 'Review Maintenance Personnel shifts and upcoming availability before dispatch.', icon: 'calendar' },
     ],
   },
 })

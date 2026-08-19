@@ -7,6 +7,8 @@ import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
+import SearchField from '../../components/ui/SearchField'
+import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
 function formatAssignedDate(iso) {
@@ -21,7 +23,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
 function matchesSearch(task, query) {
   if (!query) return true
   return [
@@ -157,13 +159,20 @@ export default function MaintenanceTasksPage() {
       </div>
 
       {myTasks.length > 0 && (
-        <div className="card rounded-xl p-4 space-y-3">
-          <div className="relative">
-            <AppIcon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input name="maintenancetaskspage-search-reference-complaint-customer-address-notes-or-status-1" aria-label="Search complaint reference, customer, address, notes or status..." value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
-              placeholder="Search complaint reference, customer, address, notes or status..."
-              className="input-field pl-9 rounded-lg" />
-          </div>
+        <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+          <SavedViewsBar
+            moduleKey="maintenance_tasks"
+            currentFilters={{ view, q: search, priority: priorityFilter, status: statusFilter, sort: sortBy }}
+            onApply={filters => {
+              setView(filters.view || 'active')
+              setSearch(filters.q || '')
+              setPriorityFilter(filters.priority || 'all')
+              setStatusFilter(filters.status || 'all')
+              setSortBy(filters.sort || 'priority')
+              setPage(1)
+            }}
+          />
+          <SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Search complaint reference, customer, address, notes or status…" />
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
             <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">Any Priority</option>
@@ -187,7 +196,7 @@ export default function MaintenanceTasksPage() {
               <option value="oldest">Oldest Submitted</option>
               <option value="type">Type A–Z</option>
             </select>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
+            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Clear Filters</button>
           </div>
         </div>
       )}
@@ -223,7 +232,8 @@ export default function MaintenanceTasksPage() {
                   <tr><td colSpan={5} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
                 ) : paged.map(task => (
                   <tr key={task.id}
-                    className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+                    onClick={() => navigate(`/complaints/${task.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${task.id}`) }}
+                    className={`qol-clickable-row hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                     <td className="px-4 py-3 align-top">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
                       <p className="mt-1 font-mono text-[10px] font-bold text-gray-500">{task.reference_number}</p>

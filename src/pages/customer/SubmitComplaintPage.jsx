@@ -15,6 +15,7 @@ const schema = z.object({
 })
 
 const STEP_LABELS = ['Type', 'Details', 'Location', 'Review']
+const DRAFT_KEY = 'mrwd:complaint-draft:v1'
 
 const TYPE_ICONS = {
   'No Water': 'waterOff',
@@ -138,6 +139,8 @@ export default function SubmitComplaintPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(null)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState(null)
 
   // GPS / location state
   const [locationMode, setLocationMode] = useState(null) // null | 'saved' | 'gps' | 'pin'
@@ -153,6 +156,54 @@ export default function SubmitComplaintPage() {
   const watchedType = watch('complaint_type')
   const watchedDesc = watch('description')
   const watchedAddr = watch('address')
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      if (draft.complaint_type) setValue('complaint_type', draft.complaint_type)
+      if (draft.description) setValue('description', draft.description)
+      if (draft.address) setValue('address', draft.address)
+      if (draft.gps) setGpsCoords(draft.gps)
+      if (draft.locationMode) setLocationMode(draft.locationMode)
+      if (Number.isInteger(draft.step)) {
+        const safeStep = Math.min(Math.max(draft.step, 0), 3)
+        setStep(safeStep)
+        setFurthestStep(safeStep)
+      }
+      setDraftRestored(Boolean(draft.complaint_type || draft.description || draft.address))
+    } catch {
+      window.localStorage.removeItem(DRAFT_KEY)
+    }
+  }, [setValue])
+
+  useEffect(() => {
+    const hasDraft = Boolean(watchedType || watchedDesc?.trim() || watchedAddr?.trim())
+    if (!hasDraft || submitted) return undefined
+    const timer = window.setTimeout(() => {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        complaint_type: watchedType,
+        description: watchedDesc,
+        address: watchedAddr,
+        gps: gpsCoords,
+        locationMode,
+        step,
+      }))
+      setDraftSavedAt(new Date())
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [watchedType, watchedDesc, watchedAddr, gpsCoords, locationMode, step, submitted])
+
+  useEffect(() => {
+    const onBeforeUnload = event => {
+      if (!(watchedType || watchedDesc?.trim() || watchedAddr?.trim()) || submitting || submitted) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [watchedType, watchedDesc, watchedAddr, submitting, submitted])
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
@@ -234,6 +285,9 @@ export default function SubmitComplaintPage() {
         user.full_name
       )
       setSubmitted(result)
+      window.localStorage.removeItem(DRAFT_KEY)
+      setDraftSavedAt(null)
+      setDraftRestored(false)
       reset()
       setPhoto(null); setPhotoPreview(null); setStep(0); setFurthestStep(0)
       setGpsCoords(null); setGpsError(null); setLocationMode(null)
@@ -284,6 +338,7 @@ export default function SubmitComplaintPage() {
 
   return (
     <div className="w-full space-y-6">
+      {draftRestored && <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between"><div><b>Draft restored.</b> Your unfinished complaint was recovered from this browser. {draftSavedAt && <span className="text-blue-700"> Changes are saved automatically.</span>}</div><button type="button" onClick={() => { window.localStorage.removeItem(DRAFT_KEY); reset({ complaint_type: '', description: '', address: '' }); setGpsCoords(null); setLocationMode(null); setStep(0); setFurthestStep(0); setDraftRestored(false); setDraftSavedAt(null) }} className="text-xs font-black text-blue-800 underline">Discard draft</button></div>}
       {/* Page header */}
       <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
@@ -359,7 +414,7 @@ export default function SubmitComplaintPage() {
                 <textarea aria-label="Description" rows={5} placeholder="When did it start? How bad is it? Who is affected?"
                   {...register('description')}
                   className={`input-field resize-none ${errors.description ? 'input-error' : ''}`} />
-                {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
+                <div className="mt-1 flex items-center justify-between gap-3"><span>{errors.description && <span className="text-xs text-red-600">{errors.description.message}</span>}</span><span className={`text-[10px] font-bold ${watchedDesc.length > 1200 ? 'text-red-600' : 'text-gray-400'}`}>{watchedDesc.length.toLocaleString()} characters</span></div>
               </div>
 
               <div>

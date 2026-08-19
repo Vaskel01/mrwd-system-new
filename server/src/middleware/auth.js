@@ -16,7 +16,7 @@ export async function requireAuth(req, res, next) {
 
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('id, email, full_name, phone, role, is_active, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, email_notifications_enabled, sms_notifications_enabled, department:departments(id, code, name)')
+    .select('id, email, full_name, phone, role, is_active, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)')
     .eq('id', userData.user.id)
     .single()
 
@@ -25,7 +25,13 @@ export async function requireAuth(req, res, next) {
     return res.status(403).json({ error: 'This account has been deactivated. Contact a System Supervisor.' })
   }
 
+  let aal = 'aal1'
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'))
+    aal = payload?.aal || 'aal1'
+  } catch (_) {}
   req.user = profile
+  req.authAal = aal
   req.supabase = supabase
   next()
 }
@@ -41,7 +47,8 @@ export function requireRole(...roles) {
 
 export function requireCapability(...capabilities) {
   return (req, res, next) => {
-    if (!req.user || !hasCapability(req.user, ...capabilities)) {
+    const supervisorMfaBlocked = req.user?.mfa_required && ['manager','supervisor'].includes(String(req.user?.staff_position || '').toLowerCase()) && req.authAal !== 'aal2'
+    if (!req.user || supervisorMfaBlocked || !hasCapability(req.user, ...capabilities)) {
       return res.status(403).json({ error: 'This function is restricted to the responsible MRWD department.' })
     }
     next()

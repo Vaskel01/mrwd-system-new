@@ -185,7 +185,7 @@ router.post('/reclassify-all', requireAuth, requireCapability(CAPABILITIES.COMME
     let updated = 0
     for (const row of complaints || []) {
       const category = categoryMap[row.category_id]
-      if (!category) { failures.push({ id: row.id, error: 'Complaint category not found.' }); continue }
+      if (!category) { failures.push({ id: row.id, error: 'Complaint Type not found.' }); continue }
       const result = scoreComplaint({
         complaint_type: category.name,
         description: row.description,
@@ -292,7 +292,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
     .select('id, base_severity_score')
     .eq('name', complaint_type)
     .single()
-  if (categoryError || !category) return res.status(400).json({ error: `Unknown complaint category "${complaint_type}".` })
+  if (categoryError || !category) return res.status(400).json({ error: `Unknown Complaint Type "${complaint_type}".` })
 
   const result = scoreComplaint({
     complaint_type,

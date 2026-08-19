@@ -18,6 +18,7 @@ export function useComplaintListRefresh(complaints, refresh, intervalMs = 60000)
 
   useEffect(() => {
     const check = async () => {
+      if (document.hidden || !navigator.onLine) return
       try {
         const result = await apiFetch('/complaints')
         if (listSignature(result.complaints || []) !== signatureRef.current) setUpdatesAvailable(true)
@@ -25,8 +26,16 @@ export function useComplaintListRefresh(complaints, refresh, intervalMs = 60000)
         // Existing page data remains usable when a background check fails.
       }
     }
+    const onFocus = () => check()
+    const onVisibility = () => { if (!document.hidden) check() }
     const timer = window.setInterval(check, intervalMs)
-    return () => window.clearInterval(timer)
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [intervalMs])
 
   const refreshNow = useCallback(async () => {
@@ -48,6 +57,7 @@ export function useComplaintDetailRefresh(complaintId, complaint, refresh, inter
   useEffect(() => {
     if (!complaintId) return undefined
     const check = async () => {
+      if (document.hidden || !navigator.onLine) return
       try {
         const result = await apiFetch(`/complaints/${complaintId}`)
         const latest = result.complaint
@@ -57,8 +67,16 @@ export function useComplaintDetailRefresh(complaintId, complaint, refresh, inter
         // Existing page data remains usable when a background check fails.
       }
     }
+    const onFocus = () => check()
+    const onVisibility = () => { if (!document.hidden) check() }
     const timer = window.setInterval(check, intervalMs)
-    return () => window.clearInterval(timer)
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [complaintId, intervalMs])
 
   const refreshNow = useCallback(async () => {

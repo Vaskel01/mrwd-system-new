@@ -3,6 +3,7 @@ import { requireAuth, requireCapability, requireRole } from '../middleware/auth.
 import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { fetchShapedComplaintById } from '../lib/shapeComplaint.js'
 import { writeAudit } from '../lib/activity.js'
+import { addDaysYmd, manilaDateYmd } from '../lib/date.js'
 
 const router = Router()
 const CLOSED_STATUSES = new Set(['resolved', 'completed', 'rejected', 'cancelled'])
@@ -60,6 +61,25 @@ function firstFailed(results) {
   return results.find(result => result.error)?.error || null
 }
 
+async function loadActiveEcmdMaintenanceStaff(supabase, staffId) {
+  if (!staffId) return null
+  const { data, error } = await supabase.from('profiles')
+    .select('id, full_name, role, is_active, staff_position, department:departments(code)')
+    .eq('id', staffId).maybeSingle()
+  if (error) throw error
+  if (!data || data.role !== 'maintenance_personnel' || !data.is_active || String(data.department?.code || '').toUpperCase() !== 'ECMD') {
+    throw new Error('Choose an active ECMD Maintenance Personnel account.')
+  }
+  return data
+}
+
+async function requireEcmdDepartment(supabase, departmentId) {
+  const { data, error } = await supabase.from('departments').select('id, code, is_active').eq('id', departmentId).maybeSingle()
+  if (error) throw error
+  if (!data || !data.is_active || String(data.code || '').toUpperCase() !== 'ECMD') throw new Error('Maintenance crews must belong to the active ECMD department.')
+  return data
+}
+
 function requireEcmdOrAssignedMaintenance(req, res, next) {
   if (req.user?.role === 'maintenance_personnel' || hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) return next()
   return res.status(403).json({ error: 'Maintenance resources are restricted to ECMD and assigned Maintenance Personnel.' })
@@ -81,8 +101,8 @@ router.get('/commercial-bootstrap', requireAuth, requireCapability(CAPABILITIES.
 
 router.get('/ecmd-bootstrap', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10)
-    const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
+    const today = manilaDateYmd()
+    const future = addDaysYmd(today, 14)
     const [departments, crews, members, schedules, inventory, staff] = await Promise.all([
       req.supabase.from('departments').select('*').eq('code', 'ECMD').limit(1),
       req.supabase.from('maintenance_crews').select('*').order('name'),
@@ -121,8 +141,8 @@ router.get('/system-bootstrap', requireAuth, requireCapability(CAPABILITIES.SYST
 
 router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10)
-    const future = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
+    const today = manilaDateYmd()
+    const future = addDaysYmd(today, 14)
     const [
       departmentsResult, crewsResult, membersResult, schedulesResult, approvalsResult,
       accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult,
@@ -178,11 +198,14 @@ router.post('/crews', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATION
   const departmentId = req.body?.department_id
   if (!name || !departmentId) return res.status(400).json({ error: 'Crew name and department are required.' })
   try {
+    await requireEcmdDepartment(req.supabase, departmentId)
+    const teamLeaderId = req.body?.team_leader_id || null
+    if (teamLeaderId) await loadActiveEcmdMaintenanceStaff(req.supabase, teamLeaderId)
     const manpower = numberValue(req.body?.default_manpower ?? 1, 'Default manpower', { min: 1, allowZero: false })
     const { data, error } = await req.supabase.from('maintenance_crews').insert({
       name,
       department_id: departmentId,
-      team_leader_id: req.body?.team_leader_id || null,
+      team_leader_id: teamLeaderId,
       default_manpower: Math.round(manpower),
       contact_note: trimmed(req.body?.contact_note) || null,
       created_by: req.user.id,
@@ -198,13 +221,42 @@ router.post('/crews', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATION
   }
 })
 
+router.patch('/crews/:id', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
+  try {
+    const patch = { updated_at: new Date().toISOString() }
+    if (req.body?.name !== undefined) {
+      patch.name = trimmed(req.body.name)
+      if (!patch.name) throw new Error('Crew name is required.')
+    }
+    if (req.body?.team_leader_id !== undefined) {
+      patch.team_leader_id = req.body.team_leader_id || null
+      if (patch.team_leader_id) await loadActiveEcmdMaintenanceStaff(req.supabase, patch.team_leader_id)
+    }
+    if (req.body?.default_manpower !== undefined) patch.default_manpower = Math.round(numberValue(req.body.default_manpower, 'Default manpower', { min: 1, allowZero: false }))
+    if (req.body?.contact_note !== undefined) patch.contact_note = trimmed(req.body.contact_note) || null
+    if (req.body?.is_active !== undefined) patch.is_active = Boolean(req.body.is_active)
+    const { data, error } = await req.supabase.from('maintenance_crews').update(patch).eq('id', req.params.id).select().single()
+    if (error) throw error
+    if (data.team_leader_id) await req.supabase.from('crew_members').upsert({ crew_id: data.id, staff_id: data.team_leader_id, crew_role: 'team_leader', is_active: true, left_at: null }, { onConflict: 'crew_id,staff_id' })
+    await writeAudit(req.supabase, req.user, 'crew.updated', 'maintenance_crew', data.id, patch)
+    res.json({ crew: data })
+  } catch (error) { res.status(400).json({ error: error.message }) }
+})
+
 router.post('/crew-members', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const { crew_id, staff_id } = req.body || {}
   if (!crew_id || !staff_id) return res.status(400).json({ error: 'Crew and staff member are required.' })
   try {
+    const { data: crew, error: crewError } = await req.supabase.from('maintenance_crews').select('id, department_id, is_active').eq('id', crew_id).maybeSingle()
+    if (crewError) throw crewError
+    if (!crew?.is_active) throw new Error('Choose an active maintenance crew.')
+    await requireEcmdDepartment(req.supabase, crew.department_id)
+    await loadActiveEcmdMaintenanceStaff(req.supabase, staff_id)
+    const role = trimmed(req.body?.crew_role || 'crew_member')
+    if (!['team_leader', 'crew_member'].includes(role)) throw new Error('Crew role must be Team Leader or Maintenance Crew Member.')
     const manpowerUnits = numberValue(req.body?.manpower_units ?? 1, 'Manpower units', { min: 0.01, allowZero: false })
     const { data, error } = await req.supabase.from('crew_members').upsert({
-      crew_id, staff_id, crew_role: req.body?.crew_role || 'crew_member', manpower_units: manpowerUnits, is_active: true, left_at: null,
+      crew_id, staff_id, crew_role: role, manpower_units: manpowerUnits, is_active: true, left_at: null,
     }, { onConflict: 'crew_id,staff_id' }).select().single()
     if (error) throw error
     await writeAudit(req.supabase, req.user, 'crew.member_saved', 'maintenance_crew', crew_id, { staff_id, role: data.crew_role })
@@ -212,6 +264,25 @@ router.post('/crew-members', requireAuth, requireCapability(CAPABILITIES.ECMD_OP
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
+})
+
+router.patch('/crew-members/:id', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
+  try {
+    const patch = {}
+    if (req.body?.crew_role !== undefined) {
+      patch.crew_role = trimmed(req.body.crew_role) || 'crew_member'
+      if (!['team_leader', 'crew_member'].includes(patch.crew_role)) throw new Error('Crew role must be Team Leader or Maintenance Crew Member.')
+    }
+    if (req.body?.manpower_units !== undefined) patch.manpower_units = numberValue(req.body.manpower_units, 'Manpower units', { min: 0.01, allowZero: false })
+    if (req.body?.is_active !== undefined) {
+      patch.is_active = Boolean(req.body.is_active)
+      patch.left_at = patch.is_active ? null : new Date().toISOString()
+    }
+    const { data, error } = await req.supabase.from('crew_members').update(patch).eq('id', req.params.id).select().single()
+    if (error) throw error
+    await writeAudit(req.supabase, req.user, patch.is_active === false ? 'crew.member_removed' : 'crew.member_updated', 'maintenance_crew', data.crew_id, { staff_id: data.staff_id, crew_role: data.crew_role })
+    res.json({ member: data })
+  } catch (error) { res.status(400).json({ error: error.message }) }
 })
 
 router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
@@ -298,80 +369,178 @@ router.patch('/approvals/:id', requireAuth, requireCapability(CAPABILITIES.SYSTE
   res.json({ approval: data })
 })
 
-router.post('/accounts/import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
-  const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 2000) : []
-  if (!rows.length) return res.status(400).json({ error: 'Provide at least one customer account row.' })
-  const valid = rows.map((row, index) => ({
+async function existingAccountRegistry(supabase, accountNumbers = []) {
+  const unique = [...new Set(accountNumbers.filter(Boolean))]
+  const existing = new Set()
+  for (let index = 0; index < unique.length; index += 250) {
+    const chunk = unique.slice(index, index + 250)
+    const { data, error } = await supabase.from('customer_account_registry').select('account_number').in('account_number', chunk)
+    if (error) throw error
+    for (const row of data || []) existing.add(String(row.account_number || '').toUpperCase())
+  }
+  return existing
+}
+
+async function linkedCustomerAccounts(supabase, accountNumbers = []) {
+  const unique = [...new Set(accountNumbers.filter(Boolean))]
+  const linked = new Set()
+  for (let index = 0; index < unique.length; index += 250) {
+    const chunk = unique.slice(index, index + 250)
+    const { data, error } = await supabase.from('profiles').select('account_number').eq('role', 'customer').in('account_number', chunk)
+    if (error) throw error
+    for (const row of data || []) linked.add(String(row.account_number || '').toUpperCase())
+  }
+  return linked
+}
+
+async function validateAccountImportRows(supabase, inputRows) {
+  const rows = inputRows.slice(0, 2000)
+  const normalized = rows.map((row, index) => ({
+    row: index + 2,
     account_number: trimmed(row.account_number).toUpperCase(),
     registered_name: trimmed(row.registered_name),
-    service_address: trimmed(row.service_address) || null,
-    barangay: trimmed(row.barangay) || null,
-    meter_number: trimmed(row.meter_number) || null,
+    service_address: trimmed(row.service_address),
+    barangay: trimmed(row.barangay),
+    meter_number: trimmed(row.meter_number),
     is_active: String(row.is_active ?? 'true').toLowerCase() !== 'false',
-    updated_at: new Date().toISOString(),
-    row: index + 1,
-  })).filter(row => row.account_number && row.registered_name)
-  if (!valid.length) return res.status(400).json({ error: 'No valid rows contained both account_number and registered_name.' })
-  const payload = valid.map(({ row, ...item }) => item)
-  const { data, error } = await req.supabase.from('customer_account_registry').upsert(payload, { onConflict: 'account_number' }).select()
-  if (error) return res.status(400).json({ error: error.message })
-  await writeAudit(req.supabase, req.user, 'customer_accounts.imported', 'customer_account_registry', null, { received: rows.length, imported: data?.length || 0 })
-  res.json({ imported: data?.length || 0, skipped: rows.length - valid.length })
+  }))
+  const occurrences = new Map()
+  for (const row of normalized) if (row.account_number) occurrences.set(row.account_number, (occurrences.get(row.account_number) || 0) + 1)
+  const existing = await existingAccountRegistry(supabase, normalized.map(row => row.account_number))
+  const errors = []
+  const validRows = []
+  for (const row of normalized) {
+    const rowErrors = []
+    if (!row.account_number) rowErrors.push('account_number is required')
+    if (!row.registered_name) rowErrors.push('registered_name is required')
+    if (row.account_number && occurrences.get(row.account_number) > 1) rowErrors.push('duplicate account_number in this file')
+    if (rowErrors.length) errors.push({ row: row.row, account_number: row.account_number || null, error: rowErrors.join('; ') })
+    else validRows.push(row)
+  }
+  const newCount = validRows.filter(row => !existing.has(row.account_number)).length
+  return {
+    kind: 'accounts', total: rows.length, valid_count: validRows.length, invalid_count: errors.length,
+    new_count: newCount, update_count: validRows.length - newCount, errors, validRows,
+    can_import: validRows.length > 0 && errors.length === 0,
+  }
+}
+
+async function validateBillingImportRows(supabase, inputRows) {
+  const rows = inputRows.slice(0, 5000)
+  const normalized = rows.map((row, index) => ({ ...row, row: index + 2, account_number: trimmed(row.account_number).toUpperCase(), billing_period: trimmed(row.billing_period) }))
+  const keys = new Map()
+  for (const row of normalized) {
+    const key = `${row.account_number}|${row.billing_period}`
+    if (row.account_number && row.billing_period) keys.set(key, (keys.get(key) || 0) + 1)
+  }
+  const linked = await linkedCustomerAccounts(supabase, normalized.map(row => row.account_number))
+  const errors = []
+  const validRows = []
+  for (const row of normalized) {
+    const rowErrors = []
+    const key = `${row.account_number}|${row.billing_period}`
+    if (!row.account_number) rowErrors.push('account_number is required')
+    if (!row.billing_period) rowErrors.push('billing_period is required')
+    if (row.account_number && !linked.has(row.account_number)) rowErrors.push('account number is not linked to a customer profile')
+    if (row.account_number && row.billing_period && keys.get(key) > 1) rowErrors.push('duplicate account_number + billing_period in this file')
+    for (const field of ['previous_reading','current_reading','consumption','amount_due']) {
+      const value = row[field]
+      if (field === 'amount_due' && trimmed(value) === '') rowErrors.push('amount_due is required')
+      else if (trimmed(value) !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0)) rowErrors.push(`${field} must be a non-negative number`)
+    }
+    if (!trimmed(row.due_date)) rowErrors.push('due_date is required')
+    else if (Number.isNaN(new Date(`${trimmed(row.due_date)}T00:00:00`).getTime())) rowErrors.push('due_date is invalid')
+    const status = String(row.status || 'unpaid').toLowerCase()
+    if (!['paid','unpaid'].includes(status)) rowErrors.push('status must be paid or unpaid')
+    if (rowErrors.length) errors.push({ row: row.row, account_number: row.account_number || null, billing_period: row.billing_period || null, error: rowErrors.join('; ') })
+    else validRows.push(row)
+  }
+  return { kind: 'billing', total: rows.length, valid_count: validRows.length, invalid_count: errors.length, errors, validRows, can_import: validRows.length > 0 && errors.length === 0 }
+}
+
+router.post('/accounts/validate-import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
+  if (!rows.length) return res.status(400).json({ error: 'Provide at least one customer account row.' })
+  try {
+    const { validRows, ...result } = await validateAccountImportRows(req.supabase, rows)
+    res.json(result)
+  } catch (error) { res.status(400).json({ error: error.message }) }
+})
+
+router.post('/billing/validate-import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
+  if (!rows.length) return res.status(400).json({ error: 'Provide at least one billing row.' })
+  try {
+    const { validRows, ...result } = await validateBillingImportRows(req.supabase, rows)
+    res.json(result)
+  } catch (error) { res.status(400).json({ error: error.message }) }
+})
+
+router.post('/accounts/import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
+  if (!rows.length) return res.status(400).json({ error: 'Provide at least one customer account row.' })
+  try {
+    const validation = await validateAccountImportRows(req.supabase, rows)
+    if (!validation.can_import) return res.status(400).json({ error: 'Import blocked because the file did not pass validation.', validation: { ...validation, validRows: undefined } })
+    const payload = validation.validRows.map(({ row, ...item }) => ({ ...item, service_address: item.service_address || null, barangay: item.barangay || null, meter_number: item.meter_number || null, updated_at: new Date().toISOString() }))
+    const { data, error } = await req.supabase.from('customer_account_registry').upsert(payload, { onConflict: 'account_number' }).select()
+    if (error) throw error
+    await writeAudit(req.supabase, req.user, 'customer_accounts.imported', 'customer_account_registry', null, { received: rows.length, imported: data?.length || 0, validation_passed: true })
+    res.json({ imported: data?.length || 0, skipped: 0 })
+  } catch (error) { res.status(400).json({ error: error.message }) }
 })
 
 router.post('/billing/import', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
-  const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 5000) : []
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
   const filename = trimmed(req.body?.filename) || 'billing-import.csv'
   if (!rows.length) return res.status(400).json({ error: 'Provide at least one billing row.' })
-  const { data: batch, error: batchError } = await req.supabase.from('billing_import_batches').insert({
-    filename, row_count: rows.length, imported_by: req.user.id,
-  }).select().single()
-  if (batchError) return res.status(400).json({ error: batchError.message })
+  try {
+    const validation = await validateBillingImportRows(req.supabase, rows)
+    if (!validation.can_import) return res.status(400).json({ error: 'Import blocked because the file did not pass validation.', validation: { ...validation, validRows: undefined } })
 
-  let imported = 0
-  const failures = []
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index]
-    try {
-      const accountNumber = trimmed(row.account_number).toUpperCase()
-      const billingPeriod = trimmed(row.billing_period)
-      if (!accountNumber || !billingPeriod) throw new Error('account_number and billing_period are required')
-      const { data: customer, error: customerError } = await req.supabase.from('profiles')
-        .select('id').eq('role', 'customer').ilike('account_number', accountNumber).maybeSingle()
-      if (customerError) throw customerError
-      if (!customer) throw new Error('account number is not linked to a customer profile')
-      const bill = {
-        customer_id: customer.id,
-        account_number: accountNumber,
-        billing_period: billingPeriod,
-        previous_reading: numberValue(row.previous_reading ?? 0, 'previous_reading'),
-        current_reading: numberValue(row.current_reading ?? 0, 'current_reading'),
-        consumption: numberValue(row.consumption ?? 0, 'consumption'),
-        amount_due: numberValue(row.amount_due, 'amount_due'),
-        due_date: row.due_date,
-        status: String(row.status || 'unpaid').toLowerCase() === 'paid' ? 'paid' : 'unpaid',
-        source_batch_id: batch.id,
-        import_row_number: index + 2,
+    const { data: batch, error: batchError } = await req.supabase.from('billing_import_batches').insert({
+      filename, row_count: validation.validRows.length, imported_by: req.user.id,
+    }).select().single()
+    if (batchError) throw batchError
+
+    let imported = 0
+    const failures = []
+    for (const row of validation.validRows) {
+      try {
+        const { data: customer, error: customerError } = await req.supabase.from('profiles')
+          .select('id').eq('role', 'customer').ilike('account_number', row.account_number).maybeSingle()
+        if (customerError) throw customerError
+        if (!customer) throw new Error('account number is not linked to a customer profile')
+        const bill = {
+          customer_id: customer.id,
+          account_number: row.account_number,
+          billing_period: row.billing_period,
+          previous_reading: numberValue(row.previous_reading ?? 0, 'previous_reading'),
+          current_reading: numberValue(row.current_reading ?? 0, 'current_reading'),
+          consumption: numberValue(row.consumption ?? 0, 'consumption'),
+          amount_due: numberValue(row.amount_due, 'amount_due'),
+          due_date: row.due_date,
+          status: String(row.status || 'unpaid').toLowerCase(),
+          source_batch_id: batch.id,
+          import_row_number: row.row,
+        }
+        const { data: existing, error: existingError } = await req.supabase.from('bills').select('id')
+          .eq('customer_id', customer.id).eq('billing_period', row.billing_period).maybeSingle()
+        if (existingError) throw existingError
+        const result = existing ? await req.supabase.from('bills').update(bill).eq('id', existing.id) : await req.supabase.from('bills').insert(bill)
+        if (result.error) throw result.error
+        imported += 1
+      } catch (error) {
+        failures.push({ row: row.row, account_number: row.account_number || null, error: error.message })
       }
-      if (!bill.due_date) throw new Error('due_date is required')
-      const { data: existing, error: existingError } = await req.supabase.from('bills').select('id')
-        .eq('customer_id', customer.id).eq('billing_period', billingPeriod).maybeSingle()
-      if (existingError) throw existingError
-      const result = existing
-        ? await req.supabase.from('bills').update(bill).eq('id', existing.id)
-        : await req.supabase.from('bills').insert(bill)
-      if (result.error) throw result.error
-      imported += 1
-    } catch (error) {
-      failures.push({ row: index + 2, account_number: row?.account_number || null, error: error.message })
     }
-  }
-  const status = failures.length ? (imported ? 'completed_with_errors' : 'failed') : 'completed'
-  await req.supabase.from('billing_import_batches').update({
-    imported_count: imported, failed_count: failures.length, status, error_summary: failures, completed_at: new Date().toISOString(),
-  }).eq('id', batch.id)
-  await writeAudit(req.supabase, req.user, 'billing.bulk_imported', 'billing_import_batch', batch.id, { imported, failed: failures.length, filename })
-  res.json({ batch_id: batch.id, imported, failed: failures.length, errors: failures })
+    const status = failures.length ? (imported ? 'completed_with_errors' : 'failed') : 'completed'
+    await req.supabase.from('billing_import_batches').update({
+      imported_count: imported, failed_count: failures.length, status, error_summary: failures, completed_at: new Date().toISOString(),
+    }).eq('id', batch.id)
+    await writeAudit(req.supabase, req.user, 'billing.bulk_imported', 'billing_import_batch', batch.id, { imported, failed: failures.length, filename, validation_passed: true })
+    res.json({ batch_id: batch.id, imported, failed: failures.length, errors: failures })
+  } catch (error) { res.status(400).json({ error: error.message }) }
 })
 
 router.post('/inventory', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
@@ -421,7 +590,7 @@ router.post('/tasks/:complaintId/manpower', requireAuth, requireRole('admin', 'm
       crew_id: req.body?.crew_id || task.assigned_crew_id || null,
       personnel_count: personnelCount,
       hours_worked: hoursWorked,
-      work_date: req.body?.work_date || new Date().toISOString().slice(0, 10),
+      work_date: req.body?.work_date || manilaDateYmd(),
       notes: trimmed(req.body?.notes) || null,
       recorded_by: req.user.id,
     }).select().single()

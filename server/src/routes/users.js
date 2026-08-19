@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import { requireAuth, requireCapability } from '../middleware/auth.js'
 import { CAPABILITIES } from '../lib/accessControl.js'
-import { supabaseAnonClient } from '../supabaseClient.js'
+import { supabaseAnonClient, supabaseAdminClient } from '../supabaseClient.js'
 import { writeAudit } from '../lib/activity.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../lib/profileUpdate.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, department:departments(id, code, name)'
+const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)'
 
 router.get('/me', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', req.user.id).single()
@@ -154,12 +154,29 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), asyn
     return res.status(400).json({ error: 'Temporary password must use at least 8 characters with at least one letter and one number.' })
   }
 
-  const client = supabaseAnonClient()
-  const { data, error } = await client.auth.signUp({
-    email: email.trim().toLowerCase(),
-    password,
-    options: { data: { full_name: full_name.trim() } },
-  })
+  const normalizedEmail = email.trim().toLowerCase()
+  const adminClient = supabaseAdminClient()
+  let data
+  let error
+  if (adminClient) {
+    const result = await adminClient.auth.admin.createUser({
+      email: normalizedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: full_name.trim() },
+    })
+    data = result.data
+    error = result.error
+  } else {
+    const client = supabaseAnonClient()
+    const result = await client.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: { data: { full_name: full_name.trim() } },
+    })
+    data = result.data
+    error = result.error
+  }
   if (error) return res.status(400).json({ error: error.message })
   if (!data?.user || (Array.isArray(data.user.identities) && data.user.identities.length === 0)) {
     return res.status(400).json({ error: 'That email is already registered. Use password reset or choose another email.' })
@@ -167,7 +184,7 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), asyn
 
   const { data: promoted, error: promoteError } = await req.supabase.rpc('admin_promote_staff', {
     p_user_id: data.user.id,
-    p_email: email.trim().toLowerCase(),
+    p_email: normalizedEmail,
     p_full_name: full_name.trim(),
     p_role: role,
   })
@@ -183,9 +200,9 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), asyn
     if (assignmentError) return res.status(400).json({ error: assignmentError.message })
   }
 
-  await writeAudit(req.supabase, req.user, 'staff.created', 'profile', data.user.id, { role, email: email.trim().toLowerCase() })
+  await writeAudit(req.supabase, req.user, 'staff.created', 'profile', data.user.id, { role, email: normalizedEmail, must_change_password: true })
   const { data: finalProfile } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', data.user.id).single()
-  res.status(201).json({ user: finalProfile || promoted, requiresEmailConfirmation: !data.session })
+  res.status(201).json({ user: finalProfile || promoted, requiresEmailConfirmation: adminClient ? false : !data.session, temporaryPasswordMustChange: true })
 })
 
 router.patch('/:id/active', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {

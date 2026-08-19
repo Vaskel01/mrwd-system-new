@@ -7,6 +7,7 @@ import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import MfaChallengePage from './pages/auth/MfaChallengePage'
 
 // Customer
 import SubmitComplaintPage from './pages/customer/SubmitComplaintPage'
@@ -19,13 +20,18 @@ import CommercialComplaintReviewPage from './pages/commercial/CommercialComplain
 import CommercialReportsPage from './pages/commercial/CommercialReportsPage'
 import CommercialAccountsBillingPage from './pages/commercial/CommercialAccountsBillingPage'
 import CommercialAdvisoriesPage from './pages/commercial/CommercialAdvisoriesPage'
+import CommercialExportCenterPage from './pages/commercial/CommercialExportCenterPage'
 import EcmdDashboardPage from './pages/ecmd/EcmdDashboardPage'
 import EcmdDispatchPage from './pages/ecmd/EcmdDispatchPage'
 import EcmdFieldOperationsPage from './pages/ecmd/EcmdFieldOperationsPage'
+import EcmdCrewManagementPage from './pages/ecmd/EcmdCrewManagementPage'
+import EcmdAvailabilityCalendarPage from './pages/ecmd/EcmdAvailabilityCalendarPage'
 import SystemDashboardPage from './pages/system/SystemDashboardPage'
 import SystemDepartmentsPage from './pages/system/SystemDepartmentsPage'
 import SystemStaffAccountsPage from './pages/system/SystemStaffAccountsPage'
 import SystemAuditLogPage from './pages/system/SystemAuditLogPage'
+import SystemAnnouncementsPage from './pages/system/SystemAnnouncementsPage'
+import SystemHealthPage from './pages/system/SystemHealthPage'
 
 // Maintenance
 import MaintenanceTasksPage from './pages/maintenance/MaintenanceTasksPage'
@@ -49,6 +55,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/mfa" element={<MfaChallengePage />} />
 
         {/* ── Shared complaint details ── */}
         <Route path="/complaints/:id" element={
@@ -122,6 +129,11 @@ export default function App() {
             <AppLayout><CommercialAdvisoriesPage /></AppLayout>
           </ProtectedRoute>
         }/>
+        <Route path="/commercial/export-center" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_REPORTS]}>
+            <AppLayout><CommercialExportCenterPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
 
         {/* ── Engineering, Construction and Maintenance Department (ECMD) ── */}
         <Route path="/ecmd/dashboard" element={
@@ -137,6 +149,16 @@ export default function App() {
         <Route path="/ecmd/field-operations" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
             <AppLayout><EcmdFieldOperationsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/ecmd/crews" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
+            <AppLayout><EcmdCrewManagementPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/ecmd/availability" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.ECMD_OPERATIONS]}>
+            <AppLayout><EcmdAvailabilityCalendarPage /></AppLayout>
           </ProtectedRoute>
         }/>
 
@@ -159,6 +181,16 @@ export default function App() {
         <Route path="/system/audit-log" element={
           <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SYSTEM_AUDIT]}>
             <AppLayout><SystemAuditLogPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/system/announcements" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SUPERVISOR_DASHBOARD]}>
+            <AppLayout><SystemAnnouncementsPage /></AppLayout>
+          </ProtectedRoute>
+        }/>
+        <Route path="/system/health" element={
+          <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.SUPERVISOR_DASHBOARD]}>
+            <AppLayout><SystemHealthPage /></AppLayout>
           </ProtectedRoute>
         }/>
 

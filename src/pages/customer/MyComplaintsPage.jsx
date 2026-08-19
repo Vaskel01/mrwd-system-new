@@ -7,6 +7,7 @@ import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
+import SearchField from '../../components/ui/SearchField'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 
 function timeAgo(iso) {
@@ -151,13 +152,8 @@ export default function MyComplaintsPage() {
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} />
 
       {complaints.length > 0 ? (
-        <div className="card rounded-xl p-4 space-y-3">
-          <div className="relative">
-            <AppIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input aria-label="Search complaint reference, type, description, address or status" value={search} onChange={event => { setSearch(event.target.value); setPage(1) }}
-              placeholder="Search complaint reference, type, description, address or status..."
-              className="input-field pl-9 rounded-lg" />
-          </div>
+        <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+          <SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Search complaint reference, complaint type, description, address or status…" />
           <div className="flex gap-2 flex-wrap">
             {[['all', 'All'], ['pending', 'Pending Review'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
               <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="px-4 py-2 rounded-full text-sm font-semibold"

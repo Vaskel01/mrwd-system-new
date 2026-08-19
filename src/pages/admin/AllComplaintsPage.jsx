@@ -6,7 +6,10 @@ import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
+import SearchField from '../../components/ui/SearchField'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
+import SavedViewsBar from '../../components/ui/SavedViewsBar'
+import { useProductionStore } from '../../store/productionStore'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -25,7 +28,7 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
+const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
 
 export default function AllComplaintsPage() {
   const navigate = useNavigate()
@@ -34,6 +37,13 @@ export default function AllComplaintsPage() {
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
+  const bulkAction = useProductionStore(s => s.bulkAction)
+  const [selected, setSelected] = useState([])
+  const [bulkChoice, setBulkChoice] = useState('forward_to_ecmd')
+  const [bulkPriority, setBulkPriority] = useState('medium')
+  const [bulkReason, setBulkReason] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkMessage, setBulkMessage] = useState('')
   const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || 'pending')
   const [filterPriority, setFilterPriority] = useState(() => searchParams.get('priority') || 'all')
   const [search, setSearch] = useState(() => searchParams.get('q') || '')
@@ -80,6 +90,25 @@ export default function AllComplaintsPage() {
               : new Date(b.created_at) - new Date(a.created_at))
   }, [complaints, filterStatus, filterPriority, search, sortBy])
 
+  const applySavedView = view => { setFilterStatus(view.status || 'pending'); setFilterPriority(view.priority || 'all'); setSearch(view.q || ''); setSortBy(view.sort || 'priority_oldest'); setPage(1) }
+  const toggleSelected = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
+  const runBulk = async () => {
+    if (!selected.length) return
+    if (['priority','request_archive'].includes(bulkChoice) && bulkReason.trim().length < 3) return setBulkMessage('Enter a reason for this bulk action.')
+    setBulkBusy(true); setBulkMessage('')
+    try {
+      const extra = bulkChoice === 'priority' ? { priority: bulkPriority, reason: bulkReason } : bulkChoice === 'request_archive' ? { reason: bulkReason } : bulkChoice === 'forward_to_ecmd' ? { handoff_note: bulkReason || undefined } : {}
+      const result = await bulkAction(selected, bulkChoice, extra)
+      const rows = result.results || []
+      const succeeded = rows.filter(row => row.ok)
+      const failed = rows.filter(row => !row.ok)
+      setBulkMessage(failed.length ? `${succeeded.length} updated; ${failed.length} skipped. ${failed[0]?.error || ''}` : `${succeeded.length} complaint(s) updated.`)
+      setSelected(failed.map(row => row.id))
+      if (!failed.length) setBulkReason('')
+      await fetchComplaints()
+    } catch (err) { setBulkMessage(err.message) } finally { setBulkBusy(false) }
+  }
+
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
@@ -111,12 +140,10 @@ export default function AllComplaintsPage() {
         </div>
       </div>
 
-      <div className="card rounded-xl p-4 space-y-3">
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input name="allcomplaintspage-search-reference-complaint-customer-address-status-or-personnel-1" aria-label="Search reference, complaint, customer, address, status or assigned personnel..." type="text" placeholder="Search reference, complaint, customer, address, status or assigned personnel..."
-            value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} className="input-field pl-9 rounded-lg" />
-        </div>
+      <SavedViewsBar moduleKey="commercial_complaints" filters={{ status: filterStatus, priority: filterPriority, q: search, sort: sortBy }} onApply={applySavedView} />
+
+      <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+        <SearchField value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Search reference, complaint type, customer, address, status or Maintenance Personnel…" />
         <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 lg:grid-cols-4">
           <select name="allcomplaintspage-filter-priority-2" aria-label="Filter Priority" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="all">Any Priority</option>
@@ -135,6 +162,7 @@ export default function AllComplaintsPage() {
             <option value="resolved">Resolved</option>
             <option value="rejected">Rejected</option>
             <option value="cancelled">Cancelled</option>
+            <option value="merged">Merged</option>
           </select>
           <select name="allcomplaintspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
             <option value="priority_oldest">Priority, Oldest First</option>
@@ -144,9 +172,11 @@ export default function AllComplaintsPage() {
             <option value="date">Newest Submitted</option>
             <option value="oldest">Oldest Submitted</option>
           </select>
-          <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary rounded-lg text-sm">Reset Filters</button>
+          <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary rounded-lg text-sm">Clear Filters</button>
         </div>
       </div>
+
+      {selected.length > 0 && <div className="card rounded-xl border-2 border-navy-200 bg-navy-50/40 p-4"><div className="flex flex-wrap items-center gap-3"><p className="text-sm font-black text-navy-900">{selected.length} selected</p><select value={bulkChoice} onChange={e => setBulkChoice(e.target.value)} className="input-field min-h-9 w-auto rounded-lg py-1.5 text-xs"><option value="forward_to_ecmd">Forward to ECMD</option><option value="priority">Change Priority</option><option value="watch">Add to Watchlist</option><option value="request_archive">Request Archive</option></select>{bulkChoice === 'priority' && <select value={bulkPriority} onChange={e => setBulkPriority(e.target.value)} className="input-field min-h-9 w-auto rounded-lg py-1.5 text-xs"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>}{['forward_to_ecmd','priority','request_archive'].includes(bulkChoice) && <input value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="input-field min-h-9 min-w-[220px] flex-1 rounded-lg py-1.5 text-xs" placeholder={bulkChoice === 'forward_to_ecmd' ? 'Optional handoff note…' : 'Reason required…'}/>}<button type="button" disabled={bulkBusy} onClick={runBulk} className="btn-primary min-h-9 rounded-lg py-1.5 text-xs">{bulkBusy?'Applying…':'Apply'}</button><button type="button" onClick={() => setSelected([])} className="btn-secondary min-h-9 rounded-lg py-1.5 text-xs">Clear Selection</button></div>{bulkMessage&&<p className="mt-2 text-xs font-bold text-navy-700">{bulkMessage}</p>}</div>}
 
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
         <table className="w-full table-fixed text-sm">
@@ -164,8 +194,9 @@ export default function AllComplaintsPage() {
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-400">No complaints match your search and filters.</td></tr> : paged.map(c => (
-              <tr key={c.id} className={`hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]} ${c.priority === 'high' && c.status === 'pending' ? 'bg-red-50/60' : ''}`}>
+              <tr key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${c.id}`) }} className={`qol-clickable-row hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]} ${c.priority === 'high' && c.status === 'pending' ? 'bg-red-50/60' : ''}`}>
                 <td className="px-4 py-3">
+                  <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(c.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(c.id)} aria-label={`Select ${c.reference_number}`} className="h-4 w-4 accent-navy-800"/><span className="text-[10px] font-black uppercase text-gray-400">Select</span></div>
                   <p className="font-bold text-gray-900 break-words">{c.complaint_type}</p>
                   <p className="text-xs text-gray-400 line-clamp-2 break-words">{c.description}</p>
                   <p className="text-[10px] text-gray-500 font-mono font-bold mt-1 break-all">{c.reference_number}</p>
@@ -177,7 +208,7 @@ export default function AllComplaintsPage() {
                 <td className="px-4 py-3 text-gray-500"><p className="break-words">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-[10px] text-gray-400 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs break-words">{timeAgo(c.created_at)}</td>
                 <td className="px-4 py-3 pr-5">
-                  <button onClick={() => navigate(`/complaints/${c.id}`)} className={TABLE_ACTION_CLASS}>
+                  <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
                     Open
                   </button>
                 </td>
@@ -190,6 +221,7 @@ export default function AllComplaintsPage() {
       <div className="xl:hidden space-y-3">
         {filtered.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-400">No complaints match your search and filters.</div> : paged.map(c => (
           <div key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]} cursor-pointer`}>
+            <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(c.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(c.id)} className="h-4 w-4 accent-navy-800"/><span className="text-[10px] font-black uppercase text-gray-400">Select for bulk action</span></div>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-bold text-gray-900">{c.complaint_type}</p>

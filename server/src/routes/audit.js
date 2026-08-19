@@ -45,6 +45,12 @@ router.get('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_AUDIT), async
 
   if (fromDate) query = query.gte('created_at', fromDate.toISOString())
   if (toDate) query = query.lte('created_at', toDate.toISOString())
+  const actor = String(req.query.actor || '').trim()
+  const action = String(req.query.action || '').trim()
+  const entityType = String(req.query.entity_type || '').trim()
+  if (actor) query = query.ilike('actor_name', `%${actor.replaceAll('%', '\%').replaceAll('_', '\_')}%`)
+  if (action) query = query.ilike('action', `%${action.replaceAll('%', '\%').replaceAll('_', '\_')}%`)
+  if (entityType) query = query.eq('entity_type', entityType)
 
   const { data, error, count } = await query
 

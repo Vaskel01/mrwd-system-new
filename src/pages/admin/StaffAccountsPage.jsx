@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore'
 import { PageLoader, EmptyState, ErrorBanner, Spinner } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import AppIcon from '../../components/ui/AppIcon'
+import SearchField from '../../components/ui/SearchField'
 import { apiFetch } from '../../lib/api'
 import { staffAccessLabel } from '../../config/terminology'
 
@@ -161,7 +162,7 @@ export default function StaffAccountsPage() {
         staff_position: data.account_type === 'system_supervisor' ? 'supervisor' : data.account_type === 'maintenance_personnel' ? 'crew_member' : data.account_type === 'commercial_staff' ? 'commercial_staff' : 'department_staff',
       }
       const result = await createStaff(normalized)
-      setCreatedCredentials({ email: normalized.email, password: normalized.password, name: normalized.full_name })
+      setCreatedCredentials({ email: normalized.email, password: normalized.password, name: normalized.full_name, accountType: data.account_type })
       setShowCredentialPassword(false)
       reset()
       setShowForm(false)
@@ -198,7 +199,7 @@ export default function StaffAccountsPage() {
   const copyCredentials = () => {
     if (!createdCredentials) return
     copyText(
-      `MRWD staff account\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nTemporary password: ${createdCredentials.password}`,
+      `MRWD staff account\nName: ${createdCredentials.name}\nEmail: ${createdCredentials.email}\nTemporary password: ${createdCredentials.password}\n\nChange this temporary password on first login.${createdCredentials.accountType === 'system_supervisor' ? '\nSystem Supervisors must also set up an authenticator app before opening System Administration.' : ''}`,
       'Temporary login details copied.'
     )
   }
@@ -251,7 +252,7 @@ export default function StaffAccountsPage() {
       <button
         type="button"
         onClick={() => setManageAccountId(account.id)}
-        className="inline-flex max-w-full items-center justify-center px-2.5 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
+        className="inline-flex max-w-full items-center justify-center whitespace-nowrap px-2.5 py-2 rounded-lg text-xs font-black text-white bg-navy-800 hover:bg-navy-900 transition-colors"
       >
         Manage
       </button>
@@ -313,7 +314,7 @@ export default function StaffAccountsPage() {
             </div>
             <button onClick={copyCredentials} className="px-4 py-2.5 rounded-lg text-xs font-bold text-white bg-green-700">Copy Login Details</button>
           </div>
-          <p className="text-[11px] text-green-800">If clipboard access is blocked, reveal and copy the password manually before dismissing this notice.</p>
+          <div className="rounded-lg border border-green-200 bg-white/70 px-3 py-2 text-[11px] leading-5 text-green-800"><p><b>First login:</b> the staff member must replace this temporary password before using their workspace.</p>{createdCredentials.accountType === 'system_supervisor' && <p><b>System Supervisor:</b> authenticator-app MFA setup is also required before System Administration becomes available.</p>}<p>If clipboard access is blocked, reveal and copy the password manually before dismissing this notice.</p></div>
         </div>
       )}
 
@@ -388,13 +389,8 @@ export default function StaffAccountsPage() {
       )}
 
       {staff.length > 0 && (
-        <div className="card rounded-xl p-4 space-y-3">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input name="staffaccountspage-search-staff-name-email-or-role-5" aria-label="Search staff name, email, or access..." value={search} onChange={event => setSearch(event.target.value)} placeholder="Search staff name, email, or access..." className="input-field pl-9 rounded-lg" />
-          </div>
+        <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+          <SearchField value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} placeholder="Search staff name, email or access…" />
           <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
             <select name="staffaccountspage-role-filter-6" aria-label="Account Type Filter" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field rounded-lg text-sm">
               <option value="all">Any Account Type</option>
@@ -413,7 +409,7 @@ export default function StaffAccountsPage() {
               <option value="newest">Newest Account</option>
               <option value="oldest">Oldest Account</option>
             </select>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Reset Filters</button>
+            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear Filters</button>
           </div>
         </div>
       )}

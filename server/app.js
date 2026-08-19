@@ -11,6 +11,7 @@ import auditRoutes from './src/routes/audit.js'
 import reportsRoutes from './src/routes/reports.js'
 import operationsRoutes from './src/routes/operations.js'
 import workflowRoutes from './src/routes/workflow.js'
+import productionRoutes from './src/routes/production.js'
 
 const app = express()
 
@@ -33,6 +34,7 @@ app.use('/api/audit', auditRoutes)
 app.use('/api/reports', reportsRoutes)
 app.use('/api/operations', operationsRoutes)
 app.use('/api/workflow', workflowRoutes)
+app.use('/api/production', productionRoutes)
 
 // Centralized error handler — catches anything a route forgot to try/catch
 app.use((err, req, res, next) => {

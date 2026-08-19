@@ -63,8 +63,10 @@ export default function LoginPage() {
   const onSubmit = async ({ email, password }) => {
     setError('')
     try {
-      const user = await signIn(email, password)
-      navigate(homeForUser(user), { replace: true })
+      const result = await signIn(email, password)
+      if (result.mfaPending) return navigate('/mfa', { replace: true })
+      if (result.mfaEnrollmentRequired) return navigate('/profile?setup-mfa=1', { replace: true })
+      navigate(homeForUser(result.user), { replace: true })
     } catch (err) {
       setError(err.message)
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
@@ -6,6 +6,8 @@ import CustomerInterruptionBanner from '../ui/CustomerInterruptionBanner'
 import { CAPABILITIES, hasCapability } from '../../lib/accessControl'
 import { staffAccessLabel } from '../../config/terminology'
 import { apiFetch } from '../../lib/api'
+import QuickCommandPalette from '../ui/QuickCommandPalette'
+import ToastViewport from '../ui/ToastViewport'
 
 const NAV = {
   customer: [
@@ -32,14 +34,19 @@ function adminNavigation(user) {
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial Dashboard' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
   add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/export-center', icon: ExportIcon, label: 'Export & Schedules' })
   add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & Billing' })
   add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dashboard', icon: DashIcon, label: 'ECMD Dashboard' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint Dispatch' })
   add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field Operations' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/crews', icon: UsersIcon, label: 'Crew Management' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/availability', icon: CalendarIcon, label: 'Availability Calendar' })
   add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & Access' })
   add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/system/staff-accounts', icon: UsersIcon, label: 'Staff Accounts' })
   add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/system/audit-log', icon: AuditIcon, label: 'Audit Log' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/announcements', icon: BellIcon, label: 'Internal Announcements' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/health', icon: HealthIcon, label: 'System Health' })
   items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My Profile' })
   return items
 }
@@ -74,6 +81,15 @@ function WrenchIcon({ className }) {
 }
 function ReportIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16v-4m5 4V7m5 9v-6"/></svg>
+}
+function ExportIcon({ className }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+}
+function CalendarIcon({ className }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></svg>
+}
+function HealthIcon({ className }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l2-5 4 10 2-5h6M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>
 }
 function AuditIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-6 4h4m-6 8h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -125,20 +141,27 @@ export default function AppLayout({ children }) {
   const config = role === 'admin' ? { ...baseConfig, tag: staffAccessLabel(user) } : baseConfig
   const navItems = role === 'admin' ? adminNavigation(user) : (NAV[role] || [])
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [online, setOnline] = useState(() => navigator.onLine)
+  const mainRef = useRef(null)
   const unreadCount = useNotificationStore(state => state.unreadCount)
   const fetchUnreadCount = useNotificationStore(state => state.fetchUnreadCount)
   const clearNotifications = useNotificationStore(state => state.clear)
   const updateStoredUser = useAuthStore(state => state.updateStoredUser)
+  const refreshMfaState = useAuthStore(state => state.refreshMfaState)
 
   useEffect(() => {
     let active = true
     apiFetch('/users/me')
-      .then(result => {
-        if (active && result?.user) updateStoredUser(result.user)
+      .then(async result => {
+        if (active && result?.user) {
+          updateStoredUser(result.user)
+          if (result.user.role !== 'customer') await refreshMfaState()
+        }
       })
       .catch(() => {})
     return () => { active = false }
-  }, [updateStoredUser])
+  }, [updateStoredUser, refreshMfaState])
 
   useEffect(() => {
     fetchUnreadCount()
@@ -151,6 +174,43 @@ export default function AppLayout({ children }) {
 
   // Current page label
   const currentItem = navItems.find(i => location.pathname.startsWith(i.to))
+
+  useEffect(() => {
+    document.title = `${currentItem?.label || 'MRWD'} · Metro Roxas Water District`
+    setSidebarOpen(false)
+    setCommandOpen(false)
+    mainRef.current?.scrollTo({ top: 0, behavior: 'instant' })
+  }, [location.pathname, currentItem?.label])
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true)
+    const onOffline = () => setOnline(false)
+    const onKeyDown = event => {
+      const target = event.target
+      const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setCommandOpen(value => !value)
+        return
+      }
+      if (event.key === '/' && !typing) {
+        const search = document.querySelector('[data-qol-search="true"]')
+        if (search) { event.preventDefault(); search.focus() }
+      }
+      if (event.key === 'Escape') {
+        setSidebarOpen(false)
+        setCommandOpen(false)
+      }
+    }
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
 
   const sidebarContent = (
     <div className="flex flex-col h-full scrollbar-thin overflow-y-auto">
@@ -256,6 +316,9 @@ export default function AppLayout({ children }) {
 
             {/* Left: hamburger + breadcrumb */}
             <div className="min-w-0 flex items-center gap-2 sm:gap-3">
+              <button type="button" onClick={() => navigate(-1)} className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Go back" title="Go back">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              </button>
               <button onClick={() => setSidebarOpen(v => !v)}
                 className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
                 aria-label="Toggle navigation" aria-expanded={sidebarOpen} aria-controls="primary-navigation">
@@ -282,6 +345,13 @@ export default function AppLayout({ children }) {
 
             {/* Right: date + avatar */}
             <div className="shrink-0 flex items-center gap-2 sm:gap-3">
+              <button type="button" onClick={() => setCommandOpen(true)} className="hidden md:flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Open Quick Find">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
+                <span>Quick Find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[9px] text-gray-400">⌘K</span>
+              </button>
+              <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open Quick Find">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
+              </button>
               <span className="hidden sm:block text-xs text-gray-400">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
@@ -297,8 +367,10 @@ export default function AppLayout({ children }) {
             </div>
           </header>
 
+          {!online && <div className="relative z-10 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-bold text-amber-900" role="status">You are offline. You can keep reviewing loaded information, but changes will not save until the connection returns.</div>}
+
           {/* ── Page content ── */}
-          <main id="main-content" tabIndex={-1} className="app-main min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+          <main ref={mainRef} id="main-content" tabIndex={-1} className="app-main min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
             <div className="mx-auto w-full min-w-0 max-w-7xl px-3 min-[360px]:px-4 sm:px-6 py-5 sm:py-8">
               {role === 'customer' && <CustomerInterruptionBanner />}
               {children}
@@ -311,6 +383,8 @@ export default function AppLayout({ children }) {
           </footer>
         </div>
       </div>
+      <QuickCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} navItems={navItems} />
+      <ToastViewport />
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
+import { manilaDateYmd } from '../../lib/date'
 import { ErrorBanner, Spinner } from './Feedback'
 
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  return manilaDateYmd()
 }
 
 export default function TaskResourcesPanel({ complaintId }) {

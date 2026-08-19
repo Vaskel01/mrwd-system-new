@@ -1,7 +1,7 @@
 {
-  "name": "complaint-system",
+  "name": "mrwd-complaint-management-system",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "test": "npm --prefix server test",
     "test:classifier": "npm --prefix server run evaluate:classifier",
-    "verify": "npm run lint && npm run build && npm run test"
+    "verify": "npm run lint && npm run build && npm run test",
+    "dev:client": "vite",
+    "dev:server": "npm --prefix server run dev",
+    "check:env": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.8",
@@ -38,5 +41,9 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "vite": "^8.0.12"
+  },
+  "description": "Metro Roxas Water District complaint management and maintenance dispatch system.",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

@@ -452,7 +452,6 @@ export default function StaffAccountsPage() {
                           <span className={`inline-flex items-center px-2 py-1 text-[10px] font-black uppercase tracking-wide border rounded ${ACCOUNT_BADGE[accountTypeKey(account)] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                             {ACCOUNT_LABEL[accountTypeKey(account)] || account.role}
                           </span>
-                          <span className="text-[10px] font-bold text-navy-600">{accessModuleLabel(account)}</span>
                           <span className={`inline-flex px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                             {account.is_active === false ? 'Inactive' : 'Active'}
                           </span>
@@ -490,7 +489,6 @@ export default function StaffAccountsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-gray-900">{account.full_name}</p>
-                        {account.role === 'maintenance_personnel' ? <span className="inline-flex rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-black uppercase text-brand-700">{String(account.availability_status || 'available').replace('_', ' ')}</span> : null}
                       </div>
                       <p className="text-xs text-gray-400 mt-1 truncate">{account.email}</p>
                     </div>
@@ -498,7 +496,13 @@ export default function StaffAccountsPage() {
                       {ACCOUNT_LABEL[accountTypeKey(account)] || account.role}
                     </span>
                   </div>
-                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span><span className="px-2 py-1 rounded border bg-navy-50 text-navy-700 border-navy-100 text-[10px] font-black uppercase">{accessModuleLabel(account)}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
+                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-[10px] font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-[10px] font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services workspace only'}
+                    {accountTypeKey(account) === 'ecmd_staff' && 'ECMD workspace only'}
+                    {accountTypeKey(account) === 'maintenance_personnel' && 'Maintenance task workspace only'}
+                    {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
+                  </p>
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
                     <p className="text-xs text-gray-400">Created {timeAgo(account.created_at)}</p>
                     {accountActions(account)}

@@ -1,227 +1,295 @@
 # MRWD Complaint Management System
 
-A web-based complaint management and maintenance task assignment system for Metro Roxas Water District. The project uses a React/Vite frontend, an Express REST API, and Supabase for PostgreSQL, Authentication, Storage, and Row Level Security.
+Production-ready web application for the **Metro Roxas Water District (MRWD)** complaint workflow. The system separates Commercial Services, ECMD, Maintenance Personnel, Customers, and System Administration into role-specific workspaces while keeping one shared complaint record and audit trail.
 
-## Main features
+## What this release contains
 
-- **Customer:** register, maintain service-account details, submit geotagged complaints, attach photos, track timelines, acknowledge completed work, view billing records and important advisories, receive notifications, reopen completed complaints, print receipts, and submit feedback.
-- **Commercial Services Department:** review complaints and classifier evidence, apply audited priority overrides, manage customer accounts and billing imports, publish important advisories, request archival, and export complaint reports.
-- **Engineering, Construction and Maintenance Department (ECMD):** dispatch complaints, manage personnel and crews, maintain shifts and service targets, monitor escalations, manage equipment and materials, and review official maintenance reports.
-- **System Supervisor:** access the cross-department dashboard, create and assign staff accounts, manage department access, review independent approvals, archive approved records, and inspect the audit trail.
-- **Maintenance Personnel:** view and acknowledge assigned tasks, open complaint locations, record progress, manpower, equipment and materials, request assistance or reassignment, submit completion reports, and print official maintenance reports.
-- **Decision support:** a dataset-backed Hybrid Sentiment-Aware Priority Scoring Algorithm supports synonyms and suggestive phrases and generates the initial category, sentiment, score, and Low/Medium/High priority.
-- **Privacy:** Customers receive no classifier internals. Maintenance Personnel and ECMD Staff receive only the operational category and priority. Commercial Services Staff receive the classifier breakdown; System Supervisors retain oversight access.
-- **Interface:** the original MRWD navy, blue, gold, wave-header, and role-based visual design is retained, with keyboard focus, reduced-motion, dialog, navigation, and status-label accessibility support.
+- Customer complaint submission, geolocation, attachments, tracking, follow-up responses, reopening, notifications, and feedback.
+- **Commercial Services Department** workspace for complaint review, classifier review, priority overrides, customer-account/billing tools, advisories, reports, duplicate handling, customer follow-up requests, and Commercial → ECMD handoff.
+- **Engineering, Construction and Maintenance Department (ECMD)** workspace for dispatch, workload/availability, crew management, field coordination, related incidents, map operations, verification, inventory, and maintenance reporting.
+- **Maintenance Personnel** workspace for assigned field tasks, progress updates, manpower/material recording, completion notes, and reassignment/assistance requests.
+- **System Administration** workspace for System Supervisor account management, department access, audit/security events, announcements, archive recovery, backup verification, and system-health checks.
+- Dataset-backed hybrid complaint classification and Low / Medium / High priority recommendation.
+- Row Level Security, MFA-gated System Supervisor privileges, department capability isolation, hardened privileged RPCs, and first-login password replacement for staff accounts.
+- Saved views, watchlists, recent complaints, bulk operations, export/report scheduling, Quick Find, responsive tables, and keyboard/QoL improvements.
 
-## Canonical interface terminology
+### Intentionally not included
 
-Use these labels in pages, documentation, training, and demonstrations:
+This project does **not** use:
 
-| Area | Approved label |
+- SLA or response-time tracking;
+- a Maintenance Personnel task accept/reject step;
+- required maintenance before/after completion photos.
+
+Customer-submitted complaint photos are still supported.
+
+---
+
+## Technology
+
+| Layer | Technology |
 |---|---|
-| Customer account | **Customer** |
-| Complaint review, classifier, billing, and advisories | **Commercial Services Staff** |
-| Dispatch and field coordination | **ECMD Staff** |
-| Governance, access, approvals, and audit | **System Supervisor** |
-| Assigned field account | **Maintenance Personnel** |
-| Field group | **Maintenance Crew** |
-| Urgent service notice | **Important Advisory** |
-| Active field status | **In Progress** |
-| No-supply category | **No Water** |
+| Frontend | React + Vite + Tailwind CSS |
+| API | Node.js + Express |
+| Database / Auth / Storage | Supabase |
+| Maps | OpenStreetMap / Leaflet integration |
+| Deployment | Vercel-ready; generic Node deployment also supported |
 
-Internal values such as `admin`, `maintenance_personnel`, and legacy `en_route` remain in code or stored records for compatibility; they are not alternative interface labels.
+The package lock requires **Node `^20.19.0` or `>=22.12.0`**.
 
-## Project structure
+---
+
+## Repository structure
 
 ```text
-src/                       React frontend
-src/pages/commercial/      Commercial Services Department pages
-src/pages/ecmd/            ECMD pages
-src/pages/system/          System Administration pages
-server/                    Express API and canonical classifier
-api/index.js               Vercel serverless adapter for the Express app
-docs/                      Classifier and user-acceptance-test documentation
-supabase/                   Required incremental SQL migrations
-supabase/demo/              Optional and potentially destructive demo-data scripts
+.
+├── api/                    # Vercel serverless entry point
+├── docs/                   # Deployment, database, operations, security, testing
+├── public/                 # Static frontend files
+├── scripts/                # Developer utility scripts
+├── server/                 # Express API, classifier, tests
+├── src/                    # React application
+├── supabase/
+│   ├── setup.sql           # ONE fresh-project database installer
+│   └── README.md           # Database installation notes
+├── .env.example            # Browser-safe local variables
+├── package.json
+├── vercel.json
+└── vite.config.js
 ```
 
-## Requirements
+Historical migration/change-report files are intentionally **not shipped** in this deployment package. `supabase/setup.sql` is the canonical fresh-install database snapshot for this release.
 
-- Node.js and npm
-- A Supabase project containing the existing core tables:
-  - `profiles`
-  - `complaints`
-  - `complaint_categories`
-  - `maintenance_tasks`
-  - `task_updates`
-  - `feedback`
+---
 
-The repository intentionally does **not** include the obsolete guessed baseline schema that used incompatible column names such as `customer_id`. Do not recreate the database from an old `migration.sql` file.
+# Quick start
 
-## Environment setup
+## 1. Create a Supabase project
 
-### Frontend
+Create an empty Supabase project. Do not import an older MRWD schema first.
 
-```bash
-cp .env.example .env
+## 2. Install the database
+
+Open **Supabase → SQL Editor**, paste the entire contents of:
+
+```text
+supabase/setup.sql
 ```
 
-Fill in:
+and run it once.
 
-```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-public-key
-VITE_API_URL=http://localhost:4000/api
+> `setup.sql` is for a **fresh project only**. Do not run it over an existing MRWD production database.
+
+See [`docs/DATABASE.md`](docs/DATABASE.md) for details.
+
+## 3. Configure Supabase Auth
+
+Add these redirect URLs for local development:
+
+```text
+http://localhost:5173/reset-password
 ```
 
-### Backend
+Add your deployed `/reset-password` URL before production use.
 
-```bash
-cp server/.env.example server/.env
-```
+## 4. Create the first System Supervisor
 
-Fill in the Supabase URL and public anon key. The backend uses each signed-in user's access token, so it does not require a service-role key.
-
-## Database migrations
-
-Run the SQL files below in the Supabase SQL Editor in this order. The files are incremental and are designed for the project's existing core schema.
-
-1. `supabase/seed_categories.sql`
-2. `supabase/rls-patch.sql`
-3. `supabase/enable-signup.sql`
-4. `supabase/create-announcements-and-bills.sql`
-5. `supabase/qol-status-and-feedback.sql`
-6. `supabase/fix-table-grants.sql`
-7. `supabase/rejection-reason-and-restore.sql`
-8. `supabase/feedback-staff-visibility.sql`
-9. `supabase/dataset-backed-classification.sql`
-10. `supabase/complete-workflow-features.sql`
-11. `supabase/migrations/20260728152348_complaint_workflow_polish.sql`
-12. `supabase/migrations/20260729101153_notification_cleanup_policy.sql`
-13. `supabase/migrations/20260729193000_announcement_lifecycle.sql`
-14. `supabase/migrations/20260729204500_fix_customer_profile_persistence.sql`
-15. `supabase/migrations/20260729210000_harden_profile_update_access.sql`
-16. `supabase/migrations/20260813110000_client_operations_expansion.sql`
-17. `supabase/migrations/20260814100000_department_module_access.sql`
-18. `supabase/migrations/20260814122500_separate_department_workspaces.sql` — run last
-
-See [`supabase/README.md`](supabase/README.md) for the purpose of each migration and the optional demo scripts.
-
-## Create the first System Supervisor
-
-Public registration always creates a Customer account. The database keeps the internal `admin` security role for compatibility, while the interface consistently displays the operational access name. To create the first System Supervisor:
-
-1. In Supabase, open **Authentication → Users → Add User**.
-2. Create the account and leave automatic confirmation enabled.
-3. Run:
+Create a normal user in **Supabase → Authentication → Users**. After the Auth user exists, run this once in the SQL Editor:
 
 ```sql
 update public.profiles
 set role = 'admin',
     staff_position = 'supervisor',
-    full_name = 'System Supervisor Name'
-where email = 'admin@example.com';
+    department_id = null,
+    is_active = true,
+    mfa_required = true,
+    must_change_password = false,
+    updated_at = now()
+where lower(email) = lower('admin@example.com');
 ```
 
-After that, the System Supervisor can create Commercial Services Staff, ECMD Staff, and Maintenance Personnel accounts through **Staff Accounts**.
+Replace `admin@example.com` with the real supervisor email.
 
-## Local development
+The System Supervisor can then create Commercial Services Staff, ECMD Staff, and Maintenance Personnel accounts from **System Administration → Staff Accounts**.
 
-Install frontend and backend dependencies:
+## 5. Configure local environment files
+
+Frontend:
 
 ```bash
-npm install
-npm --prefix server install
+cp .env.example .env
 ```
 
-Start the backend:
+Backend:
 
 ```bash
-npm --prefix server run dev
+cp server/.env.example server/.env
 ```
 
-Start the frontend in another terminal:
+Fill both files with your Supabase project values.
+
+Check the configuration:
 
 ```bash
-npm run dev
+npm run check:env
 ```
+
+## 6. Install dependencies
+
+```bash
+npm ci
+npm --prefix server ci
+```
+
+## 7. Start the project
+
+Terminal 1:
+
+```bash
+npm run dev:server
+```
+
+Terminal 2:
+
+```bash
+npm run dev:client
+```
+
+Local URLs:
 
 - Frontend: `http://localhost:5173`
 - API: `http://localhost:4000/api`
-- Health check: `http://localhost:4000/api/health`
+- API health: `http://localhost:4000/api/health`
 
-## Verification
+## 8. Verify before deployment
 
 ```bash
-npm run lint
-npm run build
-npm run test
+npm run verify
+```
+
+Additional classifier check:
+
+```bash
 npm run test:classifier
 ```
 
-`npm run test` runs the backend unit tests. `npm run test:classifier` regenerates `docs/classifier-evaluation-results.json` from the development test cases.
+---
 
-The included classifier cases are deterministic development checks, not real-world accuracy results. Formal validation should use a separate blinded set of anonymized complaints reviewed by MRWD personnel.
+# Environment variables
 
-## Vercel deployment
+## Frontend — safe for the browser
 
-The frontend and API can be deployed as one Vercel project. `api/index.js` imports the same Express app used by the local backend.
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_URL=
+```
 
-Add these environment variables in Vercel:
+## Server only
 
-| Variable | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
-| `VITE_API_URL` | `/api` |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `PASSWORD_RESET_REDIRECT_URL` | Deployed URL ending in `/reset-password` |
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+CRON_SECRET=
+PASSWORD_RESET_REDIRECT_URL=
+CORS_ORIGIN=
+PORT=4000
+```
 
-Redeploy after changing any `VITE_` variable because frontend variables are embedded during the build.
-
-## Security notes
-
-- Never commit `.env` or `server/.env`.
-- Never expose a Supabase service-role key to the frontend.
-- Keep Row Level Security enabled.
-- Use the caller's access token for backend Supabase queries.
-- Run demo reset scripts only on a dedicated test/demo database.
-
-## Additional documentation
-
-- [`docs/CLASSIFIER_GUIDE.md`](docs/CLASSIFIER_GUIDE.md)
-- [`docs/UAT_TEST_PLAN.md`](docs/UAT_TEST_PLAN.md)
-- [`docs/OPERATIONS_GUIDE.md`](docs/OPERATIONS_GUIDE.md)
-- [`docs/README.md`](docs/README.md)
+`SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` must **never** use a `VITE_` prefix or appear in frontend source code.
 
 ---
 
-## Production Readiness Suite (2026-08-19)
+# Vercel deployment
 
-The current build adds a production-readiness layer around the complaint workflow: advanced audit/security events, first-login password replacement, System Supervisor MFA, saved views/watchlists/recent items, duplicate merge, customer information requests, bulk actions, crew management/substitutions, assignment history, maintenance note templates, hardened CSV validation, exports/scheduled reports, dashboard drill-down, internal announcements, availability calendar, archive recovery, backup-verification records, and System Health.
+The repository is configured for a single Vercel project:
 
-### Required final migration
+- Vite builds the frontend.
+- `api/index.js` exposes the Express application as `/api`.
+- SPA routes rewrite to `index.html`.
+- `vercel.json` contains the scheduled-report cron route.
 
-After the earlier migrations through `20260814133000_operational_complaint_features.sql`, apply:
-
-```text
-supabase/migrations/20260819100000_production_readiness_features.sql
-```
-
-### Production server secrets
-
-Configure these on the server/deployment platform, never in frontend `VITE_*` variables:
+Add these project environment variables:
 
 ```text
-SUPABASE_SERVICE_ROLE_KEY=...
-CRON_SECRET=...
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+VITE_API_URL=/api
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+CRON_SECRET
+PASSWORD_RESET_REDIRECT_URL=https://YOUR_DOMAIN/reset-password
 ```
 
-`vercel.json` contains the scheduled-report cron check. Scheduled reports still support **Run Now** if cron is not configured during local development.
+For same-origin Vercel deployment, `CORS_ORIGIN` can be omitted unless your deployment policy requires an explicit origin. Redeploy after changing frontend `VITE_*` variables.
 
-After the migration, the existing System Supervisor is required to enroll authenticator MFA before using System Administration capabilities.
+Full instructions: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-See `docs/PRODUCTION_RUNBOOK.md` for deployment, account-security, CSV-import, report scheduling, backup verification, recovery, and post-deployment smoke-test procedures.
+---
 
-The system remains complaint-only and intentionally excludes SLA/response-time tracking, maintenance acceptance, and required maintenance before/after completion photos.
+# Account/workspace model
+
+| Account | Workspace |
+|---|---|
+| Customer | Customer portal |
+| Commercial Services Staff | Commercial Services only |
+| ECMD Staff | ECMD operations only |
+| Maintenance Personnel | Assigned maintenance task workspace |
+| System Supervisor | System Administration only; MFA required |
+
+System Supervisors do not inherit Commercial or ECMD operational access.
+
+---
+
+# Canonical interface terminology
+
+Use these terms in code-facing documentation, demonstrations, and training:
+
+- **Commercial Services Department**
+- **Commercial Services Staff**
+- **Engineering, Construction and Maintenance Department (ECMD)**
+- **ECMD Staff**
+- **Maintenance Personnel**
+- **Maintenance Crew**
+- **System Administration**
+- **System Supervisor**
+- **Complaint Type**
+- **Submitted**
+- **Active Complaints**
+- **Assigned Maintenance Personnel**
+- **Awaiting ECMD Verification**
+- **Resolved** only after ECMD verification
+
+Internal database values such as `admin`, `department_staff`, and `maintenance_personnel` remain implementation details.
+
+---
+
+# Documentation
+
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — production deployment checklist
+- [`docs/DATABASE.md`](docs/DATABASE.md) — fresh database setup and first supervisor
+- [`docs/OPERATIONS.md`](docs/OPERATIONS.md) — department workflow and operational behavior
+- [`docs/SECURITY.md`](docs/SECURITY.md) — secrets, RLS, MFA, and hardened RPC design
+- [`docs/UAT.md`](docs/UAT.md) — post-install acceptance tests
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — application structure and module boundaries
+- [`docs/CLASSIFIER_GUIDE.md`](docs/CLASSIFIER_GUIDE.md) — classifier implementation and limitations
+
+---
+
+# Security reminders
+
+- Never commit `.env` or `server/.env`.
+- Never expose the Supabase service-role/server Secret key in browser code.
+- Keep RLS enabled on exposed `public` tables.
+- System Supervisor capabilities require MFA/AAL2.
+- Use Staff Accounts to deactivate users instead of deleting profiles with operational history.
+- Run Supabase Security Advisor after schema changes.
+- The paid Supabase leaked-password-protection warning may remain unavailable depending on the project plan; it is not bypassed or simulated by this application.
+
+---
+
+# Deployment status of this package
+
+This is a **fresh-deployment release snapshot**, not a historical development archive. If you are maintaining an older live MRWD database, do not replay `setup.sql`; keep that database's existing migration history and apply targeted upgrades instead.

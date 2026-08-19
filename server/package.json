@@ -1,7 +1,7 @@
 {
-  "name": "mrwd-cms-server",
+  "name": "mrwd-complaint-management-api",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "node --watch index.js",
@@ -14,5 +14,9 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"
+  },
+  "description": "Express API for the MRWD Complaint Management System.",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

@@ -280,6 +280,7 @@ Internal database values such as `admin`, `department_staff`, and `maintenance_p
 - [`docs/UAT.md`](docs/UAT.md) — post-install acceptance tests
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — application structure and module boundaries
 - [`docs/CLASSIFIER_GUIDE.md`](docs/CLASSIFIER_GUIDE.md) — classifier implementation and limitations
+- [`docs/PAGE_HELP.md`](docs/PAGE_HELP.md) — contextual page-help tooltip system and authoring guide
 
 ---
 

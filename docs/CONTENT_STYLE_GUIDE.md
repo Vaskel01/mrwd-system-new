@@ -177,3 +177,17 @@ Check that the copy:
 - gives a visible label to every form field;
 - makes the next action clear;
 - remains understandable without reading another page.
+
+## 13. Page help tooltips
+
+Every routed page should have contextual help in `src/config/pageHelp.js`. The shared **Page help** control displays this content in the application top bar and on public authentication pages.
+
+Each page-help entry should contain:
+
+- a short page title;
+- one sentence explaining the purpose of the page;
+- two to four practical tips focused on user decisions or common mistakes.
+
+Keep page help task-focused. Do not repeat every button on the page or describe database/API behavior unless the user genuinely needs that information to make a safe decision.
+
+The source-integrity check verifies that routed pages have a matching page-help entry, so new pages should add their help copy before they are merged.

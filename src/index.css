@@ -199,8 +199,8 @@
     z-index: 1;
   }
 
-  /* Animated water layers for the login information panel. The artwork is
-     intentionally limited to the lower 35% so the upper content stays calm. */
+  /* Calm layered water motion for the login information panel. The artwork
+     stays low on the page so it supports the layout instead of competing with it. */
   .auth-info-panel > :not(.login-wave-art) {
     position: relative;
     z-index: 2;
@@ -210,75 +210,59 @@
     right: 0;
     bottom: 0;
     left: 0;
-    height: 35%;
+    height: 31%;
     overflow: hidden;
     pointer-events: none;
     z-index: 0;
+  }
+  .login-wave-art::before {
+    content: '';
+    position: absolute;
+    right: 5%;
+    bottom: 7%;
+    width: 48%;
+    height: 64%;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(125, 211, 252, .12) 0%, rgba(125, 211, 252, 0) 72%);
+    filter: blur(10px);
+    opacity: .85;
   }
   .login-wave-parallax {
     position: absolute;
     inset: -8px -18px -8px;
     transform: translate3d(var(--login-wave-x, 0), var(--login-wave-y, 0), 0);
-    transition: transform .55s cubic-bezier(.22, .8, .32, 1);
+    transition: transform .7s cubic-bezier(.22, .8, .32, 1);
     will-change: transform;
   }
   .login-wave-layer {
     position: absolute;
     bottom: 0;
-    left: -10%;
-    width: 120%;
+    left: -8%;
+    width: 116%;
     height: 100%;
     transform-origin: center bottom;
     will-change: transform;
   }
   .login-wave-back {
     color: #ffffff;
-    opacity: .14;
-    filter: blur(.2px);
-    animation: login-wave-drift 13s ease-in-out infinite;
+    opacity: .1;
+    animation: login-wave-drift 15s ease-in-out infinite;
   }
   .login-wave-middle {
-    color: #88aadc;
-    opacity: .27;
-    animation: login-wave-drift-reverse 9.5s ease-in-out infinite;
+    color: #7da6df;
+    opacity: .24;
+    animation: login-wave-drift-reverse 11.5s ease-in-out infinite;
   }
   .login-wave-front {
-    color: #e6b020;
-    opacity: .17;
-    animation: login-wave-drift 7.25s ease-in-out infinite;
+    color: #345f9f;
+    opacity: .34;
+    animation: login-wave-drift 9s ease-in-out infinite;
   }
-  .login-wave-crest {
-    stroke: rgba(255, 225, 128, .75);
-    stroke-width: 2;
+  .login-wave-highlight {
+    stroke: rgba(230, 176, 32, .7);
+    stroke-width: 1.5;
     vector-effect: non-scaling-stroke;
-    filter: drop-shadow(0 0 5px rgba(230,176,32,.35));
-  }
-  .login-wave-impact {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    z-index: 4;
-    width: 37%;
-    height: 108%;
-    transform-origin: right bottom;
-    filter: drop-shadow(-7px 0 12px rgba(7,21,41,.16));
-    animation: login-wave-impact 7.25s cubic-bezier(.45, 0, .35, 1) infinite;
-  }
-  .login-wave-impact-body {
-    fill: rgba(111, 150, 208, .46);
-  }
-  .login-wave-impact-undertow {
-    fill: rgba(230, 176, 32, .13);
-  }
-  .login-wave-impact-foam-fill {
-    fill: rgba(255,255,255,.92);
-    filter: drop-shadow(0 0 7px rgba(255,255,255,.26));
-    animation: login-wave-foam 7.25s ease-in-out infinite;
-  }
-  .login-wave-impact-spray {
-    fill: rgba(255,255,255,.82);
-    filter: drop-shadow(0 0 5px rgba(255,255,255,.22));
-    animation: login-wave-spray 7.25s ease-in-out infinite;
+    filter: drop-shadow(0 0 5px rgba(230,176,32,.18));
   }
   .auth-feature-row {
     width: fit-content;
@@ -359,27 +343,6 @@
   0%, 100% { transform: translate3d(3.5%, -1%, 0) scaleY(1.02); }
   42% { transform: translate3d(-3%, 2%, 0) scaleY(.955); }
   72% { transform: translate3d(-1%, -2%, 0) scaleY(1.045); }
-}
-
-@keyframes login-wave-impact {
-  0%, 100% { transform: translate3d(8%, 3%, 0) scale(.92, .95); }
-  34% { transform: translate3d(3%, 0, 0) scale(.99, 1.01); }
-  52% { transform: translate3d(0, -2%, 0) scale(1.035, 1.06); }
-  72% { transform: translate3d(3%, 1%, 0) scale(.98, 1); }
-}
-
-@keyframes login-wave-foam {
-  0%, 100% { opacity: .5; }
-  34% { opacity: .8; }
-  52% { opacity: 1; }
-  72% { opacity: .65; }
-}
-
-@keyframes login-wave-spray {
-  0%, 24%, 100% { opacity: 0; transform: translate3d(6px, 8px, 0); }
-  45% { opacity: .55; transform: translate3d(1px, 2px, 0); }
-  55% { opacity: 1; transform: translate3d(-3px, -7px, 0); }
-  72% { opacity: 0; transform: translate3d(-6px, -13px, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

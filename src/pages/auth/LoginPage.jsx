@@ -17,33 +17,16 @@ function LoginWaveArtwork() {
     <div className="login-wave-art" aria-hidden="true">
       <div className="login-wave-parallax">
         <svg className="login-wave-layer login-wave-back" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 90C145 28 270 32 410 96s272 62 425 4 248-51 365 3v217H0Z" fill="currentColor" />
+          <path d="M0 118C150 66 298 65 449 116s296 51 446 3 236-45 305-13v214H0Z" fill="currentColor" />
         </svg>
         <svg className="login-wave-layer login-wave-middle" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 150c170-65 312-58 470 5s298 55 438-7 220-42 292 1v171H0Z" fill="currentColor" />
+          <path d="M0 175c169-49 320-43 470 7s292 45 430-4 221-39 300-6v148H0Z" fill="currentColor" />
         </svg>
         <svg className="login-wave-layer login-wave-front" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3v101H0Z" fill="currentColor" />
-          <path className="login-wave-crest" d="M0 218c154-51 293-43 443 8s302 47 452-4 236-36 305-3" fill="none" />
+          <path d="M0 236c160-37 302-31 449 7s294 35 437-2 232-29 314-3v82H0Z" fill="currentColor" />
+          <path className="login-wave-highlight" d="M0 236c160-37 302-31 449 7s294 35 437-2 232-29 314-3" fill="none" />
         </svg>
       </div>
-      <svg className="login-wave-impact" viewBox="0 0 300 320" preserveAspectRatio="none">
-        <path
-          className="login-wave-impact-body"
-          d="M0 264c70-36 130-40 182-14 33 17 61 9 82-15 18-21 27-47 23-73 9 10 13 25 13 42v116H0Z"
-        />
-        <path
-          className="login-wave-impact-undertow"
-          d="M0 294c80-36 145-34 194-12 36 16 71 5 106-31v69H0Z"
-        />
-        <path
-          className="login-wave-impact-foam-fill"
-          d="M199 218c18 8 34 5 46-6 3-10 12-16 22-13 3-11 12-18 22-15-1-10 3-19 11-24v31c-6 7-8 17-6 28-10-1-18 5-21 16-10-4-20 1-25 11-17 8-34 0-49-28Z"
-        />
-        <path className="login-wave-impact-spray" d="M275 129c5-9 13-11 18-5 3 5-1 12-8 16-7 4-13 0-10-11Z" />
-        <path className="login-wave-impact-spray" d="M292 145c3-6 7-7 10-3 2 4 0 8-5 10-5 2-8-1-5-7Z" />
-        <path className="login-wave-impact-spray" d="M254 146c3-7 10-9 14-4 3 5 0 10-6 13-6 3-10-1-8-9Z" />
-      </svg>
     </div>
   )
 }
@@ -83,8 +66,8 @@ export default function LoginPage() {
     const horizontal = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
     const vertical = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
 
-    panel.style.setProperty('--login-wave-x', `${(horizontal - 0.5) * 18}px`)
-    panel.style.setProperty('--login-wave-y', `${(vertical - 0.5) * 8}px`)
+    panel.style.setProperty('--login-wave-x', `${(horizontal - 0.5) * 10}px`)
+    panel.style.setProperty('--login-wave-y', `${(vertical - 0.5) * 4}px`)
   }
 
   const resetPanelPointer = () => {

@@ -8,6 +8,8 @@ import { staffAccessLabel } from '../../config/terminology'
 import { apiFetch } from '../../lib/api'
 import QuickCommandPalette from '../ui/QuickCommandPalette'
 import ToastViewport from '../ui/ToastViewport'
+import PageHelpTooltip from '../ui/PageHelpTooltip'
+import { getPageHelp } from '../../config/pageHelp'
 
 const NAV = {
   customer: [
@@ -172,15 +174,17 @@ export default function AppLayout({ children }) {
   const handleSignOut = () => { clearNotifications(); signOut(); navigate('/', { replace: true }) }
   const closeSidebar  = () => setSidebarOpen(false)
 
-  // Current page label
+  // Current page label and contextual help
   const currentItem = navItems.find(i => location.pathname.startsWith(i.to))
+  const pageHelp = getPageHelp(location.pathname)
+  const currentPageLabel = currentItem?.label || pageHelp?.title || 'MRWD'
 
   useEffect(() => {
-    document.title = `${currentItem?.label || 'MRWD'} · Metro Roxas Water District`
+    document.title = `${currentPageLabel} · Metro Roxas Water District`
     setSidebarOpen(false)
     setCommandOpen(false)
     mainRef.current?.scrollTo({ top: 0, behavior: 'instant' })
-  }, [location.pathname, currentItem?.label])
+  }, [location.pathname, currentPageLabel])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
@@ -334,11 +338,11 @@ export default function AppLayout({ children }) {
               </div>
 
               {/* Breadcrumb - desktop */}
-              {currentItem && (
+              {currentPageLabel !== 'MRWD' && (
                 <div className="hidden lg:flex items-center gap-2 text-sm">
                   <span className="text-gray-500">Metro Roxas Water District</span>
                   <span className="text-gray-300">/</span>
-                  <span className="font-semibold text-navy-900">{currentItem.label}</span>
+                  <span className="font-semibold text-navy-900">{currentPageLabel}</span>
                 </div>
               )}
             </div>
@@ -352,6 +356,7 @@ export default function AppLayout({ children }) {
               <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
+              <PageHelpTooltip help={pageHelp} />
               <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>

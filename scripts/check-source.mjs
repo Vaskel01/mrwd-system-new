@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { getPageHelp } from '../src/config/pageHelp.js'
 
 const root = process.cwd()
 const failures = []
@@ -24,6 +25,17 @@ const forbiddenFiles = files
 if (forbiddenFiles.length) failures.push(`Local environment files are present: ${forbiddenFiles.join(', ')}`)
 
 if (fs.existsSync(path.join(root, 'src/pages/admin'))) failures.push('Legacy src/pages/admin directory must not be shipped.')
+
+const appPath = path.join(root, 'src/App.jsx')
+if (fs.existsSync(appPath)) {
+  const appSource = fs.readFileSync(appPath, 'utf8')
+  const routedPages = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
+    .map(match => match[1])
+    .filter(routePath => routePath !== '/' && routePath !== '*' && !routePath.startsWith('/admin/'))
+    .map(routePath => routePath.replace(/:[^/]+/g, 'sample'))
+  const missingPageHelp = routedPages.filter(routePath => !getPageHelp(routePath))
+  if (missingPageHelp.length) failures.push(`Page help is missing for routed pages: ${missingPageHelp.join(', ')}`)
+}
 
 const sqlDir = path.join(root, 'supabase')
 const sqlFiles = fs.readdirSync(sqlDir).filter(name => name.endsWith('.sql'))

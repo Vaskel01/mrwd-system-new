@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
 import { PageLoader } from './components/ui/Feedback'
 import { CAPABILITIES } from './lib/accessControl'
+import PageHelpTooltip from './components/ui/PageHelpTooltip'
+import { getPageHelp, PUBLIC_PAGE_HELP_PATHS } from './config/pageHelp'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
@@ -42,6 +44,18 @@ const NotificationsPage = lazy(() => import('./pages/shared/NotificationsPage'))
 const ProfilePage = lazy(() => import('./pages/shared/ProfilePage'))
 const MaintenanceReportPage = lazy(() => import('./pages/shared/MaintenanceReportPage'))
 
+
+function PublicPageHelp() {
+  const location = useLocation()
+  if (!PUBLIC_PAGE_HELP_PATHS.has(location.pathname)) return null
+  const help = getPageHelp(location.pathname)
+  return (
+    <div className="fixed right-3 top-3 z-50 sm:right-5 sm:top-5">
+      <PageHelpTooltip help={help} floating />
+    </div>
+  )
+}
+
 function AppPage({ children }) {
   return <AppLayout>{children}</AppLayout>
 }
@@ -49,6 +63,7 @@ function AppPage({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <PublicPageHelp />
       <Suspense fallback={<PageLoader label="Loading page…" />}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />

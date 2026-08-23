@@ -45,19 +45,19 @@ export default function AnnouncementsPage() {
   const categories = ['all', ...new Set(announcements.map(a => a.category))]
 
   if (loading && announcements.length === 0) {
-    return <PageLoader label="Loading announcements..." />
+    return <PageLoader label="Loading announcements…" />
   }
 
   if (announcements.length === 0) {
     return (
       <div>
         <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden mb-5">
-          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Official Notices</p>
+          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">MRWD updates</p>
           <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Announcements</h1>
         </div>
         {error
           ? <ErrorBanner message={error} onRetry={fetchAnnouncements} />
-          : <EmptyState icon={<AppIcon name="announcement" className="h-9 w-9" />} title="No announcements posted yet." />
+          : <EmptyState icon={<AppIcon name="announcement" className="h-9 w-9" />} title="No announcements yet" />
         }
       </div>
     )
@@ -75,7 +75,7 @@ export default function AnnouncementsPage() {
         </svg>
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Official Notices</p>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">MRWD updates</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Announcements</h1>
           </div>
           <p className="font-display font-black text-5xl leading-none" style={{ color: '#e6b020' }}>{announcements.length}</p>
@@ -93,7 +93,7 @@ export default function AnnouncementsPage() {
             </div>
             <h2 className="font-black text-gray-900 text-base sm:text-lg tracking-tight mb-2 leading-snug">{item.title}</h2>
             <p className="text-sm text-gray-600 leading-relaxed mb-4">{item.content}</p>
-            <div className="flex items-center gap-3 text-xs text-gray-400 border-t border-gray-100 pt-3">
+            <div className="flex items-center gap-3 text-xs text-gray-500 border-t border-gray-100 pt-3">
               <span className="font-semibold text-gray-600">{item.created_by_name}</span>
               <span>·</span>
               <span>{timeAgo(item.created_at)}</span>
@@ -134,7 +134,7 @@ export default function AnnouncementsPage() {
                     <CategoryPill category={a.category} />
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">{a.content}</p>
-                  <div className="text-xs text-gray-400 flex items-center gap-2">
+                  <div className="text-xs text-gray-500 flex items-center gap-2">
                     <span className="font-semibold text-gray-500">{a.created_by_name}</span>
                     <span>·</span>
                     <span>{timeAgo(a.created_at)}</span>
@@ -145,7 +145,7 @@ export default function AnnouncementsPage() {
           )
         })}
         {rest.length === 0 && important.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-8">No announcements in this category.</p>
+          <p className="text-sm text-gray-500 text-center py-8">No announcements match this category.</p>
         )}
       </div>
     </div>

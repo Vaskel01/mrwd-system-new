@@ -40,8 +40,8 @@ export default function Timeline({ complaintId, refreshKey }) {
   }, [complaintId, refreshKey])
 
   if (error) return <p className="text-xs text-red-500">{error}</p>
-  if (updates === null) return <div className="flex items-center gap-2 py-3"><Spinner className="w-4 h-4 border-2 border-gray-300" /><span className="text-xs text-gray-400">Loading timeline...</span></div>
-  if (updates.length === 0) return <p className="text-xs text-gray-400 italic py-2">No activity logged yet.</p>
+  if (updates === null) return <div className="flex items-center gap-2 py-3"><Spinner className="w-4 h-4 border-2 border-gray-300" /><span className="text-xs text-gray-500">Loading timeline...</span></div>
+  if (updates.length === 0) return <p className="text-xs text-gray-500 italic py-2">No activity logged yet.</p>
 
   return (
     <div className="space-y-0">
@@ -53,7 +53,7 @@ export default function Timeline({ complaintId, refreshKey }) {
           </div>
           <div className="pb-4 min-w-0">
             <p className="text-sm text-gray-700 leading-snug">{u.message}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{u.author_name} · {timeAgo(u.created_at)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{u.author_name} · {timeAgo(u.created_at)}</p>
           </div>
         </div>
       ))}

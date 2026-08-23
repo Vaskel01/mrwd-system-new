@@ -92,7 +92,7 @@ export default function InlineMap({ lat, lng, accuracy, height = 200 }) {
         <span className="font-mono text-xs text-gray-500 inline-flex items-center gap-1">
           <AppIcon name="location" className="w-3.5 h-3.5" />
           {lat.toFixed(5)}, {lng.toFixed(5)}
-          {accuracy ? <span className="text-gray-400 ml-1">±{accuracy}m</span> : null}
+          {accuracy ? <span className="text-gray-500 ml-1">±{accuracy}m</span> : null}
         </span>
         <a href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-600 hover:underline font-semibold">
           Open in OSM ↗

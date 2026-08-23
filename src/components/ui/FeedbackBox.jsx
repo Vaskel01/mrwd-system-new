@@ -85,7 +85,7 @@ export default function FeedbackBox({ complaintId }) {
     return (
       <div className="flex items-center gap-2 py-2">
         <Spinner className="w-4 h-4 border-2 border-gray-300" />
-        <span className="text-xs text-gray-400">Loading feedback...</span>
+        <span className="text-xs text-gray-500">Loading feedback...</span>
       </div>
     )
   }
@@ -125,9 +125,9 @@ export default function FeedbackBox({ complaintId }) {
   if (!canSubmit) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
-        <AppIcon name="feedback" className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+        <AppIcon name="feedback" className="mx-auto mb-2 h-8 w-8 text-gray-500" />
         <p className="font-bold text-gray-700">No customer feedback yet</p>
-        <p className="text-sm text-gray-400 mt-1">The customer has not submitted a rating or comment for this resolved complaint.</p>
+        <p className="text-sm text-gray-500 mt-1">The customer has not submitted a rating or comment for this resolved complaint.</p>
       </div>
     )
   }

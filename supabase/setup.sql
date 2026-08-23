@@ -1,6 +1,6 @@
 -- ============================================================================
 -- MRWD Complaint Management System - Fresh Database Setup
--- Release snapshot: 2026-08-19
+-- Release snapshot: 2026-08-23
 --
 -- PURPOSE
 --   One-time bootstrap for a NEW Supabase project. This file replaces the old
@@ -18,8 +18,8 @@ create extension if not exists pgcrypto;
 create schema if not exists app_private;
 
 -- ---------------------------------------------------------------------------
--- Core tables that pre-dated the historical feature migrations.
--- Later sections safely extend these tables to the release schema.
+-- Final-state schema bootstrap. The file creates only features used by this release.
+-- Historical SLA, acknowledgement, and completion-photo artifacts are intentionally absent.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.profiles (
@@ -433,7 +433,6 @@ comment on column public.complaints.classification_reasons is
   'Human-readable explanation of the classifier result.';
 
 -- ===== Core workflow, notifications, audit, and staff operations =====
-create extension if not exists pgcrypto;
 
 alter table public.profiles
   add column if not exists is_active boolean not null default true,
@@ -644,10 +643,7 @@ create policy "complaints_update_admin_assignee_or_owner" on public.complaints
 
 alter table public.maintenance_tasks
   add column if not exists is_active boolean not null default true,
-  add column if not exists acknowledged_at timestamptz,
-  add column if not exists estimated_completion_at timestamptz,
   add column if not exists completion_notes text,
-  add column if not exists completion_photo_url text,
   add column if not exists materials_used text,
   add column if not exists unable_reason text,
   add column if not exists reassignment_requested_at timestamptz,
@@ -1035,9 +1031,7 @@ alter table public.complaints
   add column if not exists priority_override_reason text,
   add column if not exists priority_overridden_by uuid
     references public.profiles(id) on delete set null,
-  add column if not exists priority_overridden_at timestamptz,
-  add column if not exists customer_acknowledged_at timestamptz,
-  add column if not exists customer_acknowledgment_note text;
+  add column if not exists priority_overridden_at timestamptz;
 
 update public.complaints
 set algorithm_priority_score = priority_score
@@ -1067,8 +1061,6 @@ comment on column public.complaints.algorithm_priority_score is
   'Latest classifier-generated score before any administrator override.';
 comment on column public.complaints.priority_overridden_at is
   'When set, priority_score and priority contain an administrator override.';
-comment on column public.complaints.customer_acknowledged_at is
-  'Customer confirmation that the completion report was reviewed.';
 
 commit;
 
@@ -1220,7 +1212,6 @@ set name = 'No Water',
     description = 'No water supply to a residence or area.'
 where name = 'Water Interruption';
 
-create extension if not exists pgcrypto;
 
 create table if not exists public.departments (
   id uuid primary key default gen_random_uuid(),
@@ -1298,24 +1289,8 @@ create table if not exists public.staff_schedules (
   unique (staff_id, shift_date, starts_at)
 );
 
-create table if not exists public.service_targets (
-  id uuid primary key default gen_random_uuid(),
-  priority text not null unique check (priority in ('low', 'medium', 'high')),
-  acknowledgment_hours numeric(8,2) not null check (acknowledgment_hours > 0),
-  resolution_hours numeric(8,2) not null check (resolution_hours > 0),
-  escalation_hours numeric(8,2) not null check (escalation_hours > 0),
-  is_active boolean not null default true,
-  updated_by uuid references public.profiles(id) on delete set null,
-  updated_at timestamptz not null default now()
-);
-
-insert into public.service_targets (priority, acknowledgment_hours, resolution_hours, escalation_hours)
-values ('high', 2, 24, 4), ('medium', 8, 72, 24), ('low', 24, 168, 72)
-on conflict (priority) do nothing;
 
 alter table public.complaints
-  add column if not exists service_target_due_at timestamptz,
-  add column if not exists escalated_at timestamptz,
   add column if not exists archived_at timestamptz,
   add column if not exists archived_by uuid references public.profiles(id) on delete set null,
   add column if not exists archive_reason text;
@@ -1323,28 +1298,10 @@ alter table public.complaints
 alter table public.maintenance_tasks
   add column if not exists assigned_crew_id uuid references public.maintenance_crews(id) on delete set null;
 
-create table if not exists public.complaint_escalations (
-  id uuid primary key default gen_random_uuid(),
-  complaint_id uuid not null references public.complaints(id) on delete cascade,
-  target_id uuid references public.service_targets(id) on delete set null,
-  escalation_type text not null check (escalation_type in ('high_priority_overdue', 'acknowledgment_overdue', 'resolution_overdue')),
-  severity text not null default 'warning' check (severity in ('warning', 'critical')),
-  reason text not null,
-  due_at timestamptz,
-  status text not null default 'open' check (status in ('open', 'acknowledged', 'resolved', 'dismissed')),
-  acknowledged_by uuid references public.profiles(id) on delete set null,
-  acknowledged_at timestamptz,
-  resolved_at timestamptz,
-  created_at timestamptz not null default now()
-);
-
-create unique index if not exists complaint_escalations_one_open_type
-  on public.complaint_escalations (complaint_id, escalation_type)
-  where status in ('open', 'acknowledged');
 
 create table if not exists public.approval_requests (
   id uuid primary key default gen_random_uuid(),
-  request_type text not null check (request_type in ('archive_complaint', 'priority_exception', 'inventory_adjustment', 'service_target_change', 'other')),
+  request_type text not null check (request_type in ('archive_complaint', 'priority_exception', 'inventory_adjustment', 'other')),
   entity_type text not null,
   entity_id uuid,
   requested_by uuid not null references public.profiles(id) on delete restrict,
@@ -1747,8 +1704,6 @@ alter table public.departments enable row level security;
 alter table public.maintenance_crews enable row level security;
 alter table public.crew_members enable row level security;
 alter table public.staff_schedules enable row level security;
-alter table public.service_targets enable row level security;
-alter table public.complaint_escalations enable row level security;
 alter table public.approval_requests enable row level security;
 alter table public.archive_records enable row level security;
 alter table public.customer_account_registry enable row level security;
@@ -1767,9 +1722,6 @@ create policy "crew_members_authenticated_read" on public.crew_members for selec
 create policy "crew_members_admin_write" on public.crew_members for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
 create policy "schedules_admin_or_self_read" on public.staff_schedules for select to authenticated using (public.current_user_role() = 'admin' or staff_id = (select auth.uid()));
 create policy "schedules_admin_write" on public.staff_schedules for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
-create policy "targets_authenticated_read" on public.service_targets for select to authenticated using (true);
-create policy "targets_admin_write" on public.service_targets for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
-create policy "escalations_admin_all" on public.complaint_escalations for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
 create policy "approvals_admin_all" on public.approval_requests for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
 create policy "archives_admin_all" on public.archive_records for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
 create policy "accounts_admin_all" on public.customer_account_registry for all to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
@@ -1799,7 +1751,7 @@ create policy "delivery_admin_or_self_read" on public.notification_deliveries fo
 create policy "delivery_admin_update" on public.notification_deliveries for update to authenticated using (public.current_user_role() = 'admin') with check (public.current_user_role() = 'admin');
 
 grant select, insert, update on public.departments, public.maintenance_crews, public.crew_members,
-  public.staff_schedules, public.service_targets, public.complaint_escalations, public.approval_requests,
+  public.staff_schedules, public.approval_requests,
   public.customer_account_registry, public.billing_import_batches, public.inventory_items to authenticated;
 grant select, insert on public.archive_records, public.inventory_transactions, public.task_manpower_records to authenticated;
 grant select on public.task_inventory_usage to authenticated;
@@ -1811,13 +1763,10 @@ create index if not exists profiles_supervisor_idx on public.profiles (superviso
 create index if not exists maintenance_crews_department_idx on public.maintenance_crews (department_id);
 create index if not exists maintenance_crews_leader_idx on public.maintenance_crews (team_leader_id) where team_leader_id is not null;
 create index if not exists crew_members_staff_idx on public.crew_members (staff_id);
-create index if not exists complaints_active_due_idx on public.complaints (priority, service_target_due_at)
-  where archived_at is null and status in ('pending', 'assigned', 'en_route', 'in_progress', 'blocked');
+create index if not exists complaints_active_priority_idx on public.complaints (priority, updated_at desc)
+  where archived_at is null and status in ('pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification');
 create index if not exists complaints_archived_by_idx on public.complaints (archived_by) where archived_by is not null;
 create index if not exists maintenance_tasks_crew_idx on public.maintenance_tasks (assigned_crew_id) where assigned_crew_id is not null;
-create index if not exists complaint_escalations_open_idx on public.complaint_escalations (due_at, created_at desc)
-  where status in ('open', 'acknowledged');
-create index if not exists complaint_escalations_complaint_idx on public.complaint_escalations (complaint_id, created_at desc);
 create index if not exists approval_requests_pending_idx on public.approval_requests (created_at desc) where status = 'pending';
 create index if not exists approval_requests_entity_idx on public.approval_requests (entity_type, entity_id);
 create index if not exists archive_records_approval_idx on public.archive_records (approval_request_id) where approval_request_id is not null;
@@ -1834,7 +1783,6 @@ create index if not exists notification_deliveries_pending_idx on public.notific
 create index if not exists notification_deliveries_user_idx on public.notification_deliveries (user_id, created_at desc);
 
 comment on table public.maintenance_crews is 'ECMD field crews with a designated team leader and default manpower.';
-comment on table public.service_targets is 'Administrator-defined acknowledgment, resolution, and escalation targets per priority.';
 comment on table public.notification_deliveries is 'Email/SMS delivery queue; requires a separately configured approved provider worker.';
 comment on column public.profiles.staff_position is 'Operational position without changing the account authentication role.';
 
@@ -2019,9 +1967,9 @@ begin
   end if;
 
   if public.current_user_has_capability('ecmd.operations') then
-    if (new_data - array['status','service_target_due_at','escalated_at','updated_at'])
+    if (new_data - array['status','updated_at'])
        is distinct from
-       (old_data - array['status','service_target_due_at','escalated_at','updated_at']) then
+       (old_data - array['status','updated_at']) then
       raise exception 'ECMD may update only field-workflow information';
     end if;
     return new;
@@ -2070,7 +2018,7 @@ declare table_name text;
 begin
   foreach table_name in array array[
     'maintenance_tasks','maintenance_crews','crew_members','staff_schedules',
-    'service_targets','complaint_escalations','inventory_items',
+    'inventory_items',
     'inventory_transactions','task_inventory_usage','task_manpower_records'
   ] loop
     execute format('drop trigger if exists guard_ecmd_changes on public.%I', table_name);
@@ -2230,20 +2178,6 @@ create policy "schedules_ecmd_write" on public.staff_schedules for all to authen
   using (public.current_user_has_capability('ecmd.operations'))
   with check (public.current_user_has_capability('ecmd.operations'));
 
-drop policy if exists "targets_authenticated_read" on public.service_targets;
-drop policy if exists "targets_admin_write" on public.service_targets;
-create policy "targets_ecmd_read" on public.service_targets for select to authenticated using (
-  public.current_user_has_capability('ecmd.operations') or public.current_user_role() = 'maintenance_personnel'
-);
-create policy "targets_ecmd_write" on public.service_targets for all to authenticated
-  using (public.current_user_has_capability('ecmd.operations'))
-  with check (public.current_user_has_capability('ecmd.operations'));
-
-drop policy if exists "escalations_admin_all" on public.complaint_escalations;
-create policy "escalations_ecmd_all" on public.complaint_escalations for all to authenticated
-  using (public.current_user_has_capability('ecmd.operations'))
-  with check (public.current_user_has_capability('ecmd.operations'));
-
 drop policy if exists "approvals_admin_all" on public.approval_requests;
 create policy "approvals_supervisor_or_requester" on public.approval_requests for select to authenticated using (
   requested_by = (select auth.uid()) or public.current_user_has_capability('system.approvals')
@@ -2322,7 +2256,7 @@ grant select on public.profiles to authenticated;
 grant select on public.feedback, public.audit_logs to authenticated;
 grant select, insert, update, delete on public.announcements, public.bills to authenticated;
 grant select, insert, update, delete on public.departments, public.maintenance_crews, public.crew_members,
-  public.staff_schedules, public.service_targets, public.complaint_escalations, public.approval_requests,
+  public.staff_schedules, public.approval_requests,
   public.archive_records, public.customer_account_registry, public.billing_import_batches, public.inventory_items to authenticated;
 grant select, insert on public.inventory_transactions, public.task_inventory_usage, public.task_manpower_records to authenticated;
 grant select, update on public.notification_deliveries to authenticated;
@@ -2745,8 +2679,6 @@ create trigger guard_department_complaint_changes
   before update on public.complaints
   for each row execute function public.guard_department_complaint_changes();
 
-update public.complaints set service_target_due_at = null, escalated_at = null
-where service_target_due_at is not null or escalated_at is not null;
 
 create or replace function public.assign_complaint_task(
   p_complaint_id uuid,
@@ -3484,7 +3416,6 @@ notify pgrst, 'reload schema';
 commit;
 
 -- ===== Privileged RPC security hardening =====
-create schema if not exists app_private;
 grant usage on schema app_private to authenticated, service_role;
 
 create or replace function app_private.current_user_has_capability(p_capability text)
@@ -4366,23 +4297,6 @@ grant execute on function public.is_resident_of_complaint(uuid) to authenticated
 grant execute on function public.visible_profile_names(uuid[]) to authenticated, service_role;
 grant execute on function public.admin_set_staff_active(uuid, boolean) to authenticated, service_role;
 
--- ---------------------------------------------------------------------------
--- Remove historical database artifacts for features deliberately excluded from
--- the current product scope. They were present in older MRWD iterations only.
--- ---------------------------------------------------------------------------
-drop table if exists public.complaint_escalations cascade;
-drop table if exists public.service_targets cascade;
-
-alter table public.complaints
-  drop column if exists customer_acknowledged_at,
-  drop column if exists customer_acknowledgment_note,
-  drop column if exists service_target_due_at,
-  drop column if exists escalated_at;
-
-alter table public.maintenance_tasks
-  drop column if exists acknowledged_at,
-  drop column if exists estimated_completion_at,
-  drop column if exists completion_photo_url;
 
 -- Ensure fresh complaints never use the obsolete historical default.
 alter table public.complaints alter column status set default 'pending';

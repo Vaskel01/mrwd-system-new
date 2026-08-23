@@ -27,7 +27,7 @@ export const STATUS_LABELS = Object.freeze({
   assigned: 'Assigned',
   en_route: 'In Progress',
   in_progress: 'In Progress',
-  awaiting_verification: 'Awaiting ECMD Verification',
+  awaiting_verification: 'Waiting for ECMD Verification',
   resolved: 'Resolved',
   completed: 'Resolved',
   rejected: 'Rejected',

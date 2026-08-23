@@ -8,7 +8,7 @@ The release contains one canonical installer:
 supabase/setup.sql
 ```
 
-It includes the core schema, feature schema, RLS, functions, storage rules, seed/reference data, department separation, production-readiness features, and final SECURITY DEFINER hardening.
+It includes the supported core/feature schema, RLS, functions, storage rules, seed/reference data, department separation, production-readiness features, and privileged-function hardening. Removed SLA, task-acknowledgement, and maintenance completion-photo structures are not created in a fresh deployment.
 
 Run it **once on a fresh Supabase project**.
 
@@ -16,7 +16,7 @@ Run it **once on a fresh Supabase project**.
 
 Earlier development versions accumulated many incremental SQL patch files. Those files were useful while the system was evolving but were confusing for a fresh deployment and depended on an undocumented pre-existing core schema.
 
-This release squashes that history into a fresh-project setup snapshot. New developers no longer need to determine migration order.
+This release replaces that history with a single fresh-project baseline. New developers no longer need to determine migration order or replay obsolete workflow changes.
 
 ## Existing databases
 

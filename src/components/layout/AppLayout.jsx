@@ -11,16 +11,16 @@ import ToastViewport from '../ui/ToastViewport'
 
 const NAV = {
   customer: [
-    { to: '/customer/my-complaints', icon: ListIcon,    label: 'My Complaints' },
+    { to: '/customer/my-complaints', icon: ListIcon,    label: 'My complaints' },
     { to: '/customer/billing',       icon: BillingIcon, label: 'Billing' },
     { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
-    { to: '/profile',                icon: ProfileIcon, label: 'My Profile' },
+    { to: '/profile',                icon: ProfileIcon, label: 'My profile' },
   ],
   admin: [],
   maintenance_personnel: [
-    { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My Tasks' },
+    { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
-    { to: '/profile',                   icon: ProfileIcon, label: 'My Profile' },
+    { to: '/profile',                   icon: ProfileIcon, label: 'My profile' },
   ],
 }
 
@@ -30,24 +30,24 @@ function adminNavigation(user) {
     if (hasCapability(user, capability)) items.push(item)
   }
 
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System Dashboard' })
-  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial Dashboard' })
-  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint Review' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint Reports' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/export-center', icon: ExportIcon, label: 'Export & Schedules' })
-  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & Billing' })
-  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service Advisories' })
-  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dashboard', icon: DashIcon, label: 'ECMD Dashboard' })
-  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint Dispatch' })
-  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field Operations' })
-  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/crews', icon: UsersIcon, label: 'Crew Management' })
-  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/availability', icon: CalendarIcon, label: 'Availability Calendar' })
-  add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & Access' })
-  add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/system/staff-accounts', icon: UsersIcon, label: 'Staff Accounts' })
-  add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/system/audit-log', icon: AuditIcon, label: 'Audit Log' })
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/announcements', icon: BellIcon, label: 'Internal Announcements' })
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/health', icon: HealthIcon, label: 'System Health' })
-  items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My Profile' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System overview' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial overview' })
+  add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint review' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint reports' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/export-center', icon: ExportIcon, label: 'Exports & schedules' })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & billing' })
+  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service advisories' })
+  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dashboard', icon: DashIcon, label: 'ECMD overview' })
+  add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint dispatch' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field operations' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/crews', icon: UsersIcon, label: 'Crew management' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD', to: '/ecmd/availability', icon: CalendarIcon, label: 'Availability calendar' })
+  add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & access' })
+  add(CAPABILITIES.SYSTEM_STAFF, { section: 'System Administration', to: '/system/staff-accounts', icon: UsersIcon, label: 'Staff accounts' })
+  add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/system/audit-log', icon: AuditIcon, label: 'Activity & security log' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/announcements', icon: BellIcon, label: 'Staff announcements' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/health', icon: HealthIcon, label: 'System health' })
+  items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My profile' })
   return items
 }
 
@@ -223,7 +223,7 @@ export default function AppLayout({ children }) {
             <p className="font-display font-bold text-white text-[13px] leading-tight">Water District</p>
             <div className="mt-1 flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: config.dot }}></div>
-              <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: config.dot }}>{config.tag}</span>
+              <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: config.dot }}>{config.tag}</span>
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function AppLayout({ children }) {
           return (
             <div key={item.to}>
               {(index === 0 || navItems[index - 1]?.section !== item.section) && (
-                <p className="mb-1 mt-4 px-3 text-[9px] font-black uppercase tracking-[0.18em] text-navy-400 first:mt-0">{item.section}</p>
+                <p className="mb-1 mt-4 px-3 text-[11px] font-black uppercase tracking-[0.18em] text-navy-400 first:mt-0">{item.section}</p>
               )}
               <NavLink to={item.to} onClick={closeSidebar}
               className={({ isActive }) =>
@@ -256,7 +256,7 @@ export default function AppLayout({ children }) {
                     <Icon className="w-full h-full" />
                   </span>
                   <span className="whitespace-nowrap">{item.label}</span>
-                  {item.notification && unreadCount > 0 ? <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-gold-400 text-navy-950 text-[10px] font-black flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span> : isActive && <span className="ml-auto w-1 h-1 rounded-full bg-gold-400" />}
+                  {item.notification && unreadCount > 0 ? <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-gold-400 text-navy-950 text-xs font-black flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span> : isActive && <span className="ml-auto w-1 h-1 rounded-full bg-gold-400" />}
                 </>
               )}
               </NavLink>
@@ -277,13 +277,13 @@ export default function AppLayout({ children }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-white text-[13px] font-semibold truncate leading-tight">{user?.full_name}</p>
-            <p className="text-navy-300 text-[10px] uppercase tracking-wider">{config.tag}</p>
+            <p className="text-navy-300 text-xs uppercase tracking-wider">{config.tag}</p>
           </div>
         </div>
         <button onClick={handleSignOut}
           className="w-full flex items-center gap-2.5 px-3 py-2 text-navy-300 hover:text-white hover:bg-white/8 text-sm font-medium transition-all rounded-lg">
           <SignOutIcon className="w-4 h-4" />
-          Sign Out
+          Sign out
         </button>
       </div>
     </div>
@@ -336,7 +336,7 @@ export default function AppLayout({ children }) {
               {/* Breadcrumb - desktop */}
               {currentItem && (
                 <div className="hidden lg:flex items-center gap-2 text-sm">
-                  <span className="text-gray-400">Metro Roxas Water District</span>
+                  <span className="text-gray-500">Metro Roxas Water District</span>
                   <span className="text-gray-300">/</span>
                   <span className="font-semibold text-navy-900">{currentItem.label}</span>
                 </div>
@@ -345,20 +345,20 @@ export default function AppLayout({ children }) {
 
             {/* Right: date + avatar */}
             <div className="shrink-0 flex items-center gap-2 sm:gap-3">
-              <button type="button" onClick={() => setCommandOpen(true)} className="hidden md:flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Open Quick Find">
+              <button type="button" onClick={() => setCommandOpen(true)} className="hidden md:flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Open quick find">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
-                <span>Quick Find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[9px] text-gray-400">⌘K</span>
+                <span>Quick find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[11px] text-gray-500">⌘K</span>
               </button>
-              <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open Quick Find">
+              <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
-              <span className="hidden sm:block text-xs text-gray-400">
+              <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
               <button onClick={() => navigate('/notifications')} className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white"
                 aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
                 <BellIcon className="w-4 h-4" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
               <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-navy-900"
                    style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }} aria-label="Open profile">
@@ -378,7 +378,7 @@ export default function AppLayout({ children }) {
           </main>
 
           {/* ── Footer ── */}
-          <footer className="app-footer px-3 sm:px-6 py-3 text-center text-[11px] text-gray-400 border-t border-gray-200/60">
+          <footer className="app-footer px-3 sm:px-6 py-3 text-center text-[11px] text-gray-500 border-t border-gray-200/60">
             Metro Roxas Water District © {new Date().getFullYear()} · All rights reserved
           </footer>
         </div>

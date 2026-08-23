@@ -1,5 +1,5 @@
-import OperationsPage from '../admin/OperationsPage'
+import OperationsWorkspacePage from '../shared/OperationsWorkspacePage'
 
 export default function CommercialAccountsBillingPage() {
-  return <OperationsPage module="commercial" />
+  return <OperationsWorkspacePage module="commercial" />
 }

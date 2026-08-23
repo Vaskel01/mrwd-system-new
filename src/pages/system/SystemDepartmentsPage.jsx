@@ -1,5 +1,5 @@
-import OperationsPage from '../admin/OperationsPage'
+import OperationsWorkspacePage from '../shared/OperationsWorkspacePage'
 
 export default function SystemDepartmentsPage() {
-  return <OperationsPage module="system" />
+  return <OperationsWorkspacePage module="system" />
 }

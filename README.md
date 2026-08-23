@@ -11,7 +11,9 @@ Production-ready web application for the **Metro Roxas Water District (MRWD)** c
 - **System Administration** workspace for System Supervisor account management, department access, audit/security events, announcements, archive recovery, backup verification, and system-health checks.
 - Dataset-backed hybrid complaint classification and Low / Medium / High priority recommendation.
 - Row Level Security, MFA-gated System Supervisor privileges, department capability isolation, hardened privileged RPCs, and first-login password replacement for staff accounts.
-- Saved views, watchlists, recent complaints, bulk operations, export/report scheduling, Quick Find, responsive tables, and keyboard/QoL improvements.
+- Saved views, watchlists, recent complaints, clearer contextual bulk actions, export/report scheduling, Quick Find, responsive tables, and keyboard/QoL improvements.
+- Lazy-loaded role routes, shared page/dialog/metric components, accessible complaint-progress guidance, and a top-level recovery screen for unexpected UI errors.
+- GitHub Actions quality checks plus a source-integrity guard for secrets, fresh-install SQL, and removed legacy workflow artifacts.
 
 ### Intentionally not included
 
@@ -46,7 +48,8 @@ The package lock requires **Node `^20.19.0` or `>=22.12.0`**.
 ├── api/                    # Vercel serverless entry point
 ├── docs/                   # Deployment, database, operations, security, testing
 ├── public/                 # Static frontend files
-├── scripts/                # Developer utility scripts
+├── .github/workflows/      # CI verification on pushes and pull requests
+├── scripts/                # Environment and source-integrity checks
 ├── server/                 # Express API, classifier, tests
 ├── src/                    # React application
 ├── supabase/
@@ -58,7 +61,7 @@ The package lock requires **Node `^20.19.0` or `>=22.12.0`**.
 └── vite.config.js
 ```
 
-Historical migration/change-report files are intentionally **not shipped** in this deployment package. `supabase/setup.sql` is the canonical fresh-install database snapshot for this release.
+Historical migration/change-report files are intentionally **not shipped** in this deployment package. `supabase/setup.sql` is the canonical fresh-install database snapshot for this release and defines the supported workflow without legacy SLA, task-acknowledgement, or completion-photo structures.
 
 ---
 
@@ -166,6 +169,8 @@ Local URLs:
 ```bash
 npm run verify
 ```
+
+The same verification runs automatically in GitHub Actions for pull requests and pushes to `main`. See [`docs/QUALITY_ASSURANCE.md`](docs/QUALITY_ASSURANCE.md).
 
 Additional classifier check:
 
@@ -293,3 +298,8 @@ Internal database values such as `admin`, `department_staff`, and `maintenance_p
 # Deployment status of this package
 
 This is a **fresh-deployment release snapshot**, not a historical development archive. If you are maintaining an older live MRWD database, do not replay `setup.sql`; keep that database's existing migration history and apply targeted upgrades instead.
+
+
+## UI content conventions
+
+When changing labels, help text, empty states, or workflow messages, follow [`docs/CONTENT_STYLE_GUIDE.md`](docs/CONTENT_STYLE_GUIDE.md) so wording stays consistent across all workspaces.

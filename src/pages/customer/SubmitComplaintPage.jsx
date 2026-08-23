@@ -14,7 +14,7 @@ const schema = z.object({
   address:        z.string().min(10, 'Enter the full address or location'),
 })
 
-const STEP_LABELS = ['Type', 'Details', 'Location', 'Review']
+const STEP_LABELS = ['Type', 'Problem', 'Location', 'Review']
 const DRAFT_KEY = 'mrwd:complaint-draft:v1'
 
 const TYPE_ICONS = {
@@ -113,7 +113,7 @@ function PinMap({ lat, lng, onPinChange }) {
   return (
     <div>
       <div ref={mapRef} style={{ height: 240, width: '100%' }} className="border border-gray-200" />
-      <p className="text-xs text-gray-400 mt-1.5">Tap the map or drag the pin to set the exact location.</p>
+      <p className="text-xs text-gray-500 mt-1.5">Tap the map or drag the pin to set the exact location.</p>
     </div>
   )
 }
@@ -307,21 +307,21 @@ export default function SubmitComplaintPage() {
                 <path strokeLinecap="square" strokeLinejoin="miter" d="M5 13l4 4L19 7"/>
               </svg>
             </div>
-            <h2 className="text-xl font-black text-gray-900 mb-1 font-display tracking-tight">COMPLAINT FILED</h2>
-            <p className="text-gray-400 text-sm mb-6">Submitted successfully and queued for staff review</p>
+            <h2 className="text-xl font-black text-gray-900 mb-1 font-display tracking-tight">Complaint submitted</h2>
+            <p className="text-gray-500 text-sm mb-6">Your complaint is now waiting for Commercial Services review.</p>
 
             <div className="text-left rounded-lg border border-gray-100 divide-y divide-gray-100 mb-6 text-sm">
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Complaint Reference</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reference number</span>
                 <span className="font-mono text-xs font-bold text-gray-700">{submitted.reference_number}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Complaint Type</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Complaint Type</span>
                 <span className="font-semibold text-gray-800 text-right">{submitted.complaint_type}</span>
               </div>
               {submitted.gps && (
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">GPS</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">GPS</span>
                   <span className="font-mono text-xs text-green-700 bg-green-50 px-2 py-0.5">
                     <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
                     {submitted.gps.lat.toFixed(5)}, {submitted.gps.lng.toFixed(5)}
@@ -329,7 +329,7 @@ export default function SubmitComplaintPage() {
                 </div>
               )}
             </div>
-            <button onClick={() => setSubmitted(null)} className="btn-primary w-full">Submit Another Complaint</button>
+            <button onClick={() => setSubmitted(null)} className="btn-primary w-full">Submit another complaint</button>
           </div>
         </div>
       </div>
@@ -344,9 +344,9 @@ export default function SubmitComplaintPage() {
         <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
           <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
         </svg>
-        <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
-        <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">Submit a Complaint</h1>
-        <p className="relative text-navy-300 text-sm mt-1">Provide the issue details so the MRWD team can review and respond.</p>
+        <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+        <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">Submit a complaint</h1>
+        <p className="relative text-navy-300 text-sm mt-1">Tell us what happened and where. Clear details help MRWD review your complaint faster.</p>
       </div>
 
       {/* Step rail */}
@@ -360,7 +360,7 @@ export default function SubmitComplaintPage() {
             className={`h-10 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-colors border ${
               i === step ? 'bg-navy-900 text-white border-navy-900' :
               completed ? 'bg-navy-800 text-white border-gold-500 cursor-pointer hover:bg-navy-700' :
-                          'bg-white text-gray-400 border-gray-200'
+                          'bg-white text-gray-500 border-gray-200'
             }`}>
               <span className={`w-5 h-5 flex items-center justify-center text-xs font-black shrink-0 ${
                 i < step ? '' : i === step ? '' : 'opacity-50'
@@ -378,7 +378,7 @@ export default function SubmitComplaintPage() {
         {step === 0 && (
           <div className="card rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">What is the issue?</p>
+              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Choose the complaint type</p>
             </div>
             <div className="p-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -393,7 +393,7 @@ export default function SubmitComplaintPage() {
                 ))}
               </div>
               {errors.complaint_type && <p className="mt-3 text-xs text-red-600 font-semibold">{errors.complaint_type.message}</p>}
-              <button type="button" onClick={goNext} className="btn-primary w-full mt-5" style={{ borderRadius: 8 }}>Continue →</button>
+              <button type="button" onClick={goNext} className="btn-primary w-full mt-5" style={{ borderRadius: 8 }}>Continue</button>
             </div>
           </div>
         )}
@@ -402,19 +402,19 @@ export default function SubmitComplaintPage() {
         {step === 1 && (
           <div className="card rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Describe the Problem</p>
-              <span className="text-xs font-mono text-gray-400">{watchedType}</span>
+              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Describe the problem</p>
+              <span className="text-xs font-mono text-gray-500">{watchedType}</span>
             </div>
             <div className="p-5 space-y-4">
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <label className="text-sm font-bold text-gray-700">Details <span className="text-red-500">*</span></label>
-                  <span className="text-xs text-gray-400">No character limit</span>
+                  <label className="text-sm font-bold text-gray-700">Problem details <span className="text-red-500">*</span></label>
+                  <span className="text-xs text-gray-500">Add enough detail to explain the issue</span>
                 </div>
-                <textarea aria-label="Description" rows={5} placeholder="When did it start? How bad is it? Who is affected?"
+                <textarea aria-label="Description" rows={5} placeholder="When did it start? How serious is it? Who or what area is affected?"
                   {...register('description')}
                   className={`input-field resize-none ${errors.description ? 'input-error' : ''}`} />
-                <div className="mt-1 flex items-center justify-between gap-3"><span>{errors.description && <span className="text-xs text-red-600">{errors.description.message}</span>}</span><span className={`text-[10px] font-bold ${watchedDesc.length > 1200 ? 'text-red-600' : 'text-gray-400'}`}>{watchedDesc.length.toLocaleString()} characters</span></div>
+                <div className="mt-1 flex items-center justify-between gap-3"><span>{errors.description && <span className="text-xs text-red-600">{errors.description.message}</span>}</span><span className={`text-xs font-bold ${watchedDesc.length > 1200 ? 'text-red-600' : 'text-gray-500'}`}>{watchedDesc.length.toLocaleString()} characters</span></div>
               </div>
 
               <div>
@@ -426,14 +426,14 @@ export default function SubmitComplaintPage() {
                   <div className="flex items-center gap-3 p-3 border border-gray-200 bg-gray-50">
                     <img src={photoPreview} alt="Preview" className="w-14 h-14 object-cover border border-gray-300"/>
                     <div>
-                      <p className="text-xs font-bold text-gray-700">Photo attached ✓</p>
+                      <p className="text-xs font-bold text-gray-700">Photo attached</p>
                       <button type="button" onClick={removePhoto} className="text-xs text-red-500 hover:text-red-700 mt-0.5">Remove</button>
                     </div>
                   </div>
                 ) : (
                   <label className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 cursor-pointer hover:border-gold-400 transition-colors bg-gray-50">
-                    <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span className="text-sm text-gray-500">Attach a photo (optional)</span>
+                    <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span className="text-sm text-gray-500">Add a photo</span>
                     <input name="complaint_photo" aria-label="Complaint photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange}/>
                   </label>
                 )}
@@ -441,7 +441,7 @@ export default function SubmitComplaintPage() {
             </div>
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(0)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>
-              <button type="button" onClick={goNext} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 transition-colors">Continue →</button>
+              <button type="button" onClick={goNext} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 transition-colors">Continue</button>
             </div>
           </div>
         )}
@@ -450,7 +450,7 @@ export default function SubmitComplaintPage() {
         {step === 2 && (
           <div className="card rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Where is this happening?</p>
+              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Set the location</p>
             </div>
             <div className="p-5 space-y-4">
 
@@ -473,7 +473,7 @@ export default function SubmitComplaintPage() {
                       }`}
                     >
                       <AppIcon name="location" className="h-6 w-6 shrink-0" />
-                      <span className="text-xs leading-tight">Use Saved Service Address</span>
+                      <span className="text-xs leading-tight">Use saved service address</span>
                       {locationMode === 'saved' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                     </button>
                   )}
@@ -494,7 +494,7 @@ export default function SubmitComplaintPage() {
                     ) : (
                       <AppIcon name="location" className="h-6 w-6 shrink-0" />
                     )}
-                    <span className="text-xs text-center leading-tight">{gpsLoading ? 'Getting location…' : 'Use My Location'}</span>
+                    <span className="text-xs text-center leading-tight">{gpsLoading ? 'Getting location…' : 'Use my location'}</span>
                     {locationMode === 'gps' && !gpsLoading && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                   </button>
 
@@ -517,7 +517,7 @@ export default function SubmitComplaintPage() {
                     <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                     </svg>
-                    <span className="text-xs text-center leading-tight">Pin on Map</span>
+                    <span className="text-xs text-center leading-tight">Choose on map</span>
                     {locationMode === 'pin' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
                   </button>
               </div>
@@ -535,7 +535,7 @@ export default function SubmitComplaintPage() {
                     <div className="flex items-center gap-2">
                       <AppIcon name="location" className="w-5 h-5 text-green-600" />
                       <div>
-                        <p className="text-xs font-black text-green-800 uppercase tracking-wider">GPS Location Captured</p>
+                        <p className="text-xs font-black text-green-800 uppercase tracking-wider">Location captured</p>
                         <p className="text-xs text-green-700 font-mono mt-0.5">
                           {gpsCoords.lat.toFixed(6)}, {gpsCoords.lng.toFixed(6)}
                         </p>
@@ -551,8 +551,8 @@ export default function SubmitComplaintPage() {
               {locationMode === 'pin' && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-black text-gray-500 uppercase tracking-wider">Tap or drag the pin</p>
-                    <button type="button" onClick={clearGPS} className="text-xs text-gray-400 hover:text-red-500 font-bold">✕ Cancel</button>
+                    <p className="text-xs font-black text-gray-500 uppercase tracking-wider">Tap the map or drag the pin</p>
+                    <button type="button" onClick={clearGPS} className="text-xs text-gray-500 hover:text-red-500 font-bold">✕ Cancel</button>
                   </div>
                   <PinMap
                     lat={gpsCoords?.lat}
@@ -568,7 +568,7 @@ export default function SubmitComplaintPage() {
                         <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
                         {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
-                      <span className="text-gray-400">pinned</span>
+                      <span className="text-gray-500">pinned</span>
                     </div>
                   )}
                 </div>
@@ -578,7 +578,7 @@ export default function SubmitComplaintPage() {
               {(locationMode || gpsError) && (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">address</span>
+                  <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">address</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
               )}
@@ -587,19 +587,19 @@ export default function SubmitComplaintPage() {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">
                   Full Address <span className="text-red-500">*</span>
-                  {gpsCoords && <span className="ml-2 text-xs font-normal text-gold-600 bg-gold-50 px-2 py-0.5">Auto-filled ✓</span>}
+                  {gpsCoords && <span className="ml-2 text-xs font-normal text-gold-600 bg-gold-50 px-2 py-0.5">Filled from location</span>}
                 </label>
                 <input aria-label="Address" type="text" placeholder="e.g. 123 Rizal St., Brgy. Baybay, Roxas City, Capiz"
                   {...register('address')}
                   aria-describedby={gpsCoords ? 'address-edit-help' : undefined}
                   className={`input-field ${errors.address ? 'input-error' : ''}`} />
-                {gpsCoords && <p id="address-edit-help" className="mt-1.5 text-xs text-gray-500">Location services provide an approximate address. Edit this field if any part looks wrong or incomplete.</p>}
+                {gpsCoords && <p id="address-edit-help" className="mt-1.5 text-xs text-gray-500">Location services can be approximate. Check the address and correct anything that looks wrong.</p>}
                 {errors.address && <p className="mt-1 text-xs text-red-600">{errors.address.message}</p>}
               </div>
             </div>
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(1)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>
-              <button type="button" onClick={goNext} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 transition-colors">Review →</button>
+              <button type="button" onClick={goNext} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 transition-colors">Review</button>
             </div>
           </div>
         )}
@@ -608,19 +608,19 @@ export default function SubmitComplaintPage() {
         {step === 3 && (
           <div className="card rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Review Before Submitting</p>
+              <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Review your complaint</p>
             </div>
             <div className="divide-y divide-gray-100 text-sm">
               <div className="flex gap-4 px-5 py-3">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Type</span>
+                <span className="text-xs font-black text-gray-500 uppercase tracking-wider w-20 shrink-0 pt-0.5">Type</span>
                 <span className="font-bold text-gray-900 inline-flex items-center gap-2"><AppIcon name={TYPE_ICONS[watchedType] || 'document'} className="w-5 h-5 text-navy-700" />{watchedType}</span>
               </div>
               <div className="flex gap-4 px-5 py-3">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Details</span>
+                <span className="text-xs font-black text-gray-500 uppercase tracking-wider w-20 shrink-0 pt-0.5">Details</span>
                 <span className="text-gray-700 leading-relaxed">{watchedDesc}</span>
               </div>
               <div className="flex gap-4 px-5 py-3">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Location</span>
+                <span className="text-xs font-black text-gray-500 uppercase tracking-wider w-20 shrink-0 pt-0.5">Location</span>
                 <div className="flex-1">
                   <span className="text-gray-700">{watchedAddr}</span>
                   {gpsCoords && (
@@ -629,13 +629,13 @@ export default function SubmitComplaintPage() {
                         <AppIcon name="location" className="inline-block w-3.5 h-3.5 mr-1" />
                         GPS: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
                       </span>
-                      <span className="text-xs text-gray-400">±{gpsCoords.accuracy}m</span>
+                      <span className="text-xs text-gray-500">±{gpsCoords.accuracy}m</span>
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex gap-4 px-5 py-3">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-wider w-20 shrink-0 pt-0.5">Photo</span>
+                <span className="text-xs font-black text-gray-500 uppercase tracking-wider w-20 shrink-0 pt-0.5">Photo</span>
                 <span className="text-gray-700">{photo ? '✓ Attached' : 'None'}</span>
               </div>
             </div>
@@ -645,7 +645,7 @@ export default function SubmitComplaintPage() {
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(2)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>
               <button type="submit" disabled={submitting} className="flex-1 py-3 text-sm font-bold text-white bg-navy-800 hover:bg-navy-900 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
-                {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Submitting...</> : 'Submit Complaint →'}
+                {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"/>Submitting…</> : 'Submit Complaint →'}
               </button>
             </div>
           </div>

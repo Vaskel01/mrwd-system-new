@@ -72,3 +72,10 @@ Resolved / Customer feedback
 ```
 
 System Administration is parallel governance and does not inherit operational department access.
+
+## Frontend resilience and delivery
+
+- Major route pages are loaded with `React.lazy()` so each role downloads its workspace on demand instead of receiving every screen in the initial bundle.
+- `ErrorBoundary` provides a recovery screen if an unexpected render error reaches the application shell.
+- Shared UI primitives under `src/components/ui/` provide page headers, metric cards, dialogs, form-field structure, bulk-action layout, loading/empty/error states, and complaint progress guidance.
+- Complaint details show the six-stage service path separately from the full audit timeline so users can understand the current stage at a glance.

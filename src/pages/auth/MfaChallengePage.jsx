@@ -45,12 +45,12 @@ export default function MfaChallengePage() {
         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
       </div>
       <h1 className="font-display text-2xl font-black text-navy-900">Verify your identity</h1>
-      <p className="mt-2 text-sm leading-6 text-gray-500">System Supervisor access is protected with two-step verification. Enter the current 6-digit code from your authenticator app.</p>
+      <p className="mt-2 text-sm leading-6 text-gray-500">Enter the 6-digit code from your authenticator app to continue to System Administration.</p>
       {error && <div className="mt-5"><ErrorBanner message={error}/></div>}
-      {loading ? <div className="mt-6 flex items-center gap-2 text-sm text-gray-500"><Spinner className="h-4 w-4 border-2 border-navy-600"/> Loading security factors…</div> :
+      {loading ? <div className="mt-6 flex items-center gap-2 text-sm text-gray-500"><Spinner className="h-4 w-4 border-2 border-navy-600"/> Loading security settings…</div> :
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div><label className="mb-2 block text-xs font-black uppercase tracking-wider text-gray-500">Authenticator code</label><input autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g,'').slice(0,6))} className="input-field rounded-lg text-center font-mono text-2xl tracking-[0.35em]" placeholder="000000"/></div>
-          <button disabled={verifying} className="btn-primary w-full rounded-lg disabled:opacity-50">{verifying ? 'Verifying…' : 'Verify & Continue'}</button>
+          <button disabled={verifying} className="btn-primary w-full rounded-lg disabled:opacity-50">{verifying ? 'Verifying…' : 'Verify and continue'}</button>
         </form>}
     </div>
   </div>

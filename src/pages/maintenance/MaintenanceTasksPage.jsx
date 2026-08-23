@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
-import { PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import { EmptyState, PageLoader, ErrorBanner } from '../../components/ui/Feedback'
+import PageHeader from '../../components/ui/PageHeader'
+import MetricCard from '../../components/ui/MetricCard'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
@@ -121,40 +123,30 @@ export default function MaintenanceTasksPage() {
     ? Math.round(counts.completed / (counts.active + counts.completed) * 100)
     : 0
 
-  if (loading && complaints.length === 0) return <PageLoader label="Loading your tasks..." />
+  if (loading && complaints.length === 0) return <PageLoader label="Loading your tasks…" />
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Maintenance Personnel</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">My Tasks</h1>
-            <p className="text-navy-300 text-sm mt-1">Review assigned work, update progress, and record completion notes.</p>
-          </div>
-          <div className="text-right">
-            <p className="font-display font-black text-5xl leading-none text-gold-400">{completionRate}%</p>
-            <p className="text-navy-300 text-[11px] uppercase tracking-wider">completion rate</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Maintenance Personnel"
+        title="My tasks"
+        description="Open assigned complaints, update field progress, and send completed work to ECMD for verification."
+        actions={<div className="text-left sm:text-right"><p className="font-display text-4xl font-black leading-none text-gold-400">{completionRate}%</p><p className="mt-1 text-xs font-bold text-navy-200">Field work completed</p></div>}
+      />
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
-      <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your task list changed since this page was loaded." />
+      <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your assigned tasks have changed." />
 
-      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-4">
         {[
-          ['active', 'Active', counts.active, 'text-brand-600'],
-          ['completed', 'Field Work Complete', counts.completed, 'text-green-600'],
-          ['rejected', 'Rejected', counts.rejected, 'text-red-600'],
-          ['all', 'All Tasks', counts.all, 'text-navy-800'],
-        ].map(([value, label, count, color]) => (
-          <button key={value} onClick={() => { setView(value); setPage(1) }}
-            aria-pressed={view === value}
-            className={`card rounded-xl p-4 text-left transition-all ${view === value ? 'ring-2 ring-navy-700 border-navy-300' : 'hover:border-navy-200'}`}>
-            <p className={`font-display font-black text-3xl ${color}`}>{count}</p>
-            <p className="text-xs font-bold text-gray-500 mt-1">{label}</p>
-          </button>
+          ['active', 'Active tasks', counts.active, 'Work assigned to you that still needs field action.', 'tool', 'text-brand-600'],
+          ['completed', 'Field work complete', counts.completed, 'Work submitted for verification or already resolved.', 'check', 'text-green-700'],
+          ['rejected', 'Rejected', counts.rejected, 'Assigned records that were rejected.', 'alert', 'text-red-700'],
+          ['all', 'All tasks', counts.all, 'Every complaint assigned to your account.', 'clipboard', 'text-navy-900'],
+        ].map(([value, label, count, detail, icon, accent]) => (
+          <div key={value} className={view === value ? 'rounded-xl ring-2 ring-navy-700' : ''}>
+            <MetricCard label={label} value={count} detail={detail} icon={icon} accent={accent} onClick={() => { setView(value); setPage(1) }} />
+          </div>
         ))}
       </div>
 
@@ -172,41 +164,37 @@ export default function MaintenanceTasksPage() {
               setPage(1)
             }}
           />
-          <SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Search complaint reference, customer, address, notes or status…" />
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-2">
-            <select name="maintenancetaskspage-priority-filter-2" aria-label="Priority Filter" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
-              <option value="all">Any Priority</option>
-              <option value="high">High Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="low">Low Priority</option>
-            </select>
-            <select name="maintenancetaskspage-status-filter-3" aria-label="Status Filter" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
-              <option value="all">Any Status</option>
+          <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, customer, address, notes, or status" /></div>
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4 lg:items-end">
+            <label className="block text-xs font-bold text-gray-600">Priority<select name="maintenancetaskspage-priority-filter-2" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
+              <option value="all">All priorities</option>
+              <option value="high">High priority</option>
+              <option value="medium">Medium priority</option>
+              <option value="low">Low priority</option>
+            </select></label>
+            <label className="block text-xs font-bold text-gray-600">Status<select name="maintenancetaskspage-status-filter-3" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
+              <option value="all">All statuses</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
-              <option value="awaiting_verification">Awaiting ECMD Verification</option>
+              <option value="awaiting_verification">Waiting for ECMD verification</option>
               <option value="resolved">Resolved</option>
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
-            </select>
-            <select name="maintenancetaskspage-sort-by-4" aria-label="Sort By" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
+            </select></label>
+            <label className="block text-xs font-bold text-gray-600">Sort<select name="maintenancetaskspage-sort-by-4" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
               <option value="priority">Priority</option>
-              <option value="updated">Recently Updated</option>
-              <option value="newest">Newest Submitted</option>
-              <option value="oldest">Oldest Submitted</option>
-              <option value="type">Type A–Z</option>
-            </select>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Clear Filters</button>
+              <option value="updated">Recently updated</option>
+              <option value="newest">Newest submitted</option>
+              <option value="oldest">Oldest submitted</option>
+              <option value="type">Complaint type A–Z</option>
+            </select></label>
+            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Clear filters</button>
           </div>
         </div>
       )}
 
       {myTasks.length === 0 ? (
-        <div className="card rounded-xl p-16 text-center">
-          <AppIcon name="tool" className="mx-auto mb-4 h-12 w-12 text-navy-500" />
-          <h2 className="font-display font-bold text-navy-800 text-xl">No tasks assigned yet</h2>
-          <p className="text-sm text-gray-400 mt-2">New assignments will appear here automatically.</p>
-        </div>
+        <EmptyState icon={<AppIcon name="tool" className="h-10 w-10" />} title="No tasks assigned" description="New field assignments will appear here when ECMD assigns work to you." />
       ) : (
         <>
           <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
@@ -220,24 +208,24 @@ export default function MaintenanceTasksPage() {
               </colgroup>
               <thead>
                 <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Customer & Location</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Progress</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Assignment</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-400 uppercase tracking-wider">Action</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Task</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Customer & location</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Progress</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Assignment</th>
+                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="p-12 text-center text-gray-400">No tasks match your search and filters.</td></tr>
+                  <tr><td colSpan={5} className="p-12 text-center text-gray-500">No tasks match the current search or filters.</td></tr>
                 ) : paged.map(task => (
                   <tr key={task.id}
                     onClick={() => navigate(`/complaints/${task.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${task.id}`) }}
                     className={`qol-clickable-row hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                     <td className="px-4 py-3 align-top">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                      <p className="mt-1 font-mono text-[10px] font-bold text-gray-500">{task.reference_number}</p>
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-400">{task.description}</p>
+                      <p className="mt-1 font-mono text-xs font-bold text-gray-500">{task.reference_number}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{task.description}</p>
                       {task.task_notes && <p className="mt-2 line-clamp-2 text-xs text-amber-700"><b>Instructions:</b> {task.task_notes}</p>}
                     </td>
                     <td className="px-4 py-3 align-top">
@@ -255,7 +243,7 @@ export default function MaintenanceTasksPage() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <p className="break-words text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      {task.status === 'blocked' && <p className="mt-2 text-[10px] font-bold text-orange-700">Attention requested</p>}
+                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-orange-700">Needs attention</p>}
                     </td>
                     <td className="px-4 py-3 align-top">{renderAction(task)}</td>
                   </tr>
@@ -266,16 +254,16 @@ export default function MaintenanceTasksPage() {
 
           <div className="xl:hidden space-y-3">
             {filtered.length === 0 ? (
-              <div className="card rounded-xl p-10 text-center text-gray-400">No tasks match your search and filters.</div>
+              <div className="card rounded-xl p-10 text-center text-gray-500">No tasks match the current search or filters.</div>
             ) : paged.map(task => (
               <div key={task.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                      <p className="text-[10px] text-gray-500 font-mono font-bold mt-1">{task.reference_number}</p>
+                      <p className="text-xs text-gray-500 font-mono font-bold mt-1">{task.reference_number}</p>
                       <p className="text-xs text-gray-500 mt-1">{task.customer_name} · Assigned {formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      <p className="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-gray-400"><AppIcon name="location" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{task.address}</span></p>
+                      <p className="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-gray-500"><AppIcon name="location" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{task.address}</span></p>
                     </div>
                     <StatusBadge status={task.status} />
                   </div>

@@ -15,7 +15,7 @@ function titleCase(value) {
 }
 
 function Detail({ label, value }) {
-  return <div><p className="text-[10px] font-black uppercase tracking-wider text-gray-500">{label}</p><p className="mt-1 text-sm font-semibold text-navy-950">{value || 'Not recorded'}</p></div>
+  return <div><p className="text-xs font-black uppercase tracking-wider text-gray-500">{label}</p><p className="mt-1 text-sm font-semibold text-navy-950">{value || 'Not recorded'}</p></div>
 }
 
 export default function MaintenanceReportPage() {
@@ -47,7 +47,7 @@ export default function MaintenanceReportPage() {
     hours: (report?.manpower || []).reduce((sum, item) => sum + Number(item.hours_worked || 0), 0),
   }), [report])
 
-  if (loading) return <PageLoader label="Preparing official maintenance report..." />
+  if (loading) return <PageLoader label="Preparing maintenance report…" />
   if (error || !report) return <ErrorBanner message={error || 'Report data is unavailable.'} onRetry={load} />
 
   const complaint = report.complaint || {}
@@ -63,7 +63,7 @@ export default function MaintenanceReportPage() {
       <article className="bg-white p-5 text-navy-950 shadow-card print:shadow-none sm:p-8" aria-label="Official maintenance report">
         <header className="border-b-2 border-navy-900 pb-5 text-center">
           <p className="text-xs font-black uppercase tracking-[0.2em]">Metro Roxas Water District</p>
-          <h1 className="mt-2 font-display text-2xl font-black">Official Maintenance Accomplishment Report</h1>
+          <h1 className="mt-2 font-display text-2xl font-black">Maintenance accomplishment report</h1>
           <p className="mt-1 text-xs text-gray-500">Roxas City, Capiz</p>
         </header>
 
@@ -74,7 +74,7 @@ export default function MaintenanceReportPage() {
         </section>
 
         <section className="mt-5">
-          <h2 className="font-display text-base font-black">Complaint and Assignment</h2>
+          <h2 className="font-display text-base font-black">Complaint and assignment</h2>
           <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Detail label="Customer" value={complaint.customer_name || complaint.resident_name} />
             <Detail label="Complaint Type" value={complaint.complaint_type} />
@@ -92,7 +92,7 @@ export default function MaintenanceReportPage() {
         </section>
 
         <section className="mt-6">
-          <h2 className="font-display text-base font-black">Work Performed</h2>
+          <h2 className="font-display text-base font-black">Work performed</h2>
           <div className="mt-3 rounded-lg border border-gray-200 p-4 text-sm leading-6">
             {task.completion_notes || complaint.completion_notes || task.work_notes || 'No completion narrative has been recorded.'}
           </div>
@@ -100,19 +100,19 @@ export default function MaintenanceReportPage() {
 
         <section className="mt-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
-            <h2 className="font-display text-base font-black">Manpower Record</h2>
+            <h2 className="font-display text-base font-black">Crew and work hours</h2>
             <p className="text-xs text-gray-500">Recorded personnel: {totals.personnel} · Labor hours: {totals.hours}</p>
           </div>
           <div className="mt-3 min-w-0 overflow-hidden">
             <table className="w-full table-fixed border-collapse text-left text-xs">
               <thead><tr className="bg-gray-50"><th className="break-words border p-2 align-top">Date</th><th className="break-words border p-2 align-top">Personnel</th><th className="break-words border p-2 align-top">Hours</th><th className="break-words border p-2 align-top">Notes</th></tr></thead>
-              <tbody>{report.manpower?.length ? report.manpower.map(item => <tr key={item.id}><td className="break-words border p-2 align-top">{displayDate(item.work_date)}</td><td className="break-words border p-2 align-top">{item.personnel_count}</td><td className="break-words border p-2 align-top">{item.hours_worked}</td><td className="break-words border p-2 align-top">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No manpower entries recorded.</td></tr>}</tbody>
+              <tbody>{report.manpower?.length ? report.manpower.map(item => <tr key={item.id}><td className="break-words border p-2 align-top">{displayDate(item.work_date)}</td><td className="break-words border p-2 align-top">{item.personnel_count}</td><td className="break-words border p-2 align-top">{item.hours_worked}</td><td className="break-words border p-2 align-top">{item.notes || '—'}</td></tr>) : <tr><td className="border p-3 text-center text-gray-500" colSpan="4">No crew or work-hour entries recorded.</td></tr>}</tbody>
             </table>
           </div>
         </section>
 
         <section className="mt-6">
-          <h2 className="font-display text-base font-black">Equipment and Materials Used</h2>
+          <h2 className="font-display text-base font-black">Equipment and materials used</h2>
           <div className="mt-3 min-w-0 overflow-hidden">
             <table className="w-full table-fixed border-collapse text-left text-xs">
               <thead><tr className="bg-gray-50"><th className="break-words border p-2 align-top">SKU</th><th className="break-words border p-2 align-top">Item</th><th className="break-words border p-2 align-top">Quantity</th><th className="break-words border p-2 align-top">Notes</th></tr></thead>
@@ -122,7 +122,7 @@ export default function MaintenanceReportPage() {
         </section>
 
         <section className="mt-12 grid gap-10 text-center sm:grid-cols-3">
-          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Prepared by</p><p className="text-[10px] text-gray-500">{report.prepared_by?.name}</p></div>
+          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Prepared by</p><p className="text-xs text-gray-500">{report.prepared_by?.name}</p></div>
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Team Leader / Supervisor</p></div>
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">System Supervisor Approval</p></div>
         </section>

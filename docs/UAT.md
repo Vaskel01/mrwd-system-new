@@ -66,3 +66,17 @@ Run these checks after every fresh deployment.
 - [ ] Action button labels do not split inside words.
 - [ ] Long addresses/statuses wrap without covering the sidebar.
 - [ ] Mobile/card layouts remain usable.
+
+## Accessibility and interaction
+
+- [ ] Navigate the primary workspace and complaint-details actions with keyboard only; focus remains visible.
+- [ ] Open and close a confirmation or form dialog with the keyboard; focus stays inside while open, `Escape` closes it when allowed, and focus returns to the triggering control.
+- [ ] Complaint Details shows a readable six-step progress path and a clear explanation of the next action.
+- [ ] On a narrow/mobile viewport, Maintenance Personnel can reach the primary task action without horizontal scrolling.
+- [ ] Bulk actions in Commercial and ECMD keep persistent labels for action, priority/personnel, and notes/reasons.
+
+## Failure and recovery
+
+- [ ] A failed data request shows a readable error and a retry action where the request can be repeated.
+- [ ] A page with no matching records shows a purposeful empty state instead of a blank table.
+- [ ] The application-level recovery screen appears if an unexpected React render error reaches the root boundary.

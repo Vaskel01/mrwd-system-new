@@ -16,7 +16,7 @@ export default function PriorityScoreHelp({ align = 'left' }) {
           <dt className="font-bold text-amber-700">Medium</dt><dd>30–59</dd>
           <dt className="font-bold text-red-700">High</dt><dd>60–100</dd>
         </dl>
-        <p className="mt-2 text-[11px] leading-relaxed text-gray-500">The Hybrid Sentiment-Aware algorithm combines base severity, dataset matches, sentiment, and photo evidence.</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-gray-500">The system estimates priority from the complaint type, matched words or phrases, detected urgency, and whether a photo was attached.</p>
       </div>
     </details>
   )

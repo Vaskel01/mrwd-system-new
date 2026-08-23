@@ -1,11 +1,12 @@
 import { useId, useState } from 'react'
+import Dialog from './Dialog'
 import { Spinner } from './Feedback'
 
 export default function RejectionDialog({
   open,
   title = 'Reject complaint?',
   description = 'Explain why this complaint is being rejected. The reason will be visible to the customer.',
-  confirmLabel = 'Reject Complaint',
+  confirmLabel = 'Reject complaint',
   loading = false,
   options = [],
   onConfirm,
@@ -13,9 +14,8 @@ export default function RejectionDialog({
 }) {
   const [reason, setReason] = useState('')
   const [reasonCode, setReasonCode] = useState('')
-  const titleId = useId()
-
-  if (!open) return null
+  const reasonCodeId = useId()
+  const detailsId = useId()
 
   const submit = () => {
     const trimmed = reason.trim()
@@ -32,41 +32,48 @@ export default function RejectionDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm" onClick={loading ? undefined : cancel} aria-hidden="true" />
-      <div className="relative bg-white w-full max-w-md shadow-2xl rounded-xl overflow-hidden" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <div className="p-6">
-          <h3 id={titleId} className="font-display font-bold text-gray-900 text-lg mb-2">{title}</h3>
-          <p className="text-sm text-gray-500 leading-relaxed mb-4">{description}</p>
-          {options.length > 0 && <div className="mb-3"><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Reason code</label><select autoFocus value={reasonCode} onChange={e => setReasonCode(e.target.value)} className="input-field rounded-lg"><option value="">Choose a reason…</option>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>}
-          <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">
+    <Dialog open={open} title={title} description={description} onClose={cancel} closeDisabled={loading} maxWidth="max-w-md">
+      <div className="space-y-4">
+        {options.length > 0 && (
+          <div>
+            <label htmlFor={reasonCodeId} className="block text-sm font-bold text-gray-700">Reason</label>
+            <select id={reasonCodeId} autoFocus value={reasonCode} onChange={e => setReasonCode(e.target.value)} className="input-field mt-2 rounded-lg">
+              <option value="">Choose a reason…</option>
+              {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label htmlFor={detailsId} className="block text-sm font-bold text-gray-700">
             {options.length ? 'Additional details (optional)' : 'Rejection reason'}
           </label>
-          <textarea name="rejectiondialog-example-duplicate-report-incomplete-location-or-issue-is-outside-mrwd-jurisdiction-1" aria-label="Rejection reason details"
+          <textarea
+            id={detailsId}
             autoFocus={options.length === 0}
             rows={4}
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder={options.length ? 'Add any details the customer should know…' : 'Example: Duplicate report, incomplete location, or issue is outside MRWD jurisdiction.'}
-            className="input-field resize-none"
+            placeholder={options.length ? 'Add any details the customer should know…' : 'Example: This report duplicates an existing complaint.'}
+            className="input-field mt-2 resize-none rounded-lg"
             maxLength={500}
           />
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[11px] text-gray-400">{options.length ? 'A reason code is required' : 'At least 3 characters'}</p>
-            <p className="text-[11px] text-gray-400">{reason.length}/500</p>
+          <div className="mt-1.5 flex items-center justify-between gap-3 text-sm text-gray-500">
+            <p>{options.length ? 'Choose a reason before continuing.' : 'Enter at least 3 characters.'}</p>
+            <p>{reason.length}/500</p>
           </div>
         </div>
-        <div className="flex gap-3 p-4 border-t border-gray-100 bg-gray-50">
-          <button onClick={cancel} disabled={loading}
-            className="flex-1 py-2.5 text-sm font-bold text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors rounded-lg">
-            Cancel
-          </button>
-          <button onClick={submit} disabled={loading || (options.length ? !reasonCode : reason.trim().length < 3)}
-            className="flex-1 py-2.5 text-sm font-bold text-white flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 rounded-lg">
-            {loading ? <Spinner className="w-4 h-4 border-2 border-white" /> : confirmLabel}
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={cancel} disabled={loading} className="btn-secondary rounded-lg">Cancel</button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={loading || (options.length ? !reasonCode : reason.trim().length < 3)}
+            className="min-h-11 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {loading ? <span className="inline-flex items-center gap-2"><Spinner className="w-4 h-4 border-2 border-white" />Working…</span> : confirmLabel}
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

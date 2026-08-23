@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -18,7 +17,7 @@
   html { scroll-behavior: smooth; }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: #f4f7fb;
     color: #111827;
     -webkit-font-smoothing: antialiased;
@@ -39,7 +38,8 @@
   a:focus-visible,
   input:focus-visible,
   select:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  summary:focus-visible {
     outline: 3px solid #e6b020;
     outline-offset: 2px;
   }
@@ -66,7 +66,7 @@
   .btn-primary {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
-    padding: 0.625rem 1.25rem;
+    min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #1b3366 0%, #0f2240 100%);
     color: #fff; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.01em;
     border: 1px solid #071529; transition: all 0.15s;
@@ -79,7 +79,7 @@
   .btn-gold {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
-    padding: 0.625rem 1.25rem;
+    min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #e6b020 0%, #c9921a 100%);
     color: #0f2240; font-weight: 700; font-size: 0.875rem;
     border: 1px solid #a97214; transition: all 0.15s;
@@ -90,7 +90,7 @@
   .btn-secondary {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
-    padding: 0.625rem 1.25rem;
+    min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: #fff; color: #374151; font-weight: 600; font-size: 0.875rem;
     border: 1px solid #e5e7eb; transition: all 0.15s;
     box-shadow: 0 1px 2px rgba(0,0,0,.05);
@@ -100,7 +100,7 @@
   .btn-danger {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
-    padding: 0.625rem 1.25rem;
+    min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: #dc2626; color: #fff; font-weight: 600; font-size: 0.875rem;
     border: 1px solid #b91c1c; transition: all 0.15s;
   }
@@ -108,7 +108,7 @@
 
   /* ── Inputs ── */
   .input-field {
-    width: 100%; padding: 0.625rem 0.875rem;
+    width: 100%; min-height: 2.75rem; padding: 0.625rem 0.875rem;
     border: 1.5px solid #e5e7eb; background: #fff;
     font-size: 0.875rem; color: #111827;
     transition: all 0.15s; outline: none;
@@ -468,3 +468,18 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Readability and content hierarchy ─────────────────────────────── */
+h1, h2, h3 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+.app-main .page-band p { max-width: 72ch; line-height: 1.6; }
+.app-main form label {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  line-height: 1.4;
+}
+.app-main form label > input,
+.app-main form label > select,
+.app-main form label > textarea { font-weight: 400; }
+.app-main .card > p,
+.app-main .card > div > p { line-height: 1.55; }

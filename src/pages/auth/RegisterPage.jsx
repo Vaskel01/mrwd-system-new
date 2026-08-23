@@ -78,7 +78,7 @@ export default function RegisterPage() {
             </svg>
           </div>
           <div>
-            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District CMS</p>
+            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District Complaint System</p>
             <p className="text-gold-300 text-xs mt-0.5">Roxas City, Capiz</p>
           </div>
         </Link>
@@ -94,15 +94,15 @@ export default function RegisterPage() {
             <span className="text-gold-300">minute.</span>
           </h1>
           <p className="text-gold-300 text-lg leading-relaxed max-w-sm">
-            Create your account to start reporting issues and tracking your water service.
+            Create one account to report water service problems and follow complaint updates.
           </p>
 
           <div className="mt-8 space-y-3">
             {[
-              { icon: 'document', text: 'Submit complaints in minutes' },
-              { icon: 'refresh', text: 'Faster complaint routing and updates' },
-              { icon: 'announcement', text: 'Real-time announcements' },
-              { icon: 'droplet', text: 'View your billing statement' },
+              { icon: 'document', text: 'Report a water service problem' },
+              { icon: 'refresh', text: 'Track each complaint from review to resolution' },
+              { icon: 'announcement', text: 'Read current service advisories' },
+              { icon: 'droplet', text: 'View your billing information' },
             ].map((f, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
@@ -115,10 +115,9 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-          <p className="text-white/90 text-sm italic leading-relaxed">
-            "We built this system so every customer can easily reach us — no more long lines, no more lost complaints."
+          <p className="text-white/90 text-sm leading-relaxed">
+            Keep your complaint history, service updates, and billing information together in one MRWD account.
           </p>
-          <p className="text-gold-300 text-xs font-semibold mt-2">— Metro Roxas Water District Administration</p>
         </div>
       </div>
 
@@ -132,7 +131,7 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
               </svg>
             </div>
-            <span className="font-display font-bold text-gray-900 text-sm">Metro Roxas Water District CMS</span>
+            <span className="font-display font-bold text-gray-900 text-sm">Metro Roxas Water District Complaint System</span>
           </Link>
 
           {confirmSent ? (
@@ -142,17 +141,17 @@ export default function RegisterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
               </div>
-              <h2 className="font-display font-extrabold text-gray-900 text-2xl mb-2">Check your email</h2>
+              <h2 className="font-display font-extrabold text-gray-900 text-2xl mb-2">Confirm your email</h2>
               <p className="text-gray-500 text-base mb-6">
                 We sent a confirmation link to finish setting up your account. Once confirmed, you can sign in.
               </p>
-              <Link to="/login" className="btn-primary inline-flex px-6 py-3">Back to Sign In</Link>
+              <Link to="/login" className="btn-primary inline-flex px-6 py-3">Back to sign in</Link>
             </div>
           ) : (
             <>
               <div className="mb-8">
-                <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Create your account</h2>
-                <p className="text-gray-500 text-base">Sign up to start reporting and tracking issues.</p>
+                <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Create an account</h2>
+                <p className="text-gray-500 text-base">Enter your details to create your MRWD customer account.</p>
               </div>
 
               {error && (
@@ -196,7 +195,7 @@ export default function RegisterPage() {
                       className={`input-field pr-11 ${errors.password ? 'input-error' : ''}`}
                     />
                     <button type="button" onClick={() => setShowPass(v => !v)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                       aria-label={showPass ? 'Hide passwords' : 'Show passwords'}
                       aria-pressed={showPass}>
                       {showPass
@@ -225,7 +224,7 @@ export default function RegisterPage() {
                   className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-base mt-2">
                   {loading
                     ? <><div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin"/>Creating account...</>
-                    : 'Create Account'
+                    : 'Create account'
                   }
                 </button>
               </form>

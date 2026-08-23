@@ -7,11 +7,29 @@ export function Spinner({ className = 'w-5 h-5 border-2 border-brand-600' }) {
 
 // Full-section loading state — drop in wherever a page/panel is
 // waiting on its first fetch to resolve.
-export function PageLoader({ label = 'Loading...' }) {
+export function PageLoader({ label = 'Loading…', compact = false }) {
+  if (compact) {
+    return (
+      <div className="flex items-center justify-center gap-3 py-10" role="status" aria-live="polite">
+        <Spinner className="w-6 h-6 border-[3px] border-brand-600" />
+        <p className="text-sm font-medium text-gray-600">{label}</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-3" role="status" aria-live="polite">
-      <Spinner className="w-8 h-8 border-[3px] border-brand-600" />
-      <p className="text-sm text-gray-400 font-medium">{label}</p>
+    <div className="space-y-5 py-2" role="status" aria-live="polite" aria-label={label}>
+      <span className="sr-only">{label}</span>
+      <div className="h-32 rounded-2xl bg-gray-200 motion-safe:animate-pulse" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map(item => <div key={item} className="h-28 rounded-xl bg-gray-200 motion-safe:animate-pulse" />)}
+      </div>
+      <div className="card rounded-xl p-5">
+        <div className="h-5 w-44 rounded bg-gray-200 motion-safe:animate-pulse" />
+        <div className="mt-5 space-y-3">
+          {[0, 1, 2, 3].map(item => <div key={item} className="h-14 rounded-lg bg-gray-100 motion-safe:animate-pulse" />)}
+        </div>
+      </div>
     </div>
   )
 }
@@ -19,10 +37,10 @@ export function PageLoader({ label = 'Loading...' }) {
 // "Nothing here yet" state — for empty lists, empty search results, etc.
 export function EmptyState({ icon = <AppIcon name="document" className="h-9 w-9" />, title, description, action }) {
   return (
-    <div className="bg-white border border-dashed border-gray-300 p-12 text-center">
-      <p className="text-4xl mb-3" aria-hidden="true">{icon}</p>
-      <p className="font-bold text-gray-500">{title}</p>
-      {description && <p className="text-sm text-gray-400 mt-1">{description}</p>}
+    <div className="bg-white border border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
+      <div className="mb-3 flex justify-center text-4xl" aria-hidden="true">{icon}</div>
+      <h2 className="font-display font-bold text-gray-800">{title}</h2>
+      {description && <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )

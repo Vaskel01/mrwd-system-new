@@ -12,7 +12,7 @@ function isOverdue(due_date, status) {
   return status === 'unpaid' && new Date(due_date) < new Date()
 }
 
-function ConsumptionBar({ consumption, max = 30 }) {
+function WaterUseBar({ consumption, max = 30 }) {
   const pct = Math.min((consumption / max) * 100, 100)
   const color = pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-amber-400' : 'bg-gold-500'
   return (
@@ -38,15 +38,15 @@ export default function BillingPage() {
   const overdueBills = bills.filter(b => isOverdue(b.due_date, b.status))
 
   if (loading && bills.length === 0) {
-    return <PageLoader label="Loading your billing history..." />
+    return <PageLoader label="Loading your billing history…" />
   }
 
   if (error && bills.length === 0) {
     return (
       <div className="space-y-6">
         <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
-          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
-          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing Statement</h1>
+          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
         </div>
         <ErrorBanner message={error} onRetry={fetchBills} />
       </div>
@@ -62,8 +62,8 @@ export default function BillingPage() {
         </svg>
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer Portal</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing Statement</h1>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
             <p className="text-navy-300 text-sm mt-1">Account: <span className="text-white font-semibold">{user?.full_name}</span></p>
           </div>
           <p className="font-display font-black text-4xl leading-none" style={{ color: '#e6b020' }}>{formatPeso(totalUnpaid)}</p>
@@ -86,17 +86,17 @@ export default function BillingPage() {
           <div className="border-l-4 border-gold-500 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gold-700">Payment Guidance</p>
-                <h2 id="how-to-pay-title" className="mt-1 font-display font-bold text-navy-900">How to settle your bill</h2>
+                <p className="text-xs font-black uppercase tracking-widest text-gold-700">How to pay</p>
+                <h2 id="how-to-pay-title" className="mt-1 font-display font-bold text-navy-900">Pay your bill</h2>
                 <ol className="mt-3 space-y-2 text-sm text-gray-700">
-                  <li><b>1.</b> Bring your MRWD account number or latest billing statement.</li>
-                  <li><b>2.</b> Pay at the Metro Roxas Water District cashier or authorized payment center during office hours.</li>
-                  <li><b>3.</b> Keep the official receipt for your records. Payment posting times may vary.</li>
+                  <li><b>1.</b> Have your MRWD account number or latest bill ready.</li>
+                  <li><b>2.</b> Pay at the Metro Roxas Water District cashier or an authorized payment center during office hours.</li>
+                  <li><b>3.</b> Keep the official receipt. Payment posting times may vary.</li>
                 </ol>
-                <p className="mt-3 text-xs text-gray-500">To confirm currently authorized digital or bank payment channels, contact the Billing Office before sending funds.</p>
+                <p className="mt-3 text-xs text-gray-500">Contact the Billing Office before using a digital or bank payment channel to confirm that it is currently authorized.</p>
               </div>
               <a href="tel:+63331234567" className="btn-primary shrink-0 rounded-lg text-center">
-                Call Billing Office
+                Call the Billing Office
               </a>
             </div>
           </div>
@@ -106,33 +106,33 @@ export default function BillingPage() {
       {/* Summary strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="stat-card accent-navy rounded-xl">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Latest Bill</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Latest bill</p>
           <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill ? formatPeso(latestBill.amount_due) : '—'}</p>
-          <p className="text-xs text-gray-400 mt-1.5">{latestBill?.billing_period}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{latestBill?.billing_period}</p>
         </div>
         <div className={`stat-card rounded-xl ${totalUnpaid > 0 ? 'accent-red' : 'accent-green'}`}>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Outstanding</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Amount due</p>
           <p className={`font-display font-black text-3xl leading-none ${totalUnpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatPeso(totalUnpaid)}</p>
-          <p className="text-xs text-gray-400 mt-1.5">{unpaidBills.length === 0 ? 'All clear ✓' : `${unpaidBills.length} unpaid`}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{unpaidBills.length === 0 ? 'No balance due' : `${unpaidBills.length} unpaid`}</p>
         </div>
         <div className="stat-card accent-amber rounded-xl">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Consumption</p>
-          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill?.consumption ?? '—'} <span className="text-xs font-normal text-gray-400">cu.m.</span></p>
-          <ConsumptionBar consumption={latestBill?.consumption ?? 0} />
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Water use</p>
+          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill?.consumption ?? '—'} <span className="text-xs font-normal text-gray-500">cu.m.</span></p>
+          <WaterUseBar consumption={latestBill?.consumption ?? 0} />
         </div>
       </div>
 
       {/* Billing history */}
       <div className="card rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200 bg-gray-50">
-          <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Billing History</h2>
-          <span className="text-xs text-gray-400">{bills.length} records</span>
+          <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Billing history</h2>
+          <span className="text-xs text-gray-500">{bills.length} records</span>
         </div>
 
         {bills.length === 0 ? (
           <div className="p-8">
             <EmptyState icon={<AppIcon name="billing" className="h-9 w-9" />} title="No bills yet"
-              description="Your billing statements will show up here once they're issued." />
+              description="New billing statements will appear here after they are issued." />
           </div>
         ) : (
         <>
@@ -143,7 +143,7 @@ export default function BillingPage() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <p className="font-bold text-gray-900 text-sm">{b.billing_period}</p>
-                  <p className="text-xs text-gray-400">{b.consumption} cu.m.</p>
+                  <p className="text-xs text-gray-500">{b.consumption} cu.m.</p>
                 </div>
                 <div className="text-right">
                   <p className="font-black text-gray-900">{formatPeso(b.amount_due)}</p>
@@ -155,7 +155,7 @@ export default function BillingPage() {
                   }
                 </div>
               </div>
-              <p className="text-xs text-gray-400">Due: {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              <p className="text-xs text-gray-500">Due {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
             </div>
           ))}
         </div>
@@ -165,7 +165,7 @@ export default function BillingPage() {
           <table className="w-full table-fixed text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left">
-                {['Period','Consumption','Reading','Amount','Due Date','Status'].map(h => (
+                {['Period','Water use','Reading','Amount','Due Date','Status'].map(h => (
                   <th key={h} className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -175,7 +175,7 @@ export default function BillingPage() {
                 <tr key={b.id} className={`transition-colors hover:bg-gray-50 ${isOverdue(b.due_date, b.status) ? 'bg-red-50/60' : ''}`}>
                   <td className="px-3 py-3.5 font-semibold text-gray-900">{b.billing_period}</td>
                   <td className="px-3 py-3.5 text-gray-600">{b.consumption} cu.m.</td>
-                  <td className="px-3 py-3.5 text-gray-400 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
+                  <td className="px-3 py-3.5 text-gray-500 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
                   <td className="px-3 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
                   <td className="px-3 py-3.5">
                     <span className={`text-sm ${isOverdue(b.due_date, b.status) ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
@@ -200,7 +200,7 @@ export default function BillingPage() {
         )}
       </div>
 
-      <p className="text-xs text-gray-400 mt-4 text-center">
+      <p className="text-xs text-gray-500 mt-4 text-center">
         For billing concerns — Metro Roxas Water District Office · (033) 123-4567
       </p>
     </div>

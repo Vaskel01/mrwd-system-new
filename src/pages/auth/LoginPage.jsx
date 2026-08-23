@@ -115,7 +115,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <div>
-            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District CMS</p>
+            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District Complaint System</p>
             <p className="text-gold-300 text-xs mt-0.5">Roxas City, Capiz</p>
           </div>
         </Link>
@@ -132,16 +132,16 @@ export default function LoginPage() {
             <span className="text-gold-300">matter.</span>
           </h1>
           <p className="text-gold-300 text-lg leading-relaxed max-w-sm">
-            Report problems, track your complaint status, and stay informed — all in one place.
+            Report water service problems, follow complaint updates, and view important MRWD information in one place.
           </p>
 
           {/* Feature list */}
           <div className="mt-8 space-y-3">
             {[
-              { icon: 'document', text: 'Submit complaints in minutes' },
-              { icon: 'refresh', text: 'Faster complaint routing and updates' },
-              { icon: 'announcement', text: 'Real-time announcements' },
-              { icon: 'droplet', text: 'View your billing statement' },
+              { icon: 'document', text: 'Report a water service problem' },
+              { icon: 'refresh', text: 'Track each complaint from review to resolution' },
+              { icon: 'announcement', text: 'Read current service advisories' },
+              { icon: 'droplet', text: 'View your billing information' },
             ].map((f, i) => (
               <div key={i} className="auth-feature-row flex items-center gap-3">
                 <div className="auth-feature-icon w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
@@ -155,10 +155,9 @@ export default function LoginPage() {
 
         {/* Bottom quote */}
         <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-          <p className="text-white/90 text-sm italic leading-relaxed">
-            "We built this system so every customer can easily reach us — no more long lines, no more lost complaints."
+          <p className="text-white/90 text-sm leading-relaxed">
+            Customers can submit complaints, follow updates, read service advisories, and view billing information from one account.
           </p>
-          <p className="text-gold-300 text-xs font-semibold mt-2">— Metro Roxas Water District Administration</p>
         </div>
       </div>
 
@@ -173,13 +172,13 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
               </svg>
             </div>
-            <span className="font-display font-bold text-gray-900 text-sm">Metro Roxas Water District CMS</span>
+            <span className="font-display font-bold text-gray-900 text-sm">Metro Roxas Water District Complaint System</span>
           </Link>
 
           {/* Heading */}
           <div className="mb-8">
-            <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Welcome back!</h2>
-            <p className="text-gray-500 text-base">Sign in to your account to continue.</p>
+            <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Sign in to your account</h2>
+            <p className="text-gray-500 text-base">Enter your email and password to continue.</p>
           </div>
 
           {/* Error */}
@@ -199,7 +198,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
                   </svg>
@@ -215,7 +214,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                   </svg>
@@ -228,7 +227,7 @@ export default function LoginPage() {
                   className={`input-field pl-10 pr-11 ${errors.password ? 'input-error' : ''}`}
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                   aria-pressed={showPass}>
                   {showPass
@@ -245,7 +244,7 @@ export default function LoginPage() {
               className="w-full btn-primary flex items-center justify-center gap-2 py-3 text-base mt-2">
               {loading
                 ? <><div className="w-5 h-5 border-2 border-white border-t-transparent  animate-spin"/>Signing in...</>
-                : 'Sign In'
+                : 'Sign in'
               }
             </button>
           </form>

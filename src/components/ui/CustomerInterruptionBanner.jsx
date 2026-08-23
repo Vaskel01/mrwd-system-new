@@ -33,7 +33,7 @@ export default function CustomerInterruptionBanner() {
       <div className="flex items-start gap-3">
         <AppIcon name="alert" className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Active Service Interruption</p>
+          <p className="text-xs font-black uppercase tracking-widest text-red-600">Active Service Interruption</p>
           <p className="mt-1 font-display font-bold">{interruption.title}</p>
           <p className="mt-1 line-clamp-2 text-sm text-red-800">{interruption.content}</p>
           <button type="button" onClick={() => navigate('/customer/announcements')} className="mt-2 text-xs font-black text-red-800 underline underline-offset-2">

@@ -7,6 +7,7 @@
 | `OPERATIONS.md` | Customer → Commercial → ECMD → Maintenance workflow |
 | `SECURITY.md` | Secrets, RLS, MFA, and privileged-function design |
 | `UAT.md` | Post-deployment acceptance tests |
+| `QUALITY_ASSURANCE.md` | Local verification, GitHub CI, browser/UAT, and accessibility checks |
 | `ARCHITECTURE.md` | Runtime structure and module boundaries |
 | `CLASSIFIER_GUIDE.md` | Complaint classifier design and limitations |
 

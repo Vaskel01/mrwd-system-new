@@ -99,7 +99,7 @@ Commercial Services Staff may apply a controlled operational priority override. 
 - preserves the latest classifier-generated score;
 - clearly identifies the current score as manually overridden;
 - records the previous and new values in the audit log; and
-- can be restored to the classifier recommendation.
+- can be restored to the system-suggested priority.
 
 This is human decision support, not silent modification of the classifier output.
 

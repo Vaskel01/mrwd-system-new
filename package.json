@@ -10,10 +10,11 @@
     "preview": "vite preview",
     "test": "npm --prefix server test",
     "test:classifier": "npm --prefix server run evaluate:classifier",
-    "verify": "npm run lint && npm run build && npm run test",
+    "verify": "npm run check:source && npm run lint && npm run build && npm run test",
     "dev:client": "vite",
     "dev:server": "npm --prefix server run dev",
-    "check:env": "node scripts/check-env.mjs"
+    "check:env": "node scripts/check-env.mjs",
+    "check:source": "node scripts/check-source.mjs"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.8",

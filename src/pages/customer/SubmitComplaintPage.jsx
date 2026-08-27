@@ -17,6 +17,24 @@ const schema = z.object({
 const STEP_LABELS = ['Type', 'Problem', 'Location', 'Review']
 const DRAFT_KEY = 'mrwd:complaint-draft:v1'
 
+function readComplaintDraft() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const draft = JSON.parse(raw)
+    return draft && typeof draft === 'object' ? draft : null
+  } catch {
+    window.localStorage.removeItem(DRAFT_KEY)
+    return null
+  }
+}
+
+function draftStep(draft) {
+  if (!Number.isInteger(draft?.step)) return 0
+  return Math.min(Math.max(draft.step, 0), 3)
+}
+
 const TYPE_ICONS = {
   'No Water': 'waterOff',
   'Water Leak': 'droplet',
@@ -132,51 +150,38 @@ export default function SubmitComplaintPage() {
   const user            = useAuthStore(s => s.user)
   const submitComplaint = useComplaintStore(s => s.submitComplaint)
 
-  const [step, setStep] = useState(0)
-  const [furthestStep, setFurthestStep] = useState(0)
+  const [initialDraft] = useState(() => readComplaintDraft())
+  const initialStep = draftStep(initialDraft)
+  const [step, setStep] = useState(initialStep)
+  const [furthestStep, setFurthestStep] = useState(initialStep)
   const [photo, setPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(null)
-  const [draftRestored, setDraftRestored] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(() => Boolean(
+    initialDraft?.complaint_type || initialDraft?.description || initialDraft?.address,
+  ))
   const [draftSavedAt, setDraftSavedAt] = useState(null)
 
   // GPS / location state
-  const [locationMode, setLocationMode] = useState(null) // null | 'saved' | 'gps' | 'pin'
-  const [gpsCoords, setGpsCoords] = useState(null)       // { lat, lng, accuracy }
+  const [locationMode, setLocationMode] = useState(() => initialDraft?.locationMode || null) // null | 'saved' | 'gps' | 'pin'
+  const [gpsCoords, setGpsCoords] = useState(() => initialDraft?.gps || null)       // { lat, lng, accuracy }
   const [gpsLoading, setGpsLoading] = useState(false)
   const [gpsError, setGpsError] = useState(null)
 
   const { register, handleSubmit, control, reset, trigger, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { complaint_type: '', description: '', address: '' },
+    defaultValues: {
+      complaint_type: initialDraft?.complaint_type || '',
+      description: initialDraft?.description || '',
+      address: initialDraft?.address || '',
+    },
   })
 
   const watchedType = useWatch({ control, name: 'complaint_type', defaultValue: '' })
   const watchedDesc = useWatch({ control, name: 'description', defaultValue: '' })
   const watchedAddr = useWatch({ control, name: 'address', defaultValue: '' })
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(DRAFT_KEY)
-      if (!raw) return
-      const draft = JSON.parse(raw)
-      if (draft.complaint_type) setValue('complaint_type', draft.complaint_type)
-      if (draft.description) setValue('description', draft.description)
-      if (draft.address) setValue('address', draft.address)
-      if (draft.gps) setGpsCoords(draft.gps)
-      if (draft.locationMode) setLocationMode(draft.locationMode)
-      if (Number.isInteger(draft.step)) {
-        const safeStep = Math.min(Math.max(draft.step, 0), 3)
-        setStep(safeStep)
-        setFurthestStep(safeStep)
-      }
-      setDraftRestored(Boolean(draft.complaint_type || draft.description || draft.address))
-    } catch {
-      window.localStorage.removeItem(DRAFT_KEY)
-    }
-  }, [setValue])
 
   useEffect(() => {
     const hasDraft = Boolean(watchedType || watchedDesc?.trim() || watchedAddr?.trim())

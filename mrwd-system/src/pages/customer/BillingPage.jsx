@@ -1,0 +1,208 @@
+import { useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { useBillingStore } from '../../store/billingStore'
+import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
+
+function formatPeso(amount) {
+  return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })
+}
+
+function isOverdue(due_date, status) {
+  return status === 'unpaid' && new Date(due_date) < new Date()
+}
+
+function WaterUseBar({ consumption, max = 30 }) {
+  const pct = Math.min((consumption / max) * 100, 100)
+  const color = pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-amber-400' : 'bg-gold-500'
+  return (
+    <div className="w-full h-2 bg-gray-100 mt-1">
+      <div className={`h-2 ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+    </div>
+  )
+}
+
+export default function BillingPage() {
+  const user = useAuthStore(s => s.user)
+  const getMyBills = useBillingStore(s => s.getMyBills)
+  const loading = useBillingStore(s => s.loading)
+  const error = useBillingStore(s => s.error)
+  const fetchBills = useBillingStore(s => s.fetchBills)
+  const bills = getMyBills(user.id)
+
+  useEffect(() => { fetchBills() }, [fetchBills])
+
+  const unpaidBills  = bills.filter(b => b.status === 'unpaid')
+  const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + b.amount_due, 0)
+  const latestBill   = bills[0]
+  const overdueBills = bills.filter(b => isOverdue(b.due_date, b.status))
+
+  if (loading && bills.length === 0) {
+    return <PageLoader label="Loading your billing history…" />
+  }
+
+  if (error && bills.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
+          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
+        </div>
+        <ErrorBanner message={error} onRetry={fetchBills} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
+        <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
+          <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
+        </svg>
+        <div className="relative flex items-end justify-between">
+          <div>
+            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
+            <p className="text-navy-300 text-sm mt-1">Account: <span className="text-white font-semibold">{user?.full_name}</span></p>
+          </div>
+          <p className="font-display font-black text-4xl leading-none" style={{ color: '#e6b020' }}>{formatPeso(totalUnpaid)}</p>
+        </div>
+      </div>
+
+      {/* Overdue alert banner */}
+      {overdueBills.length > 0 && (
+        <div className="rounded-xl border-l-4 border-red-600 bg-red-50 px-4 py-3 flex items-start gap-3">
+          <span className="text-red-600 font-black text-lg shrink-0">!</span>
+          <div>
+            <p className="text-sm font-bold text-red-800">Overdue Balance — {formatPeso(overdueBills.reduce((s,b)=>s+b.amount_due,0))}</p>
+            <p className="text-xs text-red-700 mt-0.5">{overdueBills.length} bill{overdueBills.length>1?'s':''} past due. Settle now to avoid service interruption. Call <strong>(033) 123-4567</strong>.</p>
+          </div>
+        </div>
+      )}
+
+      {unpaidBills.length > 0 && (
+        <section className="card rounded-xl overflow-hidden" aria-labelledby="how-to-pay-title">
+          <div className="border-l-4 border-gold-500 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-gold-700">How to pay</p>
+                <h2 id="how-to-pay-title" className="mt-1 font-display font-bold text-navy-900">Pay your bill</h2>
+                <ol className="mt-3 space-y-2 text-sm text-gray-700">
+                  <li><b>1.</b> Have your MRWD account number or latest bill ready.</li>
+                  <li><b>2.</b> Pay at the Metro Roxas Water District cashier or an authorized payment center during office hours.</li>
+                  <li><b>3.</b> Keep the official receipt. Payment posting times may vary.</li>
+                </ol>
+                <p className="mt-3 text-xs text-gray-500">Contact the Billing Office before using a digital or bank payment channel to confirm that it is currently authorized.</p>
+              </div>
+              <a href="tel:+63331234567" className="btn-primary shrink-0 rounded-lg text-center">
+                Call the Billing Office
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="stat-card accent-navy rounded-xl">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Latest bill</p>
+          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill ? formatPeso(latestBill.amount_due) : '—'}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{latestBill?.billing_period}</p>
+        </div>
+        <div className={`stat-card rounded-xl ${totalUnpaid > 0 ? 'accent-red' : 'accent-green'}`}>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Amount due</p>
+          <p className={`font-display font-black text-3xl leading-none ${totalUnpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatPeso(totalUnpaid)}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{unpaidBills.length === 0 ? 'No balance due' : `${unpaidBills.length} unpaid`}</p>
+        </div>
+        <div className="stat-card accent-amber rounded-xl">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Water use</p>
+          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill?.consumption ?? '—'} <span className="text-xs font-normal text-gray-500">cu.m.</span></p>
+          <WaterUseBar consumption={latestBill?.consumption ?? 0} />
+        </div>
+      </div>
+
+      {/* Billing history */}
+      <div className="card rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200 bg-gray-50">
+          <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Billing history</h2>
+          <span className="text-xs text-gray-500">{bills.length} records</span>
+        </div>
+
+        {bills.length === 0 ? (
+          <div className="p-8">
+            <EmptyState icon={<AppIcon name="billing" className="h-9 w-9" />} title="No bills yet"
+              description="New billing statements will appear here after they are issued." />
+          </div>
+        ) : (
+        <>
+        {/* Mobile: card list */}
+        <div className="lg:hidden divide-y divide-gray-100">
+          {bills.map(b => (
+            <div key={b.id} className={`p-4 ${isOverdue(b.due_date, b.status) ? 'bg-red-50' : ''}`}>
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">{b.billing_period}</p>
+                  <p className="text-xs text-gray-500">{b.consumption} cu.m.</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-gray-900">{formatPeso(b.amount_due)}</p>
+                  {b.status === 'paid'
+                    ? <span className="text-xs font-bold text-green-600">✓ PAID</span>
+                    : <span className={`text-xs font-bold ${isOverdue(b.due_date, b.status) ? 'text-red-600' : 'text-amber-600'}`}>
+                        {isOverdue(b.due_date, b.status) ? <span className="inline-flex items-center gap-1"><AppIcon name="alert" className="h-3.5 w-3.5" />OVERDUE</span> : 'UNPAID'}
+                      </span>
+                  }
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">Due {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden min-w-0 overflow-hidden lg:block">
+          <table className="w-full table-fixed text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                {['Period','Water use','Reading','Amount','Due Date','Status'].map(h => (
+                  <th key={h} className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {bills.map(b => (
+                <tr key={b.id} className={`transition-colors hover:bg-gray-50 ${isOverdue(b.due_date, b.status) ? 'bg-red-50/60' : ''}`}>
+                  <td className="px-3 py-3.5 font-semibold text-gray-900">{b.billing_period}</td>
+                  <td className="px-3 py-3.5 text-gray-600">{b.consumption} cu.m.</td>
+                  <td className="px-3 py-3.5 text-gray-500 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
+                  <td className="px-3 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
+                  <td className="px-3 py-3.5">
+                    <span className={`text-sm ${isOverdue(b.due_date, b.status) ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+                      {isOverdue(b.due_date, b.status) && <AppIcon name="alert" className="mr-1 inline h-3.5 w-3.5" />}
+                      {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3.5">
+                    {b.status === 'paid'
+                      ? <span className="inline-flex items-center px-2 py-0.5 text-xs font-bold bg-green-100 text-green-800">✓ PAID</span>
+                      : <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold ${isOverdue(b.due_date,b.status) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {isOverdue(b.due_date,b.status) ? 'OVERDUE' : 'UNPAID'}
+                        </span>
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        </>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-500 mt-4 text-center">
+        For billing concerns — Metro Roxas Water District Office · (033) 123-4567
+      </p>
+    </div>
+  )
+}

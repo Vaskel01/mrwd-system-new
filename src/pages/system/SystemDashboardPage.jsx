@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useAuthStore } from '../../store/authStore'
@@ -14,7 +14,7 @@ export default function SystemDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -24,9 +24,12 @@ export default function SystemDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const timer = window.setTimeout(load, 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
 
   const summary = useMemo(() => {
     const staff = data?.staff || []
@@ -43,11 +46,7 @@ export default function SystemDashboardPage() {
 
   if (loading && !data) return <PageLoader label="Loading system administration..." />
 
-  const tools = [
-    { to: '/system/staff-accounts', label: 'Staff Accounts', description: 'Create staff accounts, reset access, and activate or deactivate logins.', icon: 'users' },
-    { to: '/system/departments-access', label: 'Departments & Access', description: 'Manage department assignments, staff access, approvals, and archived records.', icon: 'tool' },
-    { to: '/system/audit-log', label: 'Activity & Security Log', description: 'Review important staff, account, security, export, and system activity.', icon: 'clipboard' },
-  ]
+
 
   return (
     <div className="space-y-6">
@@ -82,27 +81,6 @@ export default function SystemDashboardPage() {
         )}
       </section>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-display text-lg font-black text-navy-900">Administration tools</h2>
-          <p className="text-xs text-gray-500">Use these tools to manage access and system records. Commercial and ECMD work remain in their own staff workspaces.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {tools.map(tool => (
-            <button key={tool.to} type="button" onClick={() => navigate(tool.to)} className="card group rounded-xl p-5 text-left transition hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-md">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-50 text-navy-700 group-hover:bg-navy-800 group-hover:text-white">
-                  <AppIcon name={tool.icon} className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-display font-black text-navy-900">{tool.label}</h3>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">{tool.description}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

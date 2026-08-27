@@ -131,33 +131,6 @@ export default function DepartmentDashboardPage({ moduleKey }) {
         ))}
       </section>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-display text-lg font-black text-navy-900">Tools</h2>
-          <p className="text-xs text-gray-500">Open the tools you use most often.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {config.links.map(link => (
-            <button
-              key={link.to}
-              type="button"
-              onClick={() => navigate(link.to)}
-              className="card group rounded-xl p-5 text-left transition hover:-translate-y-0.5 hover:border-navy-300 hover:shadow-md"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-50 text-navy-700 group-hover:bg-navy-800 group-hover:text-white">
-                  <AppIcon name={link.icon} className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-display font-black text-navy-900">{link.label}</h3>
-                  <p className="mt-1 text-xs leading-5 text-gray-500">{link.description}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section className="card rounded-xl p-5" aria-labelledby="complaint-mix-title">
         <h2 id="complaint-mix-title" className="font-display text-lg font-black text-navy-900">Active complaints by type</h2>
         <p className="mt-1 text-sm text-gray-500">A quick view of the most common active complaint types in this workspace.</p>

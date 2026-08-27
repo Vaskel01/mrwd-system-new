@@ -70,10 +70,16 @@ export default function EcmdDispatchPage() {
       const [staffResult, crewResult] = await Promise.all([apiFetch('/users/maintenance-staff'), apiFetch('/operations/crews')])
       setStaff(staffResult.staff || [])
       setCrews(crewResult.crews || [])
-    } catch (_) {}
+    } catch {
+      setStaff([])
+      setCrews([])
+    }
   }, [fetchComplaints, fetchWorkload, fetchOperationalReference])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(load, 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
   useEffect(() => {
     const next = {}
     if (view !== 'queue') next.view = view

@@ -18,10 +18,35 @@ export default function ComplaintOperationsMap({ complaints = [], height = 420, 
 
   useEffect(() => {
     const points = complaints.filter(item => item?.gps?.lat != null && item?.gps?.lng != null)
-    if (!containerRef.current || points.length === 0) return undefined
+
+    // A zero-result filter temporarily removes the Leaflet container from the DOM.
+    // Tear down the old map instance as well so returning to a filter with results
+    // initializes Leaflet against the new container instead of a detached element.
+    if (points.length === 0) {
+      if (layerRef.current) {
+        layerRef.current.remove()
+        layerRef.current = null
+      }
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+      return undefined
+    }
+
+    if (!containerRef.current) return undefined
 
     const init = () => {
       if (!window.L || !containerRef.current) return
+
+      // If React replaced the map node, never reuse a Leaflet map attached to
+      // the previous DOM element. This protects filter/view transitions.
+      if (mapRef.current && mapRef.current.getContainer() !== containerRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+        layerRef.current = null
+      }
+
       if (!mapRef.current) {
         mapRef.current = window.L.map(containerRef.current, { scrollWheelZoom: false }).setView([points[0].gps.lat, points[0].gps.lng], 13)
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(mapRef.current)
@@ -50,6 +75,9 @@ export default function ComplaintOperationsMap({ complaints = [], height = 420, 
       })
       group.addTo(mapRef.current)
       layerRef.current = group
+      // Leaflet can calculate a stale size after the map was hidden/replaced.
+      // Recalculate it before fitting the returned filter results.
+      mapRef.current.invalidateSize(false)
       if (points.length === 1) mapRef.current.setView([points[0].gps.lat, points[0].gps.lng], 16)
       else mapRef.current.fitBounds(group.getBounds().pad(0.18))
     }

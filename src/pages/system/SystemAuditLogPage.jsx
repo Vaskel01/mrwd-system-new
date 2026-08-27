@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
@@ -238,7 +238,7 @@ export default function SystemAuditLogPage() {
   const [eventSuccess, setEventSuccess] = useState('all')
   const pageSize = 25
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -266,12 +266,12 @@ export default function SystemAuditLogPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, fromDate, toDate, mode, actorFilter, actionFilter, entityFilter, eventType, eventSuccess])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { load() }, 180)
+    const timer = window.setTimeout(load, 180)
     return () => window.clearTimeout(timer)
-  }, [page, fromDate, toDate, mode, actorFilter, actionFilter, entityFilter, eventType, eventSuccess])
+  }, [load])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()

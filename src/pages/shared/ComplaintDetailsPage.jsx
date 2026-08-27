@@ -229,11 +229,12 @@ export default function ComplaintDetailsPage() {
     return () => { active = false }
   }, [id])
   useEffect(() => {
-    production.markRecent(id).catch(() => {})
-    production.loadWatched().then(items => setWatched(items.some(item => item.id === id))).catch(() => {})
-    production.loadFollowUps(id).then(result => setFollowUps(result.follow_ups || [])).catch(() => {})
-    if (canCommercialReview || canEcmdOperate) production.assignmentHistory(id).then(result => setAssignmentHistory(result.assignments || [])).catch(() => {})
-    if (user?.role === 'maintenance_personnel' || canEcmdOperate) production.loadTemplates().then(setTemplates).catch(() => {})
+    const productionState = useProductionStore.getState()
+    productionState.markRecent(id).catch(() => {})
+    productionState.loadWatched().then(items => setWatched(items.some(item => item.id === id))).catch(() => {})
+    productionState.loadFollowUps(id).then(result => setFollowUps(result.follow_ups || [])).catch(() => {})
+    if (canCommercialReview || canEcmdOperate) productionState.assignmentHistory(id).then(result => setAssignmentHistory(result.assignments || [])).catch(() => {})
+    if (user?.role === 'maintenance_personnel' || canEcmdOperate) productionState.loadTemplates().then(setTemplates).catch(() => {})
   }, [id, canCommercialReview, canEcmdOperate, user?.role])
   useEffect(() => {
     if (canCommercialReview) useComplaintStore.getState().fetchComplaints().catch?.(() => {})
@@ -247,8 +248,9 @@ export default function ComplaintDetailsPage() {
   }, [canEcmdOperate])
   useEffect(() => {
     if (canCommercialReview || canEcmdOperate) {
-      operational.fetchComplaintContext(id).then(setOpsContext).catch(() => {})
-      operational.fetchOperationalReference().catch(() => {})
+      const operationalState = useOperationalStore.getState()
+      operationalState.fetchComplaintContext(id).then(setOpsContext).catch(() => {})
+      operationalState.fetchOperationalReference().catch(() => {})
     }
   }, [id, canCommercialReview, canEcmdOperate])
 
@@ -269,7 +271,13 @@ export default function ComplaintDetailsPage() {
   const handlePriorityOverride = async event => { event.preventDefault(); const payload = canCommercialReview ? { score: Number(priorityForm.score), reason: priorityForm.reason } : { priority: priorityForm.priority, reason: priorityForm.reason }; if (await run(() => store.overridePriority(id, payload), 'Priority changed and recorded in the activity log.')) setPriorityOpen(false) }
   const handlePriorityReset = async () => { if (await run(() => store.overridePriority(id, { reason: priorityForm.reason, resetToAlgorithm: true }), 'Priority restored to the system suggestion.')) setPriorityOpen(false) }
   const handleComment = async () => { if (!comment.trim()) return; setPosting(true); setError(''); try { await store.postComment(id, comment.trim()); setComment(''); setRefreshKey(key => key + 1); setMessage('Timeline update posted.') } catch (err) { setError(err.message) } finally { setPosting(false) } }
-  const reloadContext = async () => { try { setOpsContext(await operational.fetchComplaintContext(id)) } catch (_) {} }
+  const reloadContext = async () => {
+    try {
+      setOpsContext(await operational.fetchComplaintContext(id))
+    } catch (contextError) {
+      setError(contextError.message || 'Could not refresh complaint details.')
+    }
+  }
   const handleForward = async () => { if (await run(async () => { const { complaint: updated } = await apiFetch(`/complaints/${id}/forward-to-ecmd`, { method: 'PATCH', body: JSON.stringify({ note: forwardNote || undefined }) }); return updated }, 'Complaint sent to WDLCD.')) { setForwardOpen(false); setForwardNote('') } }
   const handleVerify = async event => { event.preventDefault(); if (await run(async () => { const { complaint: updated } = await apiFetch(`/complaints/${id}/verify`, { method: 'PATCH', body: JSON.stringify(verifyForm) }); return updated }, verifyForm.return_to_field ? 'Complaint returned for additional field work.' : 'WDLCD verified and resolved the complaint.')) setVerifyOpen(false) }
   const handleInternalNote = async () => { if (!internalNote.trim()) return; setPosting(true); try { await operational.addInternalNote(id, internalNote.trim()); setInternalNote(''); await reloadContext(); setRefreshKey(k => k + 1); setMessage('Internal note saved.') } catch (err) { setError(err.message) } finally { setPosting(false) } }

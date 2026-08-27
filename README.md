@@ -188,6 +188,19 @@ npm run verify
 
 The same verification runs automatically in GitHub Actions for pull requests and pushes to `main`. See [`docs/QUALITY_ASSURANCE.md`](docs/QUALITY_ASSURANCE.md).
 
+### Replacing an older GitHub working tree
+
+Copying a release over an existing clone does not delete files that were removed from the new release. If you previously used the legacy `src/pages/admin/` screens, remove the tracked folder before committing:
+
+```bash
+npm run cleanup:legacy
+git add -A
+git status
+npm run verify
+```
+
+Commit the deletions shown by `git status`. Do not weaken `check:source` or add the legacy folder to `.gitignore`; tracked obsolete files must actually be removed from Git history going forward.
+
 Additional classifier check:
 
 ```bash

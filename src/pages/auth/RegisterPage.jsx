@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
@@ -45,10 +45,10 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   })
-  const watchedPassword = watch('password', '')
+  const watchedPassword = useWatch({ control, name: 'password', defaultValue: '' })
 
   const onSubmit = async ({ full_name, email, password }) => {
     setError('')

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAnnouncementStore } from '../../store/announcementStore'
@@ -17,26 +17,17 @@ function timeAgo(iso) {
   return `${days}d ago`
 }
 
-const CAT_COLORS = {
-  general:      'bg-blue-100 text-blue-800 border-blue-200',
+const CATEGORY_STYLE = {
+  default: 'bg-gray-100 text-gray-700 border-gray-200',
   interruption: 'bg-red-100 text-red-800 border-red-200',
-  billing:      'bg-yellow-100 text-yellow-900 border-yellow-200',
-  maintenance:  'bg-purple-100 text-purple-800 border-purple-200',
-  advisory:     'bg-green-100 text-green-800 border-green-200',
 }
 
-const CAT_STRIPE = {
-  general:      'bg-blue-500',
-  interruption: 'bg-red-500',
-  billing:      'bg-amber-400',
-  maintenance:  'bg-purple-500',
-  advisory:     'bg-green-500',
-}
+const categoryStripe = category => category === 'interruption' ? 'bg-red-500' : 'bg-gray-200'
 
 function CategoryBadge({ category }) {
   const cat = ANNOUNCEMENT_CATEGORIES.find(c => c.value === category)
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-black uppercase tracking-wide border ${CAT_COLORS[category] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-black uppercase tracking-wide border ${CATEGORY_STYLE[category] || CATEGORY_STYLE.default}`}>
       {cat?.label || category}
     </span>
   )
@@ -71,12 +62,12 @@ export default function CommercialAdvisoriesPage() {
   const [showForm, setShowForm]           = useState(false)
   const [editing, setEditing]             = useState(null)
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { title: '', content: '', category: '', is_important: false, active_until: '' },
   })
 
-  const watchedCategory = watch('category')
+  const watchedCategory = useWatch({ control, name: 'category', defaultValue: '' })
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -213,7 +204,7 @@ export default function CommercialAdvisoriesPage() {
                 </select>
                 {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category.message}</p>}
                 {watchedCategory && (
-                  <div className={`mt-2 h-1 w-full ${CAT_STRIPE[watchedCategory] || 'bg-gray-300'}`} />
+                  <div className={`mt-2 h-1 w-full ${categoryStripe(watchedCategory)}`} />
                 )}
               </div>
             </div>
@@ -254,7 +245,7 @@ export default function CommercialAdvisoriesPage() {
         <div className="space-y-2">
           {sorted.map(a => (
             <div key={a.id} className="card rounded-xl overflow-hidden">
-              <div className={`h-1 ${CAT_STRIPE[a.category] || 'bg-gray-300'}`} />
+              <div className={`h-1 ${categoryStripe(a.category)}`} />
               <div className="p-4 sm:p-5">
                 <div className="flex flex-col min-[520px]:flex-row items-start gap-4">
                   <div className="flex-1 min-w-0">

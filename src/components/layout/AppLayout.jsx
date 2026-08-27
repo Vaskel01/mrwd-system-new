@@ -181,8 +181,6 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     document.title = `${currentPageLabel} · Metro Roxas Water District`
-    setSidebarOpen(false)
-    setCommandOpen(false)
     mainRef.current?.scrollTo({ top: 0, behavior: 'instant' })
   }, [location.pathname, currentPageLabel])
 
@@ -356,7 +354,7 @@ export default function AppLayout({ children }) {
               <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
-              <PageHelpTooltip help={pageHelp} />
+              <PageHelpTooltip key={pageHelp?.title || location.pathname} help={pageHelp} />
               <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
@@ -388,7 +386,7 @@ export default function AppLayout({ children }) {
           </footer>
         </div>
       </div>
-      <QuickCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} navItems={navItems} />
+      {commandOpen && <QuickCommandPalette onClose={() => setCommandOpen(false)} navItems={navItems} />}
       <ToastViewport />
     </div>
   )

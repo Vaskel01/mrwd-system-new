@@ -17,11 +17,6 @@ export default function PageHelpTooltip({ help, floating = false, className = ''
   const tooltipId = useId()
 
   useEffect(() => {
-    setOpen(false)
-    setPinned(false)
-  }, [help?.title])
-
-  useEffect(() => {
     if (!open) return undefined
 
     const onPointerDown = event => {

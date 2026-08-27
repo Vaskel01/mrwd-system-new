@@ -12,12 +12,14 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const NEUTRAL_CATEGORY = { bar: 'bg-gray-200', text: 'text-gray-700', bg: 'bg-gray-100', border: 'border-gray-200' }
+
 const CAT_CONFIG = {
-  maintenance:  { bar: 'bg-purple-500', label: 'Maintenance',  text: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
-  billing:      { bar: 'bg-navy-500',   label: 'Billing',      text: 'text-navy-700',  bg: 'bg-navy-50',   border: 'border-navy-200' },
-  interruption: { bar: 'bg-red-500',    label: 'Interruption', text: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
-  general:      { bar: 'bg-gray-400',   label: 'General',      text: 'text-gray-600',   bg: 'bg-gray-50',   border: 'border-gray-200' },
-  advisory:     { bar: 'bg-green-500',  label: 'Advisory',     text: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
+  maintenance:  { ...NEUTRAL_CATEGORY, label: 'Maintenance' },
+  billing:      { ...NEUTRAL_CATEGORY, label: 'Billing' },
+  interruption: { bar: 'bg-red-500', label: 'Interruption', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+  general:      { ...NEUTRAL_CATEGORY, label: 'General' },
+  advisory:     { ...NEUTRAL_CATEGORY, label: 'Advisory' },
 }
 
 function CategoryPill({ category }) {

@@ -40,7 +40,10 @@ export default function EcmdCrewManagementPage() {
       setLoading(false)
     }
   }, [])
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(load, 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
 
   const ecmdId = departments.find(item => String(item.code).toUpperCase() === 'ECMD')?.id || departments[0]?.id
   const staffMap = useMemo(() => Object.fromEntries(staff.map(person => [person.id, person])), [staff])

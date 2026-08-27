@@ -51,7 +51,7 @@ function PublicPageHelp() {
   const help = getPageHelp(location.pathname)
   return (
     <div className="fixed right-3 top-3 z-50 sm:right-5 sm:top-5">
-      <PageHelpTooltip help={help} floating />
+      <PageHelpTooltip key={help?.title || location.pathname} help={help} floating />
     </div>
   )
 }

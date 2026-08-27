@@ -17,9 +17,9 @@ export const COMPLAINT_TYPES = [
 ]
 
 export const ANNOUNCEMENT_CATEGORIES = [
-  { value: 'general',      label: 'General',       color: 'bg-blue-100 text-blue-700' },
+  { value: 'general',      label: 'General',       color: 'bg-gray-100 text-gray-700' },
   { value: 'interruption', label: 'Interruption',  color: 'bg-red-100 text-red-700' },
-  { value: 'billing',      label: 'Billing',       color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'maintenance',  label: 'Maintenance',   color: 'bg-purple-100 text-purple-700' },
-  { value: 'advisory',     label: 'Advisory',      color: 'bg-green-100 text-green-700' },
+  { value: 'billing',      label: 'Billing',       color: 'bg-gray-100 text-gray-700' },
+  { value: 'maintenance',  label: 'Maintenance',   color: 'bg-gray-100 text-gray-700' },
+  { value: 'advisory',     label: 'Advisory',      color: 'bg-gray-100 text-gray-700' },
 ]

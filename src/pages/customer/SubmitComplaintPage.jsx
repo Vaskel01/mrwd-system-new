@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
@@ -148,14 +148,14 @@ export default function SubmitComplaintPage() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [gpsError, setGpsError] = useState(null)
 
-  const { register, handleSubmit, watch, reset, trigger, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, reset, trigger, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { complaint_type: '', description: '', address: '' },
   })
 
-  const watchedType = watch('complaint_type')
-  const watchedDesc = watch('description')
-  const watchedAddr = watch('address')
+  const watchedType = useWatch({ control, name: 'complaint_type', defaultValue: '' })
+  const watchedDesc = useWatch({ control, name: 'description', defaultValue: '' })
+  const watchedAddr = useWatch({ control, name: 'address', defaultValue: '' })
 
   useEffect(() => {
     try {

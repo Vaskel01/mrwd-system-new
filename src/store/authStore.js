@@ -63,7 +63,10 @@ export const useAuthStore = create((set, get) => ({
         const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
         currentLevel = aal?.currentLevel || 'aal1'
         nextLevel = aal?.nextLevel || currentLevel
-      } catch (_) {}
+      } catch {
+        currentLevel = 'aal1'
+        nextLevel = 'aal1'
+      }
       const mfaPending = currentLevel !== 'aal2' && nextLevel === 'aal2'
       const mfaEnrollmentRequired = Boolean(user?.mfa_required && currentLevel !== 'aal2' && nextLevel !== 'aal2')
       set({ mfaPending, mfaEnrollmentRequired })

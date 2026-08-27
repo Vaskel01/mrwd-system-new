@@ -6,7 +6,7 @@ import { writeAudit } from '../lib/activity.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../lib/profileUpdate.js'
 
 const router = Router()
-const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)'
+const PROFILE_FIELDS = 'id, full_name, email, role, created_at, updated_at, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, division_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name), division:divisions(id, code, name, department_id)'
 
 router.get('/me', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('profiles').select(PROFILE_FIELDS).eq('id', req.user.id).single()
@@ -114,7 +114,7 @@ router.get('/maintenance-staff', requireAuth, requireCapability(CAPABILITIES.ECM
   const [staffResult, scheduleResult] = await Promise.all([
     req.supabase
       .from('profiles')
-      .select('id, full_name, email, is_active, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id')
+      .select('id, full_name, email, is_active, availability_status, availability_note, availability_until, department_id, division_id, staff_position, supervisor_id')
       .eq('role', 'maintenance_personnel')
       .order('full_name'),
     req.supabase.from('staff_schedules').select('staff_id, starts_at, ends_at, shift_status, notes').eq('shift_date', today),
@@ -146,7 +146,7 @@ router.get('/staff', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), 
 })
 
 router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), async (req, res) => {
-  const { email, password, full_name, role, department_id, staff_position, supervisor_id } = req.body || {}
+  const { email, password, full_name, role, department_id, division_id, staff_position, supervisor_id } = req.body || {}
   if (!email || !password || !full_name || !['admin', 'maintenance_personnel'].includes(role)) {
     return res.status(400).json({ error: 'full_name, email, password, and a valid staff role are required.' })
   }
@@ -190,10 +190,11 @@ router.post('/', requireAuth, requireCapability(CAPABILITIES.SYSTEM_STAFF), asyn
   })
   if (promoteError) return res.status(400).json({ error: promoteError.message })
 
-  if (department_id || staff_position || supervisor_id) {
+  if (department_id || division_id || staff_position || supervisor_id) {
     const { error: assignmentError } = await req.supabase.rpc('admin_update_staff_assignment', {
       p_staff_id: data.user.id,
       p_department_id: department_id || null,
+      p_division_id: division_id || null,
       p_staff_position: staff_position || null,
       p_supervisor_id: supervisor_id || null,
     })

@@ -54,6 +54,13 @@ if (fs.existsSync(setupPath)) {
   ]
   const found = obsolete.filter(term => sql.includes(term))
   if (found.length) failures.push(`Fresh setup.sql contains obsolete workflow artifacts: ${found.join(', ')}`)
+
+  const requiredRouting = [
+    'public.divisions', "'nscccd'", "'wdlcd'", 'division_id', 'routed_division_id',
+    'route_field_complaint_to_wdlcd', 'guard_maintenance_crew_division',
+  ]
+  const missingRouting = requiredRouting.filter(term => !sql.includes(term))
+  if (missingRouting.length) failures.push(`Fresh setup.sql is missing division-routing baseline: ${missingRouting.join(', ')}`)
 }
 
 

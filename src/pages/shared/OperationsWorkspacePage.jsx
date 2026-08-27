@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
-import { departmentDisplayName } from '../../config/terminology'
+import { departmentDisplayName, divisionDisplayName } from '../../config/terminology'
 import { useToastStore } from '../../store/toastStore'
 
 const MODULE_CONFIG = {
@@ -16,15 +16,15 @@ const MODULE_CONFIG = {
   },
   ecmd: {
     eyebrow: 'Engineering, Construction and Maintenance Department (ECMD)',
-    title: 'ECMD resources',
-    description: 'Manage crews, shifts, staff availability, equipment, materials, and field resources.',
+    title: 'WDLCD resources',
+    description: 'Manage WDLCD crews, shifts, staff availability, equipment, materials, and field resources under ECMD.',
     endpoint: '/operations/ecmd-bootstrap',
     tabs: [['overview', 'Field overview'], ['crews', 'Crews & staffing'], ['schedules', 'Shifts'], ['inventory', 'Equipment & materials']],
   },
   system: {
     eyebrow: 'System Administration',
-    title: 'Departments & approvals',
-    description: 'Manage department access, staff assignments, approvals, archived records, and message delivery.',
+    title: 'Departments, divisions & approvals',
+    description: 'Manage departments, divisions, staff assignments, approvals, archived records, and message delivery.',
     endpoint: '/operations/system-bootstrap',
     tabs: [['overview', 'Approvals & messages'], ['crews', 'Departments & access'], ['inventory', 'Archived records']],
   },
@@ -39,8 +39,8 @@ const STAFF_POSITION_LABELS = Object.freeze({
   supervisor: 'System Supervisor',
   team_leader: 'Team leader',
   crew_member: 'Maintenance Crew Member',
-  commercial_staff: 'Commercial Services Staff',
-  department_staff: 'ECMD Staff',
+  commercial_staff: 'Commercial Services Staff (NSCCCD)',
+  department_staff: 'ECMD Staff (WDLCD)',
 })
 
 function staffPositionLabel(value) {
@@ -146,6 +146,7 @@ export default function OperationsWorkspacePage({ module = 'system' }) {
   }
 
   const staffMap = useMemo(() => Object.fromEntries((data?.staff || []).map(person => [person.id, person])), [data])
+  const divisionMap = useMemo(() => Object.fromEntries((data?.divisions || []).map(item => [item.id, item])), [data])
   const departmentMap = useMemo(() => Object.fromEntries((data?.departments || []).map(item => [item.id, item])), [data])
   const crewMap = useMemo(() => Object.fromEntries((data?.crews || []).map(item => [item.id, item])), [data])
   const complaintMap = useMemo(() => Object.fromEntries(complaints.map(item => [item.id, item])), [complaints])
@@ -168,7 +169,7 @@ export default function OperationsWorkspacePage({ module = 'system' }) {
       </div>
 
       {tab === 'overview' && <OverviewTab data={data} busy={busy} run={run} complaintMap={complaintMap} staffMap={staffMap} module={module} />}
-      {tab === 'crews' && <CrewsTab data={data} busy={busy} run={run} staffMap={staffMap} departmentMap={departmentMap} module={module} />}
+      {tab === 'crews' && <CrewsTab data={data} busy={busy} run={run} staffMap={staffMap} departmentMap={departmentMap} divisionMap={divisionMap} module={module} />}
       {tab === 'schedules' && <SchedulesTab data={data} busy={busy} run={run} staffMap={staffMap} />}
       {tab === 'billing' && <BillingTab data={data} busy={busy} run={run} />}
       {tab === 'inventory' && <InventoryTab data={data} busy={busy} run={run} complaints={complaints} staffMap={staffMap} crewMap={crewMap} module={module} />}
@@ -190,7 +191,7 @@ function OverviewTab({ data, run, complaintMap, staffMap, module }) {
     </div>
 
     {module === 'ecmd' && <Section title="Maintenance availability" description="Check who is available and how many active assignments each person has.">
-      {maintenancePersonnel.length === 0 ? <p className="text-sm text-gray-500">No Maintenance Personnel are assigned to ECMD yet.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{maintenancePersonnel.map(person => {
+      {maintenancePersonnel.length === 0 ? <p className="text-sm text-gray-500">No Maintenance Personnel are assigned to WDLCD yet.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{maintenancePersonnel.map(person => {
         const activeTasks = complaintRecords.filter(complaint => complaint.assigned_to === person.id && ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length
         return <div key={person.id} className="rounded-xl border border-gray-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-navy-900">{person.full_name}</p><p className="mt-1 text-xs text-gray-500">{activeTasks} active assignment{activeTasks === 1 ? '' : 's'}</p></div><span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${person.availability_status === 'available' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>{titleCase(person.availability_status || 'available')}</span></div></div>
       })}</div>}
@@ -206,14 +207,15 @@ function OverviewTab({ data, run, complaintMap, staffMap, module }) {
   </div>
 }
 
-function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
-  const [crew, setCrew] = useState({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })
+function CrewsTab({ data, busy, run, staffMap, departmentMap, divisionMap, module }) {
+  const [crew, setCrew] = useState({ name: '', department_id: '', division_id: '', team_leader_id: '', default_manpower: 1 })
   const [member, setMember] = useState({ crew_id: '', staff_id: '', crew_role: 'crew_member', manpower_units: 1 })
-  const [assignment, setAssignment] = useState({ staff_id: '', department_id: '', staff_position: '', supervisor_id: '' })
+  const [assignment, setAssignment] = useState({ staff_id: '', department_id: '', division_id: '', staff_position: '', supervisor_id: '' })
   const maintenance = (data?.staff || []).filter(item => item.role === 'maintenance_personnel' && item.is_active)
   const supervisors = (data?.staff || []).filter(item => ['manager', 'supervisor', 'team_leader'].includes(item.staff_position) || item.role === 'admin')
   const selectedAssignmentStaff = (data?.staff || []).find(item => item.id === assignment.staff_id)
   const selectedAssignmentDepartment = (data?.departments || []).find(item => item.id === assignment.department_id)
+  const availableDivisions = (data?.divisions || []).filter(item => item.department_id === assignment.department_id && item.is_active !== false)
   const assignmentPositionOptions = selectedAssignmentStaff?.role === 'maintenance_personnel'
     ? ['team_leader', 'crew_member']
     : selectedAssignmentDepartment?.code === 'COMMERCIAL'
@@ -228,9 +230,10 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
 
     {module === 'ecmd' && <div className="grid gap-5 lg:grid-cols-2">
       <Section title="Create ECMD crew" description="Add a crew name, optional team leader, and default crew size.">
-        <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('crew', () => apiFetch('/operations/crews', { method: 'POST', body: JSON.stringify(crew) }), 'Crew created.').then(ok => ok && setCrew({ name: '', department_id: '', team_leader_id: '', default_manpower: 1 })) }}>
+        <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('crew', () => apiFetch('/operations/crews', { method: 'POST', body: JSON.stringify(crew) }), 'Crew created.').then(ok => ok && setCrew({ name: '', department_id: '', division_id: '', team_leader_id: '', default_manpower: 1 })) }}>
           <Field label="Crew name"><input required value={crew.name} onChange={event => setCrew(value => ({ ...value, name: event.target.value }))} className="input-field rounded-lg" /></Field>
-          <Field label="Department"><select required value={crew.department_id} onChange={event => setCrew(value => ({ ...value, department_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
+          <Field label="Department"><select required value={crew.department_id} onChange={event => { const departmentId = event.target.value; const division = (data?.divisions || []).find(item => item.department_id === departmentId && item.code === 'WDLCD'); setCrew(value => ({ ...value, department_id: departmentId, division_id: division?.id || '' })) }} className="input-field rounded-lg"><option value="">Select department</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
+          <Field label="Division"><select required value={crew.division_id} onChange={event => setCrew(value => ({ ...value, division_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select division</option>{(data?.divisions || []).filter(item => item.department_id === crew.department_id).map(item => <option key={item.id} value={item.id}>{divisionDisplayName(item)}</option>)}</select></Field>
           <Field label="Team leader"><select value={crew.team_leader_id} onChange={event => setCrew(value => ({ ...value, team_leader_id: event.target.value }))} className="input-field rounded-lg"><option value="">Assign later</option>{maintenance.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
           <Field label="Default crew size"><input type="number" min="1" required value={crew.default_manpower} onChange={event => setCrew(value => ({ ...value, default_manpower: event.target.value }))} className="input-field rounded-lg" /></Field>
           <button disabled={busy === 'crew'} className="btn-primary rounded-lg sm:col-span-2">Create crew</button>
@@ -239,7 +242,7 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
 
       <Section title="Add crew member" description="Choose a crew, staff member, role, and work share.">
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => { event.preventDefault(); run('member', () => apiFetch('/operations/crew-members', { method: 'POST', body: JSON.stringify(member) }), 'Crew member saved.') }}>
-          <Field label="Crew"><select required value={member.crew_id} onChange={event => setMember(value => ({ ...value, crew_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select crew</option>{(data?.crews || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
+          <Field label="Crew"><select required value={member.crew_id} onChange={event => setMember(value => ({ ...value, crew_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select crew</option>{(data?.crews || []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
           <Field label="Maintenance Personnel"><select required value={member.staff_id} onChange={event => setMember(value => ({ ...value, staff_id: event.target.value }))} className="input-field rounded-lg"><option value="">Select staff</option>{maintenance.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
           <Field label="Crew role"><select value={member.crew_role} onChange={event => setMember(value => ({ ...value, crew_role: event.target.value }))} className="input-field rounded-lg">{['team_leader', 'crew_member', 'driver', 'specialist', 'helper'].map(item => <option key={item} value={item}>{titleCase(item)}</option>)}</select></Field>
           <Field label="Work share (1 = one person)"><input type="number" min="0.25" step="0.25" value={member.manpower_units} onChange={event => setMember(value => ({ ...value, manpower_units: event.target.value }))} className="input-field rounded-lg" /></Field>
@@ -248,19 +251,20 @@ function CrewsTab({ data, busy, run, staffMap, departmentMap, module }) {
       </Section>
     </div>}
 
-    {module === 'system' && <Section title="Staff department and access" description="Assign each staff member to the correct department and access level. This controls which workspace they can open.">
-      <form className="grid gap-3 md:grid-cols-4" onSubmit={event => { event.preventDefault(); run('assignment', () => apiFetch('/operations/staff-assignment', { method: 'POST', body: JSON.stringify(assignment) }), 'Staff assignment updated.') }}>
-        <Field label="Staff"><select required value={assignment.staff_id} onChange={event => { const staff = (data?.staff || []).find(item => item.id === event.target.value); setAssignment({ staff_id: event.target.value, department_id: staff?.department_id || '', staff_position: staff?.staff_position || '', supervisor_id: staff?.supervisor_id || '' }) }} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
-        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => ({ ...value, department_id: event.target.value, staff_position: '' }))} className="input-field rounded-lg"><option value="">System Administration</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
+    {module === 'system' && <Section title="Staff department and access" description="Assign each staff member to the correct department, division, and access level. This controls which workspace they can open.">
+      <form className="grid gap-3 md:grid-cols-5" onSubmit={event => { event.preventDefault(); run('assignment', () => apiFetch('/operations/staff-assignment', { method: 'POST', body: JSON.stringify(assignment) }), 'Staff assignment updated.') }}>
+        <Field label="Staff"><select required value={assignment.staff_id} onChange={event => { const staff = (data?.staff || []).find(item => item.id === event.target.value); setAssignment({ staff_id: event.target.value, department_id: staff?.department_id || '', division_id: staff?.division_id || '', staff_position: staff?.staff_position || '', supervisor_id: staff?.supervisor_id || '' }) }} className="input-field rounded-lg"><option value="">Select staff</option>{(data?.staff || []).map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
+        <Field label="Department"><select value={assignment.department_id} onChange={event => setAssignment(value => { const departmentId = event.target.value; const department = (data?.departments || []).find(item => item.id === departmentId); const expectedCode = department?.code === 'COMMERCIAL' ? 'NSCCCD' : department?.code === 'ECMD' ? 'WDLCD' : null; const division = (data?.divisions || []).find(item => item.department_id === departmentId && item.code === expectedCode); return ({ ...value, department_id: departmentId, division_id: division?.id || '', staff_position: '' }) })} className="input-field rounded-lg"><option value="">System Administration</option>{(data?.departments || []).map(item => <option key={item.id} value={item.id}>{departmentDisplayName(item)}</option>)}</select></Field>
+        <Field label="Division"><select value={assignment.division_id} onChange={event => setAssignment(value => ({ ...value, division_id: event.target.value }))} className="input-field rounded-lg" disabled={!assignment.department_id}><option value="">{assignment.department_id ? 'Select division' : 'Not applicable'}</option>{availableDivisions.map(item => <option key={item.id} value={item.id}>{divisionDisplayName(item)}</option>)}</select></Field>
         <Field label="Access level"><select required value={assignment.staff_position} onChange={event => setAssignment(value => ({ ...value, staff_position: event.target.value }))} className="input-field rounded-lg"><option value="">Select access</option>{assignmentPositionOptions.map(item => <option key={item} value={item}>{staffPositionLabel(item)}</option>)}</select></Field>
         <Field label="Reports to"><select value={assignment.supervisor_id} onChange={event => setAssignment(value => ({ ...value, supervisor_id: event.target.value }))} className="input-field rounded-lg"><option value="">None</option>{supervisors.map(item => <option key={item.id} value={item.id}>{item.full_name}</option>)}</select></Field>
-        <button disabled={busy === 'assignment'} className="btn-primary rounded-lg md:col-span-4">Save assignment</button>
+        <button disabled={busy === 'assignment'} className="btn-primary rounded-lg md:col-span-5">Save assignment</button>
       </form>
-      <p className="mt-3 text-xs text-gray-500">Commercial staff use the Commercial workspace. ECMD staff use the ECMD workspace. System Supervisors use System Administration. Maintenance Personnel can be Team Leaders or Crew Members within ECMD.</p>
+      <p className="mt-3 text-xs text-gray-500">Commercial Services Staff belong to NSCCCD. ECMD Staff and Maintenance Personnel belong to WDLCD. System Supervisors remain outside operational departments and divisions.</p>
     </Section>}
 
     {module === 'ecmd' && <Section title="Current crews">
-      <div className="grid gap-3 md:grid-cols-2">{(data?.crews || []).map(item => { const members = (data?.crew_members || []).filter(memberItem => memberItem.crew_id === item.id); return <div key={item.id} className="rounded-xl border border-gray-200 p-4"><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{item.name}</p><p className="text-xs text-gray-500">{departmentDisplayName(departmentMap[item.department_id])} · Default crew size {item.default_manpower}</p></div><span className="rounded-full bg-green-50 px-2 py-1 text-xs font-black text-green-700">{item.is_active ? 'ACTIVE' : 'INACTIVE'}</span></div><p className="mt-3 text-xs font-bold text-gray-700">Team leader: {staffMap[item.team_leader_id]?.full_name || 'Not assigned'}</p><div className="mt-2 flex flex-wrap gap-1.5">{members.map(memberItem => <span key={memberItem.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-bold text-gray-600">{staffMap[memberItem.staff_id]?.full_name || 'Staff'} · {titleCase(memberItem.crew_role)}</span>)}</div></div> })}</div>
+      <div className="grid gap-3 md:grid-cols-2">{(data?.crews || []).map(item => { const members = (data?.crew_members || []).filter(memberItem => memberItem.crew_id === item.id); return <div key={item.id} className="rounded-xl border border-gray-200 p-4"><div className="flex justify-between gap-3"><div><p className="font-black text-navy-900">{item.name}</p><p className="text-xs text-gray-500">{divisionDisplayName(divisionMap[item.division_id])} · {departmentDisplayName(departmentMap[item.department_id])} · Default crew size {item.default_manpower}</p></div><span className="rounded-full bg-green-50 px-2 py-1 text-xs font-black text-green-700">{item.is_active ? 'ACTIVE' : 'INACTIVE'}</span></div><p className="mt-3 text-xs font-bold text-gray-700">Team leader: {staffMap[item.team_leader_id]?.full_name || 'Not assigned'}</p><div className="mt-2 flex flex-wrap gap-1.5">{members.map(memberItem => <span key={memberItem.id} className="rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-bold text-gray-600">{staffMap[memberItem.staff_id]?.full_name || 'Staff'} · {titleCase(memberItem.crew_role)}</span>)}</div></div> })}</div>
     </Section>}
   </div>
 }

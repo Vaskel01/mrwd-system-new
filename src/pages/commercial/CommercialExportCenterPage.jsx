@@ -128,10 +128,10 @@ export default function CommercialExportCenterPage() {
             <select value={filters.status} onChange={event => setFilters(value => ({ ...value, status: event.target.value }))} className="input-field rounded-lg">
               <option value="all">All statuses</option>
               <option value="pending">Pending Review</option>
-              <option value="forwarded">Forwarded to ECMD</option>
+              <option value="forwarded">Sent to WDLCD</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
-              <option value="awaiting_verification">Waiting for ECMD verification</option>
+              <option value="awaiting_verification">Waiting for WDLCD verification</option>
               <option value="resolved">Resolved</option>
               <option value="rejected">Rejected</option>
               <option value="cancelled">Cancelled</option>

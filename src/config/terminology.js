@@ -3,11 +3,15 @@ export const TERMS = Object.freeze({
   COMMERCIAL_SERVICES: 'Commercial Services',
   COMMERCIAL_SERVICES_DEPARTMENT: 'Commercial Services Department',
   COMMERCIAL_DEPARTMENT: 'Commercial Services Department',
-  COMMERCIAL_STAFF: 'Commercial Services Staff',
+  COMMERCIAL_STAFF: 'Commercial Services Staff (NSCCCD)',
+  NSCCCD: 'New Service Connection and Customer Care Division (NSCCCD)',
+  NSCCCD_SHORT: 'NSCCCD',
   ACCOUNTS_BILLING: 'Accounts & Billing',
   ECMD: 'Engineering, Construction and Maintenance Department (ECMD)',
   ECMD_SHORT: 'ECMD',
-  ECMD_STAFF: 'ECMD Staff',
+  ECMD_STAFF: 'ECMD Staff (WDLCD)',
+  WDLCD: 'Water Distribution and Leakage Control Division (WDLCD)',
+  WDLCD_SHORT: 'WDLCD',
   SYSTEM_ADMINISTRATION: 'System Administration',
   SYSTEM_SUPERVISOR: 'System Supervisor',
   DEPARTMENT_STAFF: 'Staff Account',
@@ -23,11 +27,11 @@ export const TERMS = Object.freeze({
 
 export const STATUS_LABELS = Object.freeze({
   pending: 'Pending Review',
-  forwarded: 'Forwarded to ECMD',
+  forwarded: 'Sent to WDLCD',
   assigned: 'Assigned',
   en_route: 'In Progress',
   in_progress: 'In Progress',
-  awaiting_verification: 'Waiting for ECMD Verification',
+  awaiting_verification: 'Waiting for WDLCD Verification',
   resolved: 'Resolved',
   completed: 'Resolved',
   rejected: 'Rejected',
@@ -40,6 +44,14 @@ export function departmentDisplayName(department) {
   if (code === 'COMMERCIAL') return TERMS.COMMERCIAL_SERVICES_DEPARTMENT
   if (code === 'ECMD') return TERMS.ECMD
   return department?.name || String(department || 'Department')
+}
+
+
+export function divisionDisplayName(division) {
+  const code = String(division?.code || division || '').trim().toUpperCase()
+  if (code === 'NSCCCD') return TERMS.NSCCCD
+  if (code === 'WDLCD') return TERMS.WDLCD
+  return division?.name || String(division || 'Division')
 }
 
 export function staffAccessLabel(account) {

@@ -5,8 +5,8 @@ Production-ready web application for the **Metro Roxas Water District (MRWD)** c
 ## What this release contains
 
 - Customer complaint submission, geolocation, attachments, tracking, follow-up responses, reopening, notifications, and feedback.
-- **Commercial Services Department** workspace for complaint review, classifier review, priority overrides, customer-account/billing tools, advisories, reports, duplicate handling, customer follow-up requests, and Commercial → ECMD handoff.
-- **Engineering, Construction and Maintenance Department (ECMD)** workspace for dispatch, workload/availability, crew management, field coordination, related incidents, map operations, verification, inventory, and maintenance reporting.
+- **Commercial Services Department / NSCCCD** workspace for complaint review, classifier review, priority overrides, customer-account/billing tools, advisories, reports, duplicate handling, customer follow-up requests, and NSCCCD → WDLCD handoff.
+- **Engineering, Construction and Maintenance Department (ECMD) / WDLCD** workspace for dispatch, workload/availability, crew management, field coordination, related incidents, map operations, verification, inventory, and maintenance reporting.
 - **Maintenance Personnel** workspace for assigned field tasks, progress updates, manpower/material recording, completion notes, and reassignment/assistance requests.
 - **System Administration** workspace for System Supervisor account management, department access, audit/security events, announcements, archive recovery, backup verification, and system-health checks.
 - Dataset-backed hybrid complaint classification and Low / Medium / High priority recommendation.
@@ -24,6 +24,21 @@ This project does **not** use:
 - required maintenance before/after completion photos.
 
 Customer-submitted complaint photos are still supported.
+
+### MRWD routing structure
+
+```text
+Commercial Services Department
+└── New Service Connection and Customer Care Division (NSCCCD)
+    └── receives and reviews customer complaints
+        ↓ field-related complaints
+Engineering, Construction and Maintenance Department (ECMD)
+└── Water Distribution and Leakage Control Division (WDLCD)
+    └── assigns Maintenance Crews / Maintenance Personnel
+        ↓
+    Field work → WDLCD verification → Resolved
+```
+
 
 ---
 
@@ -104,6 +119,7 @@ update public.profiles
 set role = 'admin',
     staff_position = 'supervisor',
     department_id = null,
+    division_id = null,
     is_active = true,
     mfa_required = true,
     must_change_password = false,
@@ -113,7 +129,7 @@ where lower(email) = lower('admin@example.com');
 
 Replace `admin@example.com` with the real supervisor email.
 
-The System Supervisor can then create Commercial Services Staff, ECMD Staff, and Maintenance Personnel accounts from **System Administration → Staff Accounts**.
+The System Supervisor can then create Commercial Services Staff (NSCCCD), ECMD Staff (WDLCD), and Maintenance Personnel (WDLCD) accounts from **System Administration → Staff Accounts**.
 
 ## 5. Configure local environment files
 
@@ -253,8 +269,10 @@ System Supervisors do not inherit Commercial or ECMD operational access.
 Use these terms in code-facing documentation, demonstrations, and training:
 
 - **Commercial Services Department**
+- **New Service Connection and Customer Care Division (NSCCCD)**
 - **Commercial Services Staff**
 - **Engineering, Construction and Maintenance Department (ECMD)**
+- **Water Distribution and Leakage Control Division (WDLCD)**
 - **ECMD Staff**
 - **Maintenance Personnel**
 - **Maintenance Crew**
@@ -264,8 +282,8 @@ Use these terms in code-facing documentation, demonstrations, and training:
 - **Submitted**
 - **Active Complaints**
 - **Assigned Maintenance Personnel**
-- **Awaiting ECMD Verification**
-- **Resolved** only after ECMD verification
+- **Waiting for WDLCD Verification**
+- **Resolved** only after WDLCD verification
 
 Internal database values such as `admin`, `department_staff`, and `maintenance_personnel` remain implementation details.
 

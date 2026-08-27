@@ -10,13 +10,13 @@ const CLOSED_STATUSES = new Set(['resolved', 'completed', 'rejected', 'cancelled
 
 router.get('/crews', requireAuth, requireRole('admin', 'maintenance_personnel'), (req, res, next) => {
   if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
-    return res.status(403).json({ error: 'Crew information is restricted to ECMD.' })
+    return res.status(403).json({ error: 'Crew information is restricted to WDLCD under ECMD.' })
   }
   return next()
 }, async (req, res) => {
   const { data, error } = await req.supabase
     .from('maintenance_crews')
-    .select('id, name, department_id, team_leader_id, default_manpower, is_active')
+    .select('id, name, department_id, division_id, team_leader_id, default_manpower, is_active')
     .eq('is_active', true)
     .order('name')
   if (error) return res.status(400).json({ error: error.message })
@@ -64,11 +64,11 @@ function firstFailed(results) {
 async function loadActiveEcmdMaintenanceStaff(supabase, staffId) {
   if (!staffId) return null
   const { data, error } = await supabase.from('profiles')
-    .select('id, full_name, role, is_active, staff_position, department:departments(code)')
+    .select('id, full_name, role, is_active, staff_position, division_id, department:departments(code), division:divisions(code, department_id)')
     .eq('id', staffId).maybeSingle()
   if (error) throw error
-  if (!data || data.role !== 'maintenance_personnel' || !data.is_active || String(data.department?.code || '').toUpperCase() !== 'ECMD') {
-    throw new Error('Choose an active ECMD Maintenance Personnel account.')
+  if (!data || data.role !== 'maintenance_personnel' || !data.is_active || String(data.department?.code || '').toUpperCase() !== 'ECMD' || String(data.division?.code || '').toUpperCase() !== 'WDLCD') {
+    throw new Error('Choose an active WDLCD Maintenance Personnel account.')
   }
   return data
 }
@@ -80,9 +80,19 @@ async function requireEcmdDepartment(supabase, departmentId) {
   return data
 }
 
+
+async function requireWdlcdDivision(supabase, divisionId, departmentId) {
+  const { data, error } = await supabase.from('divisions').select('id, code, department_id, is_active').eq('id', divisionId).maybeSingle()
+  if (error) throw error
+  if (!data || !data.is_active || String(data.code || '').toUpperCase() !== 'WDLCD' || data.department_id !== departmentId) {
+    throw new Error('Maintenance crews must belong to WDLCD under ECMD.')
+  }
+  return data
+}
+
 function requireEcmdOrAssignedMaintenance(req, res, next) {
   if (req.user?.role === 'maintenance_personnel' || hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) return next()
-  return res.status(403).json({ error: 'Maintenance resources are restricted to ECMD and assigned Maintenance Personnel.' })
+  return res.status(403).json({ error: 'Maintenance resources are restricted to WDLCD and assigned Maintenance Personnel.' })
 }
 
 router.get('/commercial-bootstrap', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
@@ -103,18 +113,19 @@ router.get('/ecmd-bootstrap', requireAuth, requireCapability(CAPABILITIES.ECMD_O
   try {
     const today = manilaDateYmd()
     const future = addDaysYmd(today, 14)
-    const [departments, crews, members, schedules, inventory, staff] = await Promise.all([
+    const [departments, divisions, crews, members, schedules, inventory, staff] = await Promise.all([
       req.supabase.from('departments').select('*').eq('code', 'ECMD').limit(1),
+      req.supabase.from('divisions').select('*').eq('code', 'WDLCD').limit(1),
       req.supabase.from('maintenance_crews').select('*').order('name'),
       req.supabase.from('crew_members').select('*').eq('is_active', true),
       req.supabase.from('staff_schedules').select('*').gte('shift_date', today).lte('shift_date', future).order('shift_date'),
       req.supabase.from('inventory_items').select('*').eq('is_active', true).order('name'),
-      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').eq('role', 'maintenance_personnel').order('full_name'),
+      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status, division_id').eq('role', 'maintenance_personnel').order('full_name'),
     ])
-    const error = firstFailed([departments, crews, members, schedules, inventory, staff])
+    const error = firstFailed([departments, divisions, crews, members, schedules, inventory, staff])
     if (error) throw error
     res.json({
-      departments: departments.data || [], crews: crews.data || [], crew_members: members.data || [],
+      departments: departments.data || [], divisions: divisions.data || [], crews: crews.data || [], crew_members: members.data || [],
       schedules: schedules.data || [], inventory: inventory.data || [], staff: staff.data || [],
     })
   } catch (error) {
@@ -124,16 +135,17 @@ router.get('/ecmd-bootstrap', requireAuth, requireCapability(CAPABILITIES.ECMD_O
 
 router.get('/system-bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
   try {
-    const [departments, approvals, archives, deliveries, staff] = await Promise.all([
+    const [departments, divisions, approvals, archives, deliveries, staff] = await Promise.all([
       req.supabase.from('departments').select('*').order('name'),
+      req.supabase.from('divisions').select('*').order('name'),
       req.supabase.from('approval_requests').select('*').order('created_at', { ascending: false }).limit(50),
       req.supabase.from('archive_records').select('*').order('archived_at', { ascending: false }).limit(50),
       req.supabase.from('notification_deliveries').select('*').order('created_at', { ascending: false }).limit(50),
-      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
+      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, division_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
     ])
-    const error = firstFailed([departments, approvals, archives, deliveries, staff])
+    const error = firstFailed([departments, divisions, approvals, archives, deliveries, staff])
     if (error) throw error
-    res.json({ departments: departments.data || [], approvals: approvals.data || [], archives: archives.data || [], notification_deliveries: deliveries.data || [], staff: staff.data || [], inventory: [] })
+    res.json({ departments: departments.data || [], divisions: divisions.data || [], approvals: approvals.data || [], archives: archives.data || [], notification_deliveries: deliveries.data || [], staff: staff.data || [], inventory: [] })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
@@ -144,10 +156,11 @@ router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPA
     const today = manilaDateYmd()
     const future = addDaysYmd(today, 14)
     const [
-      departmentsResult, crewsResult, membersResult, schedulesResult, approvalsResult,
+      departmentsResult, divisionsResult, crewsResult, membersResult, schedulesResult, approvalsResult,
       accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult,
     ] = await Promise.all([
       req.supabase.from('departments').select('*').order('name'),
+      req.supabase.from('divisions').select('*').order('name'),
       req.supabase.from('maintenance_crews').select('*').order('name'),
       req.supabase.from('crew_members').select('*').eq('is_active', true),
       req.supabase.from('staff_schedules').select('*').gte('shift_date', today).lte('shift_date', future).order('shift_date'),
@@ -157,14 +170,15 @@ router.get('/bootstrap', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPA
       req.supabase.from('inventory_items').select('*').eq('is_active', true).order('name'),
       req.supabase.from('archive_records').select('*').order('archived_at', { ascending: false }).limit(50),
       req.supabase.from('notification_deliveries').select('*').order('created_at', { ascending: false }).limit(50),
-      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
+      req.supabase.from('profiles').select('id, full_name, email, phone, role, is_active, department_id, division_id, staff_position, supervisor_id, availability_status').in('role', ['admin', 'maintenance_personnel']).order('full_name'),
     ])
-    const results = [departmentsResult, crewsResult, membersResult, schedulesResult, approvalsResult, accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult]
+    const results = [departmentsResult, divisionsResult, crewsResult, membersResult, schedulesResult, approvalsResult, accountsResult, batchesResult, inventoryResult, archivesResult, deliveriesResult, staffResult]
     const failed = results.find(result => result.error)
     if (failed?.error) throw failed.error
 
     res.json({
       departments: departmentsResult.data || [],
+      divisions: divisionsResult.data || [],
       crews: crewsResult.data || [],
       crew_members: membersResult.data || [],
       schedules: schedulesResult.data || [],
@@ -196,15 +210,18 @@ router.post('/departments', requireAuth, requireCapability(CAPABILITIES.SYSTEM_D
 router.post('/crews', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const name = trimmed(req.body?.name)
   const departmentId = req.body?.department_id
-  if (!name || !departmentId) return res.status(400).json({ error: 'Crew name and department are required.' })
+  const divisionId = req.body?.division_id
+  if (!name || !departmentId || !divisionId) return res.status(400).json({ error: 'Crew name, department, and division are required.' })
   try {
     await requireEcmdDepartment(req.supabase, departmentId)
+    await requireWdlcdDivision(req.supabase, divisionId, departmentId)
     const teamLeaderId = req.body?.team_leader_id || null
     if (teamLeaderId) await loadActiveEcmdMaintenanceStaff(req.supabase, teamLeaderId)
     const manpower = numberValue(req.body?.default_manpower ?? 1, 'Default manpower', { min: 1, allowZero: false })
     const { data, error } = await req.supabase.from('maintenance_crews').insert({
       name,
       department_id: departmentId,
+      division_id: divisionId,
       team_leader_id: teamLeaderId,
       default_manpower: Math.round(manpower),
       contact_note: trimmed(req.body?.contact_note) || null,
@@ -247,10 +264,11 @@ router.post('/crew-members', requireAuth, requireCapability(CAPABILITIES.ECMD_OP
   const { crew_id, staff_id } = req.body || {}
   if (!crew_id || !staff_id) return res.status(400).json({ error: 'Crew and staff member are required.' })
   try {
-    const { data: crew, error: crewError } = await req.supabase.from('maintenance_crews').select('id, department_id, is_active').eq('id', crew_id).maybeSingle()
+    const { data: crew, error: crewError } = await req.supabase.from('maintenance_crews').select('id, department_id, division_id, is_active').eq('id', crew_id).maybeSingle()
     if (crewError) throw crewError
     if (!crew?.is_active) throw new Error('Choose an active maintenance crew.')
     await requireEcmdDepartment(req.supabase, crew.department_id)
+    await requireWdlcdDivision(req.supabase, crew.division_id, crew.department_id)
     await loadActiveEcmdMaintenanceStaff(req.supabase, staff_id)
     const role = trimmed(req.body?.crew_role || 'crew_member')
     if (!['team_leader', 'crew_member'].includes(role)) throw new Error('Crew role must be Team Leader or Maintenance Crew Member.')
@@ -286,7 +304,7 @@ router.patch('/crew-members/:id', requireAuth, requireCapability(CAPABILITIES.EC
 })
 
 router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYSTEM_DEPARTMENTS), async (req, res) => {
-  const { staff_id, department_id, staff_position, supervisor_id } = req.body || {}
+  const { staff_id, department_id, division_id, staff_position, supervisor_id } = req.body || {}
   if (!staff_id) return res.status(400).json({ error: 'Staff member is required.' })
   const position = trimmed(staff_position).toLowerCase()
   const allowedPositions = new Set(['manager', 'supervisor', 'team_leader', 'crew_member', 'commercial_staff', 'department_staff'])
@@ -302,32 +320,37 @@ router.post('/staff-assignment', requireAuth, requireCapability(CAPABILITIES.SYS
   if (staffError) return res.status(400).json({ error: staffError.message })
   if (departmentResult.error) return res.status(400).json({ error: departmentResult.error.message })
   const departmentCode = String(departmentResult.data?.code || '').toUpperCase()
+  const { data: division, error: divisionError } = division_id ? await req.supabase.from('divisions').select('id, code, department_id').eq('id', division_id).single() : { data: null, error: null }
+  if (divisionError) return res.status(400).json({ error: divisionError.message })
+  const divisionCode = String(division?.code || '').toUpperCase()
+  if (division && division.department_id !== department_id) return res.status(400).json({ error: 'The selected division does not belong to the selected department.' })
 
   const isSystemSupervisor = ['manager', 'supervisor'].includes(position)
   const isCommercialStaff = position === 'commercial_staff'
   const isEcmdStaff = position === 'department_staff'
   const isMaintenancePosition = ['team_leader', 'crew_member'].includes(position)
-  if (isSystemSupervisor && (staff.role !== 'admin' || department_id)) {
+  if (isSystemSupervisor && (staff.role !== 'admin' || department_id || division_id)) {
     return res.status(400).json({ error: 'System Supervisors must use a staff account without a department assignment.' })
   }
-  if (isCommercialStaff && (staff.role !== 'admin' || departmentCode !== 'COMMERCIAL')) {
-    return res.status(400).json({ error: 'Commercial Services Staff must use a staff account assigned to the Commercial Services Department.' })
+  if (isCommercialStaff && (staff.role !== 'admin' || departmentCode !== 'COMMERCIAL' || divisionCode !== 'NSCCCD')) {
+    return res.status(400).json({ error: 'Commercial Services Staff must be assigned to NSCCCD under the Commercial Services Department.' })
   }
-  if (isEcmdStaff && (staff.role !== 'admin' || departmentCode !== 'ECMD')) {
-    return res.status(400).json({ error: 'ECMD Staff must use a staff account assigned to ECMD.' })
+  if (isEcmdStaff && (staff.role !== 'admin' || departmentCode !== 'ECMD' || divisionCode !== 'WDLCD')) {
+    return res.status(400).json({ error: 'ECMD Staff must be assigned to WDLCD under ECMD.' })
   }
-  if (isMaintenancePosition && (staff.role !== 'maintenance_personnel' || departmentCode !== 'ECMD')) {
-    return res.status(400).json({ error: 'Team Leaders and Maintenance Crew Members must use a Maintenance Personnel account assigned to ECMD.' })
+  if (isMaintenancePosition && (staff.role !== 'maintenance_personnel' || departmentCode !== 'ECMD' || divisionCode !== 'WDLCD')) {
+    return res.status(400).json({ error: 'Maintenance Personnel must be assigned to WDLCD under ECMD.' })
   }
 
   const { data, error } = await req.supabase.rpc('admin_update_staff_assignment', {
     p_staff_id: staff_id,
     p_department_id: department_id || null,
+    p_division_id: division_id || null,
     p_staff_position: position,
     p_supervisor_id: supervisor_id || null,
   })
   if (error) return res.status(400).json({ error: error.message })
-  await writeAudit(req.supabase, req.user, 'staff.operational_assignment_updated', 'profile', staff_id, { department_id, staff_position, supervisor_id })
+  await writeAudit(req.supabase, req.user, 'staff.operational_assignment_updated', 'profile', staff_id, { department_id, division_id, staff_position, supervisor_id })
   res.json({ user: data })
 })
 

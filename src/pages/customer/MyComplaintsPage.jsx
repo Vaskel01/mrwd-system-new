@@ -22,16 +22,16 @@ function timeAgo(iso) {
 
 const STATUS_CONFIG = {
   pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending review', message: 'Your complaint is waiting for Commercial Services review.' },
-  forwarded: { bar: 25, color: '#2563eb', icon: 'assignment', label: 'Forwarded to ECMD', message: 'Commercial Services sent your complaint to ECMD for field work.' },
+  forwarded: { bar: 25, color: '#2563eb', icon: 'assignment', label: 'Sent to WDLCD', message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
   assigned: { bar: 35, color: '#7c3aed', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
   en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Waiting for ECMD verification', message: 'Field work is complete and ECMD is verifying the resolution.' },
-  resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'ECMD verified the completed field work and resolved the complaint.' },
+  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
+  resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'WDLCD verified the completed field work and resolved the complaint.' },
   completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
   rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },
   cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
-  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs attention', message: 'Maintenance Personnel asked ECMD for help.' },
+  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs attention', message: 'Maintenance Personnel asked WDLCD for help.' },
 }
 
 function ComplaintCard({ complaint, onView }) {

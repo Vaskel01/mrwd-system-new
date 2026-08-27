@@ -20,7 +20,7 @@ const QUEUE_FILTERS = [
   { key: 'assigned', label: 'Assigned', test: item => item.status === 'assigned' },
   { key: 'field_work', label: 'Field work', test: item => ['en_route', 'in_progress'].includes(item.status) },
   { key: 'blocked', label: 'Needs attention', test: item => item.status === 'blocked' },
-  { key: 'verification', label: 'Waiting for ECMD verification', test: item => item.status === 'awaiting_verification' },
+  { key: 'verification', label: 'Waiting for WDLCD verification', test: item => item.status === 'awaiting_verification' },
 ]
 
 const availabilityLabel = value => ({ available: 'Available', busy: 'Busy', on_leave: 'On leave', off_duty: 'Off duty' }[value] || value || 'Available')
@@ -53,21 +53,23 @@ export default function EcmdDispatchPage() {
   const fetchOperationalReference = useOperationalStore(state => state.fetchOperationalReference)
 
   const [staff, setStaff] = useState([])
+  const [crews, setCrews] = useState([])
   const [view, setView] = useState(() => searchParams.get('view') || 'queue')
   const [queueFilter, setQueueFilter] = useState(() => searchParams.get('queue') || 'all')
   const [query, setQuery] = useState(() => searchParams.get('q') || '')
   const [priority, setPriority] = useState(() => searchParams.get('priority') || 'all')
   const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority')
   const [assigning, setAssigning] = useState(null)
-  const [form, setForm] = useState({ staffId: '', reasonCode: '', notes: '' })
+  const [form, setForm] = useState({ crewId: '', staffId: '', reasonCode: '', notes: '' })
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
     await Promise.all([fetchComplaints(), fetchWorkload(), fetchOperationalReference()])
     try {
-      const result = await apiFetch('/users/maintenance-staff')
-      setStaff(result.staff || [])
+      const [staffResult, crewResult] = await Promise.all([apiFetch('/users/maintenance-staff'), apiFetch('/operations/crews')])
+      setStaff(staffResult.staff || [])
+      setCrews(crewResult.crews || [])
     } catch (_) {}
   }, [fetchComplaints, fetchWorkload, fetchOperationalReference])
 
@@ -121,7 +123,7 @@ export default function EcmdDispatchPage() {
     try {
       let result
       if (bulkChoice === 'assign') {
-        if (!bulkStaffId) throw new Error('Choose Maintenance Personnel for the selected complaints.')
+        if (!bulkStaffId) throw new Error('Choose Maintenance Personnel for the selected complaints. Crew assignment can be completed individually when needed.')
         result = await useComplaintStore.getState().bulkAssign(selected, bulkStaffId, bulkReason || '')
       } else if (bulkChoice === 'priority') {
         if (bulkReason.trim().length < 3) throw new Error('Enter a reason for the priority change.')
@@ -139,7 +141,7 @@ export default function EcmdDispatchPage() {
 
   const openAssign = complaint => {
     setAssigning(complaint)
-    setForm({ staffId: complaint.assigned_to || '', reasonCode: '', notes: complaint.task_notes || '' })
+    setForm({ crewId: complaint.assigned_crew_id || '', staffId: complaint.assigned_to || '', reasonCode: '', notes: complaint.task_notes || '' })
   }
 
   const saveAssignment = async event => {
@@ -151,7 +153,7 @@ export default function EcmdDispatchPage() {
     }
     setBusy(true)
     try {
-      await assignComplaint(assigning.id, form.staffId, form.notes.trim(), '', form.reasonCode)
+      await assignComplaint(assigning.id, form.staffId, form.notes.trim(), form.crewId, form.reasonCode)
       await Promise.all([fetchComplaints(), fetchWorkload()])
       const successMessage = assigning.assigned_to ? 'Complaint reassigned.' : 'Complaint assigned to Maintenance Personnel.'
       setNotice(successMessage)
@@ -165,12 +167,12 @@ export default function EcmdDispatchPage() {
     }
   }
 
-  if (loading && !complaints.length) return <PageLoader label="Loading ECMD dispatch queue…" />
+  if (loading && !complaints.length) return <PageLoader label="Loading WDLCD dispatch queue…" />
 
   return (
     <div className="space-y-5">
       <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p><p className="mt-1 text-xs font-bold text-navy-300">Water Distribution and Leakage Control Division (WDLCD)</p>
         <div className="mt-1 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-2xl font-black text-white sm:text-3xl">Complaint dispatch</h1>
@@ -345,7 +347,7 @@ export default function EcmdDispatchPage() {
 
       <Dialog
         open={Boolean(assigning)}
-        title={assigning?.assigned_to ? 'Reassign complaint' : 'Assign complaint'}
+        title={assigning?.assigned_to ? 'Reassign field work' : 'Assign field work'}
         description={assigning ? `${assigning.reference_number} · ${assigning.complaint_type}` : ''}
         onClose={() => !busy && setAssigning(null)}
         closeDisabled={busy}
@@ -353,6 +355,14 @@ export default function EcmdDispatchPage() {
         {assigning ? (
           <form onSubmit={saveAssignment}>
             <div className="space-y-4">
+              <div>
+                <label htmlFor="dispatch-crew" className="mb-1.5 block text-xs font-bold text-gray-600">Maintenance Crew</label>
+                <select id="dispatch-crew" value={form.crewId} onChange={event => { const crewId = event.target.value; const crew = crews.find(item => item.id === crewId); setForm(value => ({ ...value, crewId, staffId: crew?.team_leader_id || value.staffId })) }} className="input-field rounded-lg">
+                  <option value="">Direct personnel assignment</option>
+                  {crews.map(crew => <option key={crew.id} value={crew.id}>{crew.name}</option>)}
+                </select>
+                <p className="mt-1.5 text-xs text-gray-500">WDLCD normally assigns a Maintenance Crew. If no crew is selected, the complaint can still be assigned directly to Maintenance Personnel.</p>
+              </div>
               <div>
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <label htmlFor="dispatch-staff" className="block text-xs font-bold text-gray-600">Maintenance Personnel</label>

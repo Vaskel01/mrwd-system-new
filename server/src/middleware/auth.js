@@ -16,7 +16,7 @@ export async function requireAuth(req, res, next) {
 
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('id, email, full_name, phone, role, is_active, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)')
+    .select('id, email, full_name, phone, role, is_active, availability_status, availability_note, availability_until, department_id, division_id, staff_position, supervisor_id, account_validation_status, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name), division:divisions(id, code, name, department_id)')
     .eq('id', userData.user.id)
     .single()
 

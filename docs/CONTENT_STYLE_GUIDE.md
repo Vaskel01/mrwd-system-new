@@ -8,9 +8,9 @@ Tell people what they can do, what happened, or what they need to do next.
 
 Prefer:
 - **Review complaints**
-- **Send to ECMD**
+- **Send to WDLCD**
 - **Choose Maintenance Personnel**
-- **Waiting for ECMD verification**
+- **Waiting for WDLCD verification**
 
 Avoid implementation language such as:
 - operational owner
@@ -70,7 +70,7 @@ Use a verb that describes the result of the action.
 
 Prefer:
 - `Save changes`
-- `Send to ECMD`
+- `Send to WDLCD`
 - `Assign Maintenance Personnel`
 - `Mark field work complete`
 - `Verify and resolve`
@@ -90,11 +90,11 @@ Statuses should describe the current state, not an internal event name.
 
 Recommended complaint status language:
 - Pending review
-- Forwarded to ECMD
+- Sent to WDLCD
 - Assigned
 - In progress
 - Needs attention
-- Waiting for ECMD verification
+- Waiting for WDLCD verification
 - Resolved
 - Rejected
 - Cancelled
@@ -134,7 +134,7 @@ Complaints you submit will appear here. Use **Submit a complaint** when you need
 Success messages should confirm the result in plain language.
 
 Prefer:
-- `Complaint sent to ECMD.`
+- `Complaint sent to WDLCD.`
 - `Priority changed and recorded in the activity log.`
 - `Customer account list imported.`
 

@@ -97,11 +97,11 @@ const PAGE_HELP = [
   }),
   exact('/commercial/complaints', {
     title: 'Complaint review',
-    summary: 'Review incoming customer complaints, confirm the information, and forward field-related work to ECMD.',
+    summary: 'Review incoming customer complaints, confirm the information, and route field-related work to WDLCD under ECMD.',
     tips: [
       'Open a complaint before changing its workflow status so you can review its details and system suggestion.',
       'Use filters and saved views to focus on the complaints you handle most often.',
-      'Forward complaints to ECMD only when field work is needed; Commercial Services can continue to monitor downstream progress.',
+      'NSCCCD should send complaints to WDLCD only when field work is needed; Commercial Services can continue to monitor downstream progress.',
       'Bulk actions are useful when the same valid action applies to several selected complaints.',
     ],
   }),
@@ -143,8 +143,8 @@ const PAGE_HELP = [
   }),
 
   exact('/ecmd/dashboard', {
-    title: 'ECMD overview',
-    summary: 'See field-work demand, dispatch status, and operational items that need ECMD attention.',
+    title: 'WDLCD overview',
+    summary: 'See field-work demand, dispatch status, and operational items that need WDLCD attention.',
     tips: [
       'Start with Needs attention to find forwarded complaints, work awaiting verification, and other pending actions.',
       'Use the workload information before assigning more work to Maintenance Personnel.',
@@ -212,7 +212,7 @@ const PAGE_HELP = [
     summary: 'Manage staff account status, department assignment, staff position, and workspace access.',
     tips: [
       'Choose the account type and department carefully because they determine which workspace the person can access.',
-      'Commercial Services Staff should be assigned to Commercial Services; ECMD Staff and Maintenance Personnel belong to ECMD.',
+      'Commercial Services Staff belong to NSCCCD; ECMD Staff and Maintenance Personnel belong to WDLCD under ECMD.',
       'Reassign active maintenance work before deactivating Maintenance Personnel when required.',
       'New staff should replace their temporary password at first sign-in.',
     ],
@@ -252,7 +252,7 @@ const PAGE_HELP = [
       'Open the assigned complaint before travelling so you can review the address, problem details, and customer photo.',
       'Keep the task status current so ECMD can see whether work is assigned, en route, in progress, blocked, or complete.',
       'Record useful completion notes, manpower, and materials so ECMD has enough information to verify the work.',
-      'Mark Field work complete only when the work is ready for ECMD verification.',
+      'Mark Field work complete only when the work is ready for WDLCD verification.',
     ],
   }),
   exact('/maintenance/announcements', {
@@ -298,7 +298,7 @@ const PAGE_HELP = [
     summary: 'Review the field-work record for a maintenance task, including progress notes, manpower, and materials used.',
     tips: [
       'Use the task and complaint references to confirm you are reviewing the correct job.',
-      'Field-work notes should describe what was done clearly enough for ECMD verification and later reporting.',
+      'Field-work notes should describe what was done clearly enough for WDLCD verification and later reporting.',
       'Manpower and material records support operational reporting and should match the actual work performed.',
     ],
   }),

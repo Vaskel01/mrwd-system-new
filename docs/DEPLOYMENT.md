@@ -85,9 +85,9 @@ At minimum verify:
 
 - Customer registration and complaint submission.
 - Commercial review and ECMD forwarding.
-- ECMD dispatch to Maintenance Personnel.
+- WDLCD dispatch to Maintenance Personnel.
 - Maintenance progress and completion notes.
-- ECMD verification to Resolved.
+- WDLCD verification to Resolved.
 - Customer notification and feedback.
 - System Supervisor MFA and Staff Accounts.
 - Commercial billing CSV validation/import.

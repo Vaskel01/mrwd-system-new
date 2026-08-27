@@ -194,6 +194,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     reopen_reason: row.reopen_reason || null,
     forwarded_to_ecmd_at: row.forwarded_to_ecmd_at || null,
     forwarded_to_ecmd_by: row.forwarded_to_ecmd_by || null,
+    routed_division_id: row.routed_division_id || null,
     commercial_handoff_note: row.commercial_handoff_note || null,
     merged_into_id: row.merged_into_id || null,
     merged_at: row.merged_at || null,

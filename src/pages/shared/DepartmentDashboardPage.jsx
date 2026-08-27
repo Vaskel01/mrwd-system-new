@@ -48,8 +48,8 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
       return {
         cards: [
-          ['Pending Review', pendingReview.length, 'New complaints waiting for Commercial Services review and routing.', 'clipboard', '/commercial/complaints?status=pending'],
-          ['Forwarded to ECMD', forwarded.length, 'Complaints already handed off and waiting for ECMD assignment.', 'assignment', '/commercial/complaints?status=forwarded'],
+          ['Pending Review', pendingReview.length, 'New complaints waiting for NSCCCD review and routing.', 'clipboard', '/commercial/complaints?status=pending'],
+          ['Sent to WDLCD', forwarded.length, 'Complaints already handed off and waiting for WDLCD assignment.', 'assignment', '/commercial/complaints?status=forwarded'],
           ['Billing-related', withBillingConcern.length, 'Complaints involving billing, account, or payment concerns.', 'billing', '/commercial/complaints?q=billing'],
           ['Resolved today', resolvedToday.length, 'Complaints verified and resolved today.', 'check', '/commercial/complaints?status=resolved'],
         ],
@@ -65,8 +65,8 @@ export default function DepartmentDashboardPage({ moduleKey }) {
               || new Date(a.created_at) - new Date(b.created_at)
           })
           .slice(0, 6),
-        attentionTitle: 'Needs Commercial Attention',
-        attentionDescription: 'New, reopened, or High-priority complaints needing Commercial review or customer follow-up.',
+        attentionTitle: 'Needs NSCCCD attention',
+        attentionDescription: 'New, reopened, or High-priority complaints needing NSCCCD review or customer follow-up.',
       }
     }
 
@@ -77,10 +77,10 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
     return {
       cards: [
-        ['Ready to assign', readyForDispatch.length, 'Commercial-validated complaints ready for ECMD assignment.', 'assignment', '/ecmd/dispatch?queue=forwarded'],
+        ['Ready to assign', readyForDispatch.length, 'NSCCCD-reviewed complaints ready for WDLCD assignment.', 'assignment', '/ecmd/dispatch?queue=forwarded'],
         ['Active field work', activeFieldWork.length, 'Complaints currently assigned or being handled in the field.', 'tool', '/ecmd/dispatch?queue=field_work'],
-        ['Waiting for ECMD verification', awaitingVerification.length, 'Complaints with completed field work awaiting ECMD verification.', 'alert', '/ecmd/dispatch?queue=verification'],
-        ['Resolved today', resolvedToday.length, 'Complaints verified and resolved by ECMD today.', 'check', '/ecmd/dispatch?queue=resolved'],
+        ['Waiting for WDLCD verification', awaitingVerification.length, 'Complaints with completed field work awaiting WDLCD verification.', 'alert', '/ecmd/dispatch?queue=verification'],
+        ['Resolved today', resolvedToday.length, 'Complaints verified and resolved by WDLCD today.', 'check', '/ecmd/dispatch?queue=resolved'],
       ],
       attention: [...complaints]
         .filter(item => item.status === 'blocked' || item.status === 'awaiting_verification' || (item.status === 'forwarded' && !item.assigned_to) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
@@ -96,7 +96,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
             || new Date(a.created_at) - new Date(b.created_at)
         })
         .slice(0, 6),
-      attentionTitle: 'Needs ECMD attention',
+      attentionTitle: 'Needs WDLCD attention',
       attentionDescription: 'Complaints that are waiting for verification, blocked, ready to assign, or high priority.',
     }
   }, [complaints, moduleKey])

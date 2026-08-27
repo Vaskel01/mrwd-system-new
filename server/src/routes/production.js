@@ -263,7 +263,7 @@ router.post('/complaints/bulk-action', requireAuth, requireOperational, async (r
         const { data: forwarded, error } = await req.supabase.from('complaints').update({ status: 'forwarded', forwarded_to_ecmd_at: now, forwarded_to_ecmd_by: req.user.id, commercial_handoff_note: handoff || null, updated_at: now }).eq('id', id).eq('status', 'pending').select('id').maybeSingle()
         if (error) throw error
         if (!forwarded) throw new Error('Complaint is no longer pending and was not forwarded')
-        await writeComplaintEvent(req.supabase, req.user, id, { eventType: 'forwarded_to_ecmd', title: 'Forwarded to ECMD', message: handoff || 'Commercial review completed.', customerVisible: true })
+        await writeComplaintEvent(req.supabase, req.user, id, { eventType: 'forwarded_to_ecmd', title: 'Sent to WDLCD', message: handoff || 'NSCCCD review completed and routed to WDLCD.', customerVisible: true })
       } else if (action === 'priority') {
         if (!(hasCapability(req.user, CAPABILITIES.COMMERCIAL_COMPLAINTS) || hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS))) throw new Error('Priority update access required')
         const priority = text(req.body?.priority)

@@ -63,3 +63,17 @@ export async function getDepartmentAdminIds(supabase, departmentCode) {
     return getAdminIds(supabase)
   }
 }
+
+
+export async function getDivisionAdminIds(supabase, divisionCode) {
+  try {
+    const { data, error } = await supabase.rpc('active_admin_ids_for_division', {
+      p_division_code: String(divisionCode || '').trim().toUpperCase(),
+    })
+    if (error) throw error
+    return (data || []).map(row => row.id)
+  } catch (error) {
+    console.warn('[division recipients]', error?.message || error)
+    return []
+  }
+}

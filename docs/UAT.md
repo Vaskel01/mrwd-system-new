@@ -5,9 +5,9 @@ Run these checks after every fresh deployment.
 ## Authentication and access
 
 - [ ] Customer can register and receives a Customer profile.
-- [ ] Commercial Services Staff lands only in Commercial Services modules.
-- [ ] ECMD Staff lands only in ECMD modules.
-- [ ] Maintenance Personnel lands only in the assigned-task workspace.
+- [ ] Commercial Services Staff is assigned to NSCCCD and lands only in Commercial Services modules.
+- [ ] ECMD Staff is assigned to WDLCD and lands only in ECMD modules.
+- [ ] Team Leaders and Maintenance Crew Members are assigned to WDLCD and land only in the assigned-task workspace.
 - [ ] System Supervisor lands only in System Administration.
 - [ ] System Supervisor is required to complete/authenticate with MFA.
 - [ ] A Commercial account cannot open ECMD operational routes.
@@ -21,18 +21,19 @@ Run these checks after every fresh deployment.
 - [ ] Classifier result and priority are visible only to authorized staff at the intended detail level.
 - [ ] Commercial can request additional information and Customer can respond.
 - [ ] Commercial can override priority only with a reason.
-- [ ] Commercial can forward the complaint to ECMD.
+- [ ] NSCCCD can send the complaint to WDLCD.
 
 ## ECMD → Maintenance
 
 - [ ] Forwarded complaint appears in ECMD Complaint Dispatch.
-- [ ] Maintenance availability/workload is visible to ECMD.
-- [ ] ECMD can assign an eligible Maintenance Personnel account.
-- [ ] Assigned task appears for that Maintenance Personnel account.
+- [ ] Maintenance availability/workload is visible to WDLCD.
+- [ ] WDLCD can assign a Maintenance Crew, with direct Maintenance Personnel assignment available when needed.
+- [ ] A selected crew can use its Team Leader as the responsible Maintenance Personnel.
+- [ ] Assigned task appears for the responsible Maintenance Personnel account.
 - [ ] Unassigned Maintenance Personnel cannot access the task.
 - [ ] Maintenance can update field progress and submit completion notes.
 - [ ] No task acceptance step or required completion photo appears.
-- [ ] ECMD can verify completion and resolve the complaint.
+- [ ] WDLCD can verify completion and resolve the complaint.
 
 ## Reopen / duplicate / history
 
@@ -53,7 +54,7 @@ Run these checks after every fresh deployment.
 - [ ] Saved views persist per user.
 - [ ] Watchlist and Recent Complaints work.
 - [ ] Bulk actions report skipped/failed records correctly.
-- [ ] Crew management and availability calendar work for ECMD.
+- [ ] Crew management and availability calendar work for WDLCD under ECMD.
 - [ ] System Supervisor can view audit/security events.
 - [ ] Internal announcements respect audience.
 - [ ] System Health detects API/database configuration.

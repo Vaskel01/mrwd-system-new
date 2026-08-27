@@ -21,8 +21,8 @@ const ACCOUNT_BADGE = {
 }
 const ACCOUNT_LABEL = {
   system_supervisor: 'System Supervisor',
-  commercial_staff: 'Commercial Services Staff',
-  ecmd_staff: 'ECMD Staff',
+  commercial_staff: 'Commercial Services Staff (NSCCCD)',
+  ecmd_staff: 'ECMD Staff (WDLCD)',
   maintenance_personnel: 'Maintenance Personnel',
 }
 
@@ -98,12 +98,13 @@ export default function SystemStaffAccountsPage() {
   const [manageAccountId, setManageAccountId] = useState(null)
   const [deactivationAccount, setDeactivationAccount] = useState(null)
   const [departments, setDepartments] = useState([])
+  const [divisions, setDivisions] = useState([])
 
   useEffect(() => {
     fetchStaff()
     apiFetch('/operations/system-bootstrap')
-      .then(result => setDepartments(result.departments || []))
-      .catch(() => setDepartments([]))
+      .then(result => { setDepartments(result.departments || []); setDivisions(result.divisions || []) })
+      .catch(() => { setDepartments([]); setDivisions([]) })
   }, [fetchStaff])
   useEffect(() => {
     const next = {}
@@ -153,13 +154,17 @@ export default function SystemStaffAccountsPage() {
     try {
       const requestedModule = data.account_type === 'commercial_staff' ? 'commercial' : data.account_type === 'system_supervisor' ? 'system' : 'ecmd'
       const department = departments.find(item => item.code === requestedModule.toUpperCase())
-      if (requestedModule !== 'system' && !department) throw new Error(`The ${requestedModule.toUpperCase()} department record is missing. Run the department-access migration first.`)
+      const divisionCode = data.account_type === 'commercial_staff' ? 'NSCCCD' : data.account_type === 'system_supervisor' ? null : 'WDLCD'
+      const division = divisionCode ? divisions.find(item => item.code === divisionCode && item.department_id === department?.id) : null
+      if (requestedModule !== 'system' && !department) throw new Error(`The ${requestedModule.toUpperCase()} department record is missing.`)
+      if (divisionCode && !division) throw new Error(`The ${divisionCode} division record is missing.`)
       const normalized = {
         email: data.email.trim().toLowerCase(),
         full_name: data.full_name.trim(),
         password: data.password,
         role: data.account_type === 'maintenance_personnel' ? 'maintenance_personnel' : 'admin',
         department_id: department?.id || null,
+        division_id: division?.id || null,
         staff_position: data.account_type === 'system_supervisor' ? 'supervisor' : data.account_type === 'maintenance_personnel' ? 'crew_member' : data.account_type === 'commercial_staff' ? 'commercial_staff' : 'department_staff',
       }
       const result = await createStaff(normalized)
@@ -324,7 +329,7 @@ export default function SystemStaffAccountsPage() {
           <p className="font-display font-black text-3xl text-blue-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">Commercial Services</p>
         </button>
         <button onClick={() => setRoleFilter('ecmd_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'ecmd_staff' ? 'ring-2 ring-cyan-600 border-cyan-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-cyan-700">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff</p>
+          <p className="font-display font-black text-3xl text-cyan-700">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff (WDLCD)</p>
         </button>
         <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'ring-2 ring-amber-600 border-amber-300' : ''}`}>
           <p className="font-display font-black text-3xl text-amber-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
@@ -353,13 +358,13 @@ export default function SystemStaffAccountsPage() {
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Account type <span className="text-red-500">*</span></label>
                 <select aria-label="Account type" {...register('account_type')} className={`input-field rounded-lg ${errors.account_type ? 'input-error' : ''}`}>
                   <option value="">Select account type…</option>
-                  <option value="commercial_staff">Commercial Services Staff</option>
-                  <option value="ecmd_staff">ECMD Staff</option>
+                  <option value="commercial_staff">Commercial Services Staff (NSCCCD)</option>
+                  <option value="ecmd_staff">ECMD Staff (WDLCD)</option>
                   <option value="maintenance_personnel">Maintenance Personnel</option>
                   <option value="system_supervisor">System Supervisor</option>
                 </select>
                 {errors.account_type && <p className="mt-1 text-xs text-red-600">{errors.account_type.message}</p>}
-                <p className="mt-1 text-[11px] text-gray-500">Choose the account type that matches the staff member’s work. Each account can open only its assigned workspace.</p>
+                <p className="mt-1 text-[11px] text-gray-500">Operational accounts are automatically assigned to the correct division: NSCCCD for Commercial Services and WDLCD for ECMD/Maintenance.</p>
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email <span className="text-red-500">*</span></label>
@@ -393,7 +398,7 @@ export default function SystemStaffAccountsPage() {
         <div className="qol-filter-bar card rounded-xl p-4 sm:p-5">
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} placeholder="Name, email, or account type" /></div>
           <div className="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4 lg:items-end">
-            <label className="block text-xs font-bold text-gray-600">Account type<select name="staffaccountspage-role-filter-6" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All account types</option><option value="commercial_staff">Commercial Services Staff</option><option value="ecmd_staff">ECMD Staff</option><option value="maintenance_personnel">Maintenance Personnel</option><option value="system_supervisor">System Supervisor</option></select></label>
+            <label className="block text-xs font-bold text-gray-600">Account type<select name="staffaccountspage-role-filter-6" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All account types</option><option value="commercial_staff">Commercial Services Staff (NSCCCD)</option><option value="ecmd_staff">ECMD Staff (WDLCD)</option><option value="maintenance_personnel">Maintenance Personnel</option><option value="system_supervisor">System Supervisor</option></select></label>
             <label className="block text-xs font-bold text-gray-600">Status<select name="staffaccountspage-account-filter-7" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Deactivated</option></select></label>
             <label className="block text-xs font-bold text-gray-600">Sort<select name="staffaccountspage-sort-by-8" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="name">Name A–Z</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
             <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear filters</button>
@@ -454,9 +459,9 @@ export default function SystemStaffAccountsPage() {
                       </td>
                       <td className="px-5 py-4 align-top">
                         <p className="text-xs leading-5 break-words text-gray-500">
-                          {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services workspace only'}
-                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD workspace only'}
-                          {accountTypeKey(account) === 'maintenance_personnel' && 'Maintenance task workspace only'}
+                          {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services / NSCCCD workspace only'}
+                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD / WDLCD workspace only'}
+                          {accountTypeKey(account) === 'maintenance_personnel' && 'WDLCD maintenance task workspace only'}
                           {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
                         </p>
                       </td>
@@ -485,9 +490,9 @@ export default function SystemStaffAccountsPage() {
                   </div>
                   <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-xs font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-xs font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
                   <p className="mt-2 text-xs text-gray-500">
-                    {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services workspace only'}
-                    {accountTypeKey(account) === 'ecmd_staff' && 'ECMD workspace only'}
-                    {accountTypeKey(account) === 'maintenance_personnel' && 'Maintenance task workspace only'}
+                    {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services / NSCCCD workspace only'}
+                    {accountTypeKey(account) === 'ecmd_staff' && 'ECMD / WDLCD workspace only'}
+                    {accountTypeKey(account) === 'maintenance_personnel' && 'WDLCD maintenance task workspace only'}
                     {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
                   </p>
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">

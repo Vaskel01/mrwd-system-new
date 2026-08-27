@@ -3,9 +3,9 @@ import AppIcon from './AppIcon'
 const STEPS = [
   { key: 'submitted', label: 'Submitted' },
   { key: 'review', label: 'Commercial review' },
-  { key: 'ecmd', label: 'Sent to ECMD' },
+  { key: 'ecmd', label: 'Sent to WDLCD' },
   { key: 'field', label: 'Field work' },
-  { key: 'verification', label: 'ECMD verification' },
+  { key: 'verification', label: 'WDLCD verification' },
   { key: 'resolved', label: 'Resolved' },
 ]
 
@@ -30,28 +30,28 @@ function actionFor({ status, role, canCommercialReview, canEcmdOperate, hasOpenF
     if (hasOpenFollowUp) return ['Your next step', 'Commercial Services needs more information. Reply to the request below so review can continue.', 'alert']
     if (status === 'resolved' || status === 'completed') return ['Your next step', 'Review the resolution. You can leave feedback if the issue has been fixed.', 'check']
     if (status === 'pending') return ['What happens next', 'Commercial Services is reviewing your report. No action is needed unless staff asks for more information.', 'clipboard']
-    if (status === 'forwarded') return ['What happens next', 'The complaint is now with ECMD for assignment and field planning.', 'assignment']
-    if (['assigned', 'en_route', 'in_progress', 'blocked'].includes(status)) return ['What happens next', 'Maintenance work is being handled by ECMD and assigned field personnel.', 'tool']
-    if (status === 'awaiting_verification') return ['What happens next', 'Field work is complete. ECMD is checking the work before the complaint is marked resolved.', 'check']
+    if (status === 'forwarded') return ['What happens next', 'The complaint is now with WDLCD under ECMD for assignment and field planning.', 'assignment']
+    if (['assigned', 'en_route', 'in_progress', 'blocked'].includes(status)) return ['What happens next', 'Maintenance work is being handled by WDLCD and the assigned Maintenance Crew or field personnel.', 'tool']
+    if (status === 'awaiting_verification') return ['What happens next', 'Field work is complete. WDLCD is checking the work before the complaint is marked resolved.', 'check']
   }
 
   if (canCommercialReview) {
-    if (status === 'pending') return ['Next action', 'Review the complaint details, confirm the type and priority, then send it to ECMD or record a rejection reason.', 'clipboard']
-    return ['Commercial status', 'ECMD owns field operations after handoff. You can monitor progress and record customer communication when needed.', 'assignment']
+    if (status === 'pending') return ['Next action', 'Review the complaint details, confirm the type and priority, then send field-related work to WDLCD or record a rejection reason.', 'clipboard']
+    return ['Commercial status', 'WDLCD owns field operations after the NSCCCD handoff. You can monitor progress and record customer communication when needed.', 'assignment']
   }
 
   if (canEcmdOperate) {
     if (status === 'forwarded') return ['Next action', 'Assign available Maintenance Personnel or a crew so field work can begin.', 'assignment']
     if (['assigned', 'en_route', 'in_progress', 'blocked'].includes(status)) return ['Next action', 'Monitor field progress and respond to any help, reassignment, or access issue reported by Maintenance Personnel.', 'tool']
     if (status === 'awaiting_verification') return ['Next action', 'Review the completion notes. Verify the work to resolve the complaint or return it for more field work.', 'check']
-    if (status === 'resolved' || status === 'completed') return ['Work verified', 'ECMD verification is complete and the complaint is resolved.', 'check']
+    if (status === 'resolved' || status === 'completed') return ['Work verified', 'WDLCD verification is complete and the complaint is resolved.', 'check']
   }
 
   if (role === 'maintenance_personnel') {
     if (status === 'assigned') return ['Your next step', 'Open the field details and start work when you are ready.', 'tool']
     if (['en_route', 'in_progress'].includes(status)) return ['Your next step', 'Continue the repair, record materials or manpower as needed, then submit completion notes when field work is finished.', 'tool']
-    if (status === 'blocked') return ['Waiting for ECMD', 'You reported an issue that needs ECMD review. Update the complaint if the situation changes.', 'alert']
-    if (status === 'awaiting_verification') return ['Field work submitted', 'ECMD is reviewing your completion notes. No additional field action is required unless the complaint is returned.', 'check']
+    if (status === 'blocked') return ['Waiting for WDLCD', 'You reported an issue that needs WDLCD review. Update the complaint if the situation changes.', 'alert']
+    if (status === 'awaiting_verification') return ['Field work submitted', 'WDLCD is reviewing your completion notes. No additional field action is required unless the complaint is returned.', 'check']
   }
 
   return ['Current status', 'Review the complaint details and activity history below.', 'document']

@@ -81,8 +81,8 @@ test('admin response retains complete classifier evidence', () => {
 })
 
 test('department modules grant only their approved administrative capabilities', () => {
-  const commercialAdmin = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' } }
-  const ecmdAdmin = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' } }
+  const commercialAdmin = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' }, division: { code: 'NSCCCD' } }
+  const ecmdAdmin = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' }, division: { code: 'WDLCD' } }
   const supervisor = { role: 'admin', staff_position: 'supervisor', department: null }
   const unassignedAdmin = { role: 'admin', staff_position: null, department: null }
 
@@ -96,11 +96,13 @@ test('department modules grant only their approved administrative capabilities',
   assert.equal(hasCapability(supervisor, CAPABILITIES.ECMD_OPERATIONS), false)
   assert.equal(hasCapability(supervisor, CAPABILITIES.SYSTEM_APPROVALS), true)
   assert.deepEqual(capabilitiesForUser(unassignedAdmin), [])
+  assert.deepEqual(capabilitiesForUser({ role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' } }), [])
+  assert.deepEqual(capabilitiesForUser({ role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' }, division: { code: 'NSCCCD' } }), [])
 })
 
 test('department accounts use canonical labels and distinct home pages', () => {
-  const commercialStaff = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' } }
-  const ecmdStaff = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' } }
+  const commercialStaff = { role: 'admin', staff_position: 'commercial_staff', department: { code: 'COMMERCIAL' }, division: { code: 'NSCCCD' } }
+  const ecmdStaff = { role: 'admin', staff_position: 'department_staff', department: { code: 'ECMD' }, division: { code: 'WDLCD' } }
   const systemSupervisor = { role: 'admin', staff_position: 'supervisor', department: null }
   const maintenancePersonnel = { role: 'maintenance_personnel' }
 

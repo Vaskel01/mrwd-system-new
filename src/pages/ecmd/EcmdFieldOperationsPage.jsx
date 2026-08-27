@@ -102,7 +102,7 @@ export default function EcmdFieldOperationsPage() {
         ['Ready to assign', complaints.filter(i => i.status === 'forwarded').length],
         ['Active field work', complaints.filter(i => ['assigned','en_route','in_progress'].includes(i.status)).length],
         ['Needs attention', complaints.filter(i => i.status === 'blocked').length],
-        ['Waiting for ECMD verification', complaints.filter(i => i.status === 'awaiting_verification').length],
+        ['Waiting for WDLCD verification', complaints.filter(i => i.status === 'awaiting_verification').length],
         ['Resolved today', completedToday.length],
       ].map(([label,value]) => <div key={label} className="card rounded-xl p-4"><p className="font-display text-3xl font-black text-navy-900">{value}</p><p className="mt-1 text-[11px] font-black uppercase tracking-wide text-gray-500">{label}</p></div>)}
     </section>

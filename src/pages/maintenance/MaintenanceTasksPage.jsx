@@ -130,7 +130,7 @@ export default function MaintenanceTasksPage() {
       <PageHeader
         eyebrow="Maintenance Personnel"
         title="My tasks"
-        description="Open assigned complaints, update field progress, and send completed work to ECMD for verification."
+        description="Open assigned complaints, update field progress, and send completed work to WDLCD for verification."
         actions={<div className="text-left sm:text-right"><p className="font-display text-4xl font-black leading-none text-gold-400">{completionRate}%</p><p className="mt-1 text-xs font-bold text-navy-200">Field work completed</p></div>}
       />
 
@@ -144,9 +144,16 @@ export default function MaintenanceTasksPage() {
           ['rejected', 'Rejected', counts.rejected, 'Assigned records that were rejected.', 'alert', 'text-red-700'],
           ['all', 'All tasks', counts.all, 'Every complaint assigned to your account.', 'clipboard', 'text-navy-900'],
         ].map(([value, label, count, detail, icon, accent]) => (
-          <div key={value} className={view === value ? 'rounded-xl ring-2 ring-navy-700' : ''}>
-            <MetricCard label={label} value={count} detail={detail} icon={icon} accent={accent} onClick={() => { setView(value); setPage(1) }} />
-          </div>
+          <MetricCard
+            key={value}
+            label={label}
+            value={count}
+            detail={detail}
+            icon={icon}
+            accent={accent}
+            selected={view === value}
+            onClick={() => { setView(value); setPage(1) }}
+          />
         ))}
       </div>
 
@@ -176,7 +183,7 @@ export default function MaintenanceTasksPage() {
               <option value="all">All statuses</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
-              <option value="awaiting_verification">Waiting for ECMD verification</option>
+              <option value="awaiting_verification">Waiting for WDLCD verification</option>
               <option value="resolved">Resolved</option>
               <option value="blocked">Needs Attention</option>
               <option value="rejected">Rejected</option>
@@ -194,7 +201,7 @@ export default function MaintenanceTasksPage() {
       )}
 
       {myTasks.length === 0 ? (
-        <EmptyState icon={<AppIcon name="tool" className="h-10 w-10" />} title="No tasks assigned" description="New field assignments will appear here when ECMD assigns work to you." />
+        <EmptyState icon={<AppIcon name="tool" className="h-10 w-10" />} title="No tasks assigned" description="New field assignments will appear here when WDLCD assigns work to you." />
       ) : (
         <>
           <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">

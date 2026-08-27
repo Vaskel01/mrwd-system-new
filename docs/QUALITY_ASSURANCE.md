@@ -31,7 +31,7 @@ npm run test:classifier
 
 The repository does not force a browser automation dependency into the production install. Until Playwright or another browser runner is added, use `UAT.md` for role-based end-to-end acceptance testing. The highest-priority journey is:
 
-**Customer submits → Commercial reviews and forwards → ECMD assigns → Maintenance completes field work → ECMD verifies → Customer sees the resolved complaint.**
+**Customer submits → NSCCCD reviews and routes → WDLCD assigns → Maintenance completes field work → ECMD verifies → Customer sees the resolved complaint.**
 
 For each role, also verify that unauthorized workspace URLs remain blocked.
 

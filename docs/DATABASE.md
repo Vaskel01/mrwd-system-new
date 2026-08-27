@@ -33,6 +33,7 @@ update public.profiles
 set role = 'admin',
     staff_position = 'supervisor',
     department_id = null,
+    division_id = null,
     is_active = true,
     mfa_required = true,
     must_change_password = false,
@@ -48,17 +49,28 @@ After bootstrap, create staff through **System Administration → Staff Accounts
 
 The application maps account types to the internal database model:
 
-| UI account type | Internal role | Department/position |
-|---|---|---|
-| Commercial Services Staff | `admin` | `COMMERCIAL` / `commercial_staff` |
-| ECMD Staff | `admin` | `ECMD` / `department_staff` |
-| Maintenance Personnel | `maintenance_personnel` | `ECMD` / team leader or crew member |
-| System Supervisor | `admin` | no department / supervisor |
+| UI account type | Internal role | Department | Division | Position |
+|---|---|---|---|---|
+| Commercial Services Staff | `admin` | `COMMERCIAL` | `NSCCCD` | `commercial_staff` |
+| ECMD Staff | `admin` | `ECMD` | `WDLCD` | `department_staff` |
+| Maintenance Personnel | `maintenance_personnel` | `ECMD` | `WDLCD` | team leader or crew member |
+| System Supervisor | `admin` | none | none | supervisor |
 
 ## Reference data
 
-The setup SQL seeds the supported complaint types, department records, reason codes, and other required reference/configuration rows used by the application.
+The setup SQL seeds the supported complaint types, department and division records (NSCCCD/WDLCD), reason codes, and other required reference/configuration rows used by the application.
 
 ## Demo data
 
 Destructive historical demo-reset SQL is intentionally not included in the deployment release. Build demo records through the application or use a dedicated development project.
+
+
+### Existing production upgrade
+
+The targeted upgrade used for deployments that predate division routing is stored at:
+
+```text
+docs/database-upgrades/20260826_division_routing.sql
+```
+
+Do not run this on a fresh database; `supabase/setup.sql` already includes the final organization model.

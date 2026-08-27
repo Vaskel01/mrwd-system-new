@@ -41,7 +41,7 @@ A fresh deployment uses `supabase/setup.sql`.
 The database uses:
 
 - `profiles` linked to `auth.users`;
-- department capability checks;
+- department + division capability checks;
 - RLS on exposed operational tables;
 - private `app_private` SECURITY DEFINER implementations only where privileged access is required;
 - public SECURITY INVOKER RPC wrappers;
@@ -53,19 +53,22 @@ The database uses:
 Customer submission
       |
       v
-Commercial Services review
+Commercial Services Department
       |
       v
-Forward to ECMD
+NSCCCD review
       |
       v
-ECMD dispatch
+Send to WDLCD under ECMD
       |
       v
-Maintenance Personnel field work
+WDLCD dispatch
       |
       v
-ECMD verification
+Maintenance Crew / Personnel field work
+      |
+      v
+WDLCD verification
       |
       v
 Resolved / Customer feedback
@@ -79,3 +82,13 @@ System Administration is parallel governance and does not inherit operational de
 - `ErrorBoundary` provides a recovery screen if an unexpected render error reaches the application shell.
 - Shared UI primitives under `src/components/ui/` provide page headers, metric cards, dialogs, form-field structure, bulk-action layout, loading/empty/error states, and complaint progress guidance.
 - Complaint details show the six-stage service path separately from the full audit timeline so users can understand the current stage at a glance.
+
+
+## Organizational hierarchy
+
+- **Commercial Services Department**
+  - **New Service Connection and Customer Care Division (NSCCCD)** receives and reviews complaints.
+- **Engineering, Construction and Maintenance Department (ECMD)**
+  - **Water Distribution and Leakage Control Division (WDLCD)** receives field-related complaints, assigns Maintenance Crews or Maintenance Personnel, coordinates field work, and verifies completion.
+
+The application keeps Commercial and ECMD as separate workspaces, while `divisions` records the real organizational unit responsible for the work.

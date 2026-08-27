@@ -121,7 +121,7 @@ export default function CommercialComplaintReviewPage() {
           <div>
             <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Review complaints</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-navy-300">Check new complaints, confirm the details and priority, then send eligible complaints to ECMD.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-navy-300">Check new complaints, confirm the details and priority, then send field-related complaints to WDLCD.</p>
           </div>
           <div className="text-right">
             <p className="font-display font-black text-5xl leading-none" style={{ color: '#e6b020' }}>{filtered.length}</p>
@@ -155,11 +155,11 @@ export default function CommercialComplaintReviewPage() {
             <select name="allcomplaintspage-filter-status-3" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">All statuses</option>
               <option value="pending">Pending Review</option>
-              <option value="forwarded">Forwarded to ECMD</option>
+              <option value="forwarded">Sent to WDLCD</option>
               <option value="assigned">Assigned</option>
               <option value="in_progress">In Progress</option>
               <option value="blocked">Needs Attention</option>
-              <option value="awaiting_verification">Waiting for ECMD verification</option>
+              <option value="awaiting_verification">Waiting for WDLCD verification</option>
               <option value="resolved">Resolved</option>
               <option value="rejected">Rejected</option>
               <option value="cancelled">Cancelled</option>
@@ -185,7 +185,7 @@ export default function CommercialComplaintReviewPage() {
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-gray-600">Action</span>
           <select value={bulkChoice} onChange={e => setBulkChoice(e.target.value)} className="input-field rounded-lg text-sm">
-            <option value="forward_to_ecmd">Send to ECMD</option>
+            <option value="forward_to_ecmd">Send to WDLCD</option>
             <option value="priority">Change priority</option>
             <option value="watch">Add to watchlist</option>
             <option value="request_archive">Request archive</option>
@@ -202,7 +202,7 @@ export default function CommercialComplaintReviewPage() {
         {['forward_to_ecmd','priority','request_archive'].includes(bulkChoice) ? (
           <label className="block sm:col-span-2 xl:col-span-1">
             <span className="mb-1.5 block text-xs font-bold text-gray-600">{bulkChoice === 'forward_to_ecmd' ? 'Handoff note' : 'Reason'}</span>
-            <input value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="input-field rounded-lg text-sm" placeholder={bulkChoice === 'forward_to_ecmd' ? 'Optional note for ECMD' : 'Required reason'} />
+            <input value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="input-field rounded-lg text-sm" placeholder={bulkChoice === 'forward_to_ecmd' ? 'Optional note for WDLCD' : 'Required reason'} />
           </label>
         ) : null}
         <button type="button" disabled={bulkBusy} onClick={runBulk} className="btn-primary rounded-lg disabled:opacity-50">{bulkBusy ? 'Applying…' : 'Apply action'}</button>

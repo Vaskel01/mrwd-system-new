@@ -40,6 +40,10 @@ export function departmentCodeFor(user) {
   return String(user?.department?.code || user?.department_code || '').trim().toUpperCase()
 }
 
+export function divisionCodeFor(user) {
+  return String(user?.division?.code || user?.division_code || '').trim().toUpperCase()
+}
+
 export function isSystemSupervisor(user) {
   if (user?.role !== 'admin') return false
   const position = String(user?.staff_position || '').trim().toLowerCase()
@@ -51,8 +55,9 @@ export function capabilitiesForUser(user) {
   if (isSystemSupervisor(user)) return SYSTEM_CAPABILITIES
 
   const departmentCode = departmentCodeFor(user)
-  if (departmentCode === 'COMMERCIAL') return COMMERCIAL_CAPABILITIES
-  if (departmentCode === 'ECMD') return ECMD_CAPABILITIES
+  const divisionCode = divisionCodeFor(user)
+  if (departmentCode === 'COMMERCIAL' && divisionCode === 'NSCCCD') return COMMERCIAL_CAPABILITIES
+  if (departmentCode === 'ECMD' && divisionCode === 'WDLCD') return ECMD_CAPABILITIES
   return []
 }
 

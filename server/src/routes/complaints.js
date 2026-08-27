@@ -3,14 +3,14 @@ import { requireAuth, requireCapability, requireRole } from '../middleware/auth.
 import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
 import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
-import { getDepartmentAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
+import { getDepartmentAdminIds, getDivisionAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 import { writeComplaintEvent } from '../lib/complaintEvents.js'
 
 const router = Router()
 const STATUS_VALUES = ['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification', 'resolved', 'rejected', 'cancelled']
 const STATUS_LABEL = {
-  pending: 'Pending Review', forwarded: 'Forwarded to ECMD', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
-  blocked: 'Needs Attention', awaiting_verification: 'Awaiting ECMD Verification', resolved: 'Resolved', completed: 'Resolved', rejected: 'Rejected', cancelled: 'Cancelled',
+  pending: 'Pending Review', forwarded: 'Sent to WDLCD', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
+  blocked: 'Needs Attention', awaiting_verification: 'Awaiting WDLCD Verification', resolved: 'Resolved', completed: 'Resolved', rejected: 'Rejected', cancelled: 'Cancelled',
 }
 
 async function logTaskUpdate(supabase, taskId, userId, message) {
@@ -64,7 +64,7 @@ async function assignOne(req, complaintId, assignedTo, notes, crewId = null, rea
     throw new Error('This complaint cannot be assigned in its current status. Reopen or return it to field work first.')
   }
   if (!['forwarded', 'assigned', 'in_progress', 'blocked'].includes(complaintRow.status)) {
-    throw new Error('The complaint must be forwarded to ECMD before dispatch.')
+    throw new Error('The complaint must be sent to WDLCD before dispatch.')
   }
 
   const isReassignment = Boolean(previous?.assigned_staff_id && previous.assigned_staff_id !== assignedTo)
@@ -432,11 +432,11 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// Commercial Services: explicit handoff to ECMD after review.
+// Commercial Services: explicit handoff from NSCCCD to WDLCD after review.
 router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
-  if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial review can be forwarded to ECMD.' })
+  if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial review can be sent to WDLCD.' })
   const note = String(req.body?.note || '').trim()
   const now = new Date().toISOString()
   const { error } = await req.supabase.from('complaints').update({
@@ -444,10 +444,10 @@ router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES
     rejection_reason: null, rejected_at: null, updated_at: now,
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
-  const ecmd = await getDepartmentAdminIds(req.supabase, 'ECMD')
-  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint forwarded by Commercial', message: `${complaint.reference_number} is ready for ECMD dispatch.`, type: 'assignment', complaintId: req.params.id })
-  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint forwarded to ECMD', message: 'Commercial Services completed its review and forwarded your complaint for field handling.', type: 'status', complaintId: req.params.id })
-  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'forwarded_to_ecmd', title: 'Forwarded to ECMD', message: note || 'Commercial Services completed complaint review.', customerVisible: true })
+  const ecmd = await getDivisionAdminIds(req.supabase, 'WDLCD')
+  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint forwarded by Commercial', message: `${complaint.reference_number} is ready for WDLCD dispatch.`, type: 'assignment', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint sent to WDLCD', message: 'NSCCCD completed its review and sent your complaint to WDLCD under ECMD for field handling.', type: 'status', complaintId: req.params.id })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'forwarded_to_ecmd', title: 'Sent to WDLCD', message: note || 'NSCCCD completed complaint review and routed the complaint to WDLCD.', customerVisible: true })
   await writeAudit(req.supabase, req.user, 'complaint.forwarded_to_ecmd', 'complaint', req.params.id, { note: note || null })
   return respondWithComplaint(req, res, req.params.id)
 })
@@ -562,7 +562,7 @@ router.patch('/:id/priority', requireAuth, requireRole('admin'), async (req, res
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// General status progression. Completion uses /complete; ECMD verification uses /verify.
+// General status progression. Completion uses /complete; WDLCD verification uses /verify.
 router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
   if (req.user.role === 'admin') {
     const requestedStatus = req.body?.status === 'en_route' ? 'in_progress' : req.body?.status
@@ -573,7 +573,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
       return res.status(403).json({
         error: requestedStatus === 'rejected'
           ? 'Complaint rejection is restricted to the Commercial Services Department.'
-          : 'Complaint field-status changes are restricted to ECMD.',
+          : 'Complaint field-status changes are restricted to WDLCD under ECMD.',
       })
     }
   }
@@ -584,7 +584,7 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'maintenance_perso
   // Legacy clients may still send en_route. New activity is stored as the
   // unified in_progress state while existing en_route rows remain readable.
   const status = requestedStatus === 'en_route' ? 'in_progress' : requestedStatus
-  if (['awaiting_verification','resolved'].includes(status)) return res.status(400).json({ error: 'Use the completion and ECMD verification actions for these workflow states.' })
+  if (['awaiting_verification','resolved'].includes(status)) return res.status(400).json({ error: 'Use the completion and WDLCD verification actions for these workflow states.' })
   if (req.user.role === 'admin' && status !== 'rejected') {
     return res.status(400).json({ error: 'Staff must use the designated review, dispatch, restoration, or completion actions instead of forcing a workflow status.' })
   }
@@ -699,7 +699,7 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
 
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task.id, req.user.id, `Task completed. Resolution: ${completionNotes}`)
-  const ecmd = await getDepartmentAdminIds(req.supabase, 'ECMD')
+  const ecmd = await getDivisionAdminIds(req.supabase, 'WDLCD')
   await notifyUsers(req.supabase, req.user, ecmd, { title: 'Maintenance work ready for verification', message: `${complaint?.reference_number || 'Complaint'} was marked complete by Maintenance Personnel.`, type: 'completed', complaintId: req.params.id })
   await notifyUsers(req.supabase, req.user, [complaint?.resident_id], { title: 'Field work completed', message: 'Maintenance Personnel completed the field work. ECMD is reviewing the resolution before closure.', type: 'status', complaintId: req.params.id })
   await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'maintenance_completed', title: 'Field work completed', message: completionNotes, customerVisible: true })
@@ -711,7 +711,7 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
 router.patch('/:id/verify', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
-  if (complaint.status !== 'awaiting_verification') return res.status(400).json({ error: 'This complaint is not awaiting ECMD verification.' })
+  if (complaint.status !== 'awaiting_verification') return res.status(400).json({ error: 'This complaint is not awaiting WDLCD verification.' })
   const resolutionCode = String(req.body?.resolution_code || 'resolved').trim()
   const notes = String(req.body?.resolution_notes || '').trim()
   const returnToField = req.body?.return_to_field === true
@@ -740,10 +740,10 @@ router.patch('/:id/verify', requireAuth, requireCapability(CAPABILITIES.ECMD_OPE
 
   const { error } = await req.supabase.from('complaints').update({ status: 'resolved', verified_at: now, verified_by: req.user.id, resolution_code: resolutionCode, resolution_notes: notes || null, updated_at: now }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
-  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint resolved', message: notes || 'ECMD verified the completed field work and closed the complaint as resolved.', type: 'completed', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint resolved', message: notes || 'WDLCD verified the completed field work and closed the complaint as resolved.', type: 'completed', complaintId: req.params.id })
   const commercial = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
-  await notifyUsers(req.supabase, req.user, commercial, { title: 'Complaint resolved by ECMD', message: `${complaint.reference_number} has been verified and resolved.`, type: 'completed', complaintId: req.params.id })
-  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'verified_resolved', title: 'ECMD verified resolution', message: notes || null, customerVisible: true, metadata: { resolution_code: resolutionCode } })
+  await notifyUsers(req.supabase, req.user, commercial, { title: 'Complaint resolved by WDLCD', message: `${complaint.reference_number} has been verified and resolved.`, type: 'completed', complaintId: req.params.id })
+  await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'verified_resolved', title: 'WDLCD verified resolution', message: notes || null, customerVisible: true, metadata: { resolution_code: resolutionCode } })
   await writeAudit(req.supabase, req.user, 'complaint.verified_resolved', 'complaint', req.params.id, { resolution_code: resolutionCode, notes: notes || null })
   return respondWithComplaint(req, res, req.params.id)
 })
@@ -772,7 +772,7 @@ router.post('/:id/task/issue', requireAuth, requireRole('maintenance_personnel')
   }
   const label = kind === 'assistance' ? 'Additional assistance requested' : kind === 'reassignment' ? 'Reassignment requested' : 'Task cannot be completed'
   await logTaskUpdate(req.supabase, task.id, req.user.id, `${label}. Reason: ${reason}`)
-  const admins = await getDepartmentAdminIds(req.supabase, 'ECMD')
+  const admins = await getDivisionAdminIds(req.supabase, 'WDLCD')
   await notifyUsers(req.supabase, req.user, admins, {
     title: label, message: `${req.user.full_name}: ${reason}`, type: 'warning', complaintId: req.params.id,
   })
@@ -782,7 +782,7 @@ router.post('/:id/task/issue', requireAuth, requireRole('maintenance_personnel')
 
 router.post('/:id/comment', requireAuth, requireRole('admin', 'maintenance_personnel'), async (req, res, next) => {
   if (req.user.role === 'admin' && !hasCapability(req.user, CAPABILITIES.ECMD_OPERATIONS)) {
-    return res.status(403).json({ error: 'Maintenance work notes are restricted to ECMD.' })
+    return res.status(403).json({ error: 'Maintenance work notes are restricted to WDLCD under ECMD.' })
   }
   return next()
 }, async (req, res) => {

@@ -17,7 +17,7 @@ Commercial Services owns intake/review activities:
 3. Request missing customer information when necessary.
 4. Link/merge duplicates before field work begins.
 5. Add an optional handoff note.
-6. Forward operational complaints to ECMD.
+6. NSCCCD sends field-related complaints to WDLCD under ECMD.
 7. Handle Commercial billing/account tools, customer advisories, and Commercial reports.
 
 ## ECMD

@@ -34,6 +34,8 @@
 
   ::selection { background: #bae6fd; color: #0f2240; }
 
+  button { min-height: 2.75rem; }
+
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
@@ -69,7 +71,7 @@
     min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #1b3366 0%, #0f2240 100%);
     color: #fff; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.01em;
-    border: 1px solid #071529; transition: all 0.15s;
+    border: 1px solid #071529; border-radius: 0.625rem; transition: all 0.15s;
     box-shadow: 0 1px 3px rgba(7,21,41,.25), inset 0 1px 0 rgba(255,255,255,.08);
   }
   .btn-primary:hover  { background: linear-gradient(135deg, #244d96 0%, #1b3366 100%); box-shadow: 0 4px 12px rgba(7,21,41,.3); transform: translateY(-1px); }
@@ -82,7 +84,7 @@
     min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: linear-gradient(135deg, #e6b020 0%, #c9921a 100%);
     color: #0f2240; font-weight: 700; font-size: 0.875rem;
-    border: 1px solid #a97214; transition: all 0.15s;
+    border: 1px solid #a97214; border-radius: 0.625rem; transition: all 0.15s;
     box-shadow: 0 1px 3px rgba(169,114,20,.3);
   }
   .btn-gold:hover { filter: brightness(1.05); box-shadow: 0 4px 12px rgba(169,114,20,.35); transform: translateY(-1px); }
@@ -92,7 +94,7 @@
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
     min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: #fff; color: #374151; font-weight: 600; font-size: 0.875rem;
-    border: 1px solid #e5e7eb; transition: all 0.15s;
+    border: 1px solid #e5e7eb; border-radius: 0.625rem; transition: all 0.15s;
     box-shadow: 0 1px 2px rgba(0,0,0,.05);
   }
   .btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
@@ -102,14 +104,14 @@
     white-space: nowrap; overflow-wrap: normal; word-break: normal;
     min-height: 2.75rem; padding: 0.625rem 1.25rem;
     background: #dc2626; color: #fff; font-weight: 600; font-size: 0.875rem;
-    border: 1px solid #b91c1c; transition: all 0.15s;
+    border: 1px solid #b91c1c; border-radius: 0.625rem; transition: all 0.15s;
   }
   .btn-danger:hover { background: #b91c1c; }
 
   /* ── Inputs ── */
   .input-field {
     width: 100%; min-height: 2.75rem; padding: 0.625rem 0.875rem;
-    border: 1.5px solid #e5e7eb; background: #fff;
+    border: 1.5px solid #e5e7eb; border-radius: 0.625rem; background: #fff;
     font-size: 0.875rem; color: #111827;
     transition: all 0.15s; outline: none;
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
@@ -122,6 +124,7 @@
   /* ── Cards ── */
   .card {
     background: #fff; border: 1px solid #e9ecf2;
+    border-radius: 0.875rem;
     box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.03);
     transition: box-shadow 0.2s, transform 0.2s;
   }
@@ -309,16 +312,16 @@
   .stat-card.accent-navy::after   { background: linear-gradient(90deg, #0f2240, #3463b0); }
 
   /* ── Priority badges ── */
-  .badge-low    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 2px; }
-  .badge-medium { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; border-radius: 2px; }
-  .badge-high   { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 2px; }
+  .badge-low    { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 6px; }
+  .badge-medium { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; border-radius: 6px; }
+  .badge-high   { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; }
 
   /* ── Status badges ── */
-  .badge-pending     { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; border-radius: 2px; }
-  .badge-assigned    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; border-radius: 2px; }
-  .badge-en_route    { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 2px; }
-  .badge-in_progress { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 2px; }
-  .badge-completed   { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 2px; }
+  .badge-pending     { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; }
+  .badge-assigned    { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #dce6f4; color: #1e3e7a; border: 1px solid #b9cceb; border-radius: 6px; }
+  .badge-en_route    { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; }
+  .badge-in_progress { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; }
+  .badge-completed   { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 6px; }
   .badge-pending, .badge-assigned, .badge-en_route, .badge-in_progress, .badge-completed { max-width: 100%; white-space: normal; text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
 
   /* Keep data tables inside the content column. Long names, addresses, IDs,
@@ -421,6 +424,10 @@ button:not(:disabled):active,
 .btn-danger:active { transform: translateY(1px); }
 
 input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+/* Enforce the design system's 12px minimum where legacy compact labels still
+   use the earlier 11px utility name. */
+.text-\[11px\] { font-size: .75rem !important; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

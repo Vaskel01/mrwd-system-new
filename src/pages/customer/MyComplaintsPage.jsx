@@ -23,10 +23,10 @@ function timeAgo(iso) {
 const STATUS_CONFIG = {
   pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending review', message: 'Your complaint is waiting for Commercial Services review.' },
   forwarded: { bar: 25, color: '#2563eb', icon: 'assignment', label: 'Sent to WDLCD', message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
-  assigned: { bar: 35, color: '#7c3aed', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
+  assigned: { bar: 35, color: '#3463b0', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
   en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: '#7c3aed', icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
+  awaiting_verification: { bar: 90, color: '#0ea5e9', icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
   resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'WDLCD verified the completed field work and resolved the complaint.' },
   completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
   rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },

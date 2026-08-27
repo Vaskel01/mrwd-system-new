@@ -14,10 +14,10 @@ import { apiFetch } from '../../lib/api'
 import { staffAccessLabel } from '../../config/terminology'
 
 const ACCOUNT_BADGE = {
-  system_supervisor: 'bg-purple-100 text-purple-800 border-purple-200',
-  commercial_staff: 'bg-blue-100 text-blue-800 border-blue-200',
-  ecmd_staff: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  maintenance_personnel: 'bg-amber-100 text-amber-900 border-amber-200',
+  system_supervisor: 'bg-gold-50 text-navy-900 border-gold-200',
+  commercial_staff: 'bg-brand-100 text-brand-800 border-brand-200',
+  ecmd_staff: 'bg-water-100 text-navy-800 border-water-200',
+  maintenance_personnel: 'bg-gold-100 text-navy-900 border-gold-200',
 }
 const ACCOUNT_LABEL = {
   system_supervisor: 'System Supervisor',
@@ -325,17 +325,17 @@ export default function SystemStaffAccountsPage() {
       )}
 
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 xl:grid-cols-4 gap-3">
-        <button onClick={() => setRoleFilter('commercial_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'commercial_staff' ? 'ring-2 ring-blue-600 border-blue-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-blue-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">Commercial Services</p>
+        <button onClick={() => setRoleFilter('commercial_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'commercial_staff' ? 'border-brand-300 ring-2 ring-brand-600' : ''}`}>
+          <p className="font-display font-black text-3xl text-brand-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">Commercial Services</p>
         </button>
-        <button onClick={() => setRoleFilter('ecmd_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'ecmd_staff' ? 'ring-2 ring-cyan-600 border-cyan-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-cyan-700">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff (WDLCD)</p>
+        <button onClick={() => setRoleFilter('ecmd_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'ecmd_staff' ? 'border-water-300 ring-2 ring-water-500' : ''}`}>
+          <p className="font-display font-black text-3xl text-water-500">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff (WDLCD)</p>
         </button>
-        <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'ring-2 ring-amber-600 border-amber-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-amber-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
+        <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'border-gold-300 ring-2 ring-gold-400' : ''}`}>
+          <p className="font-display font-black text-3xl text-gold-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
         </button>
-        <button onClick={() => setRoleFilter('system_supervisor')} className={`card rounded-xl p-4 text-left ${roleFilter === 'system_supervisor' ? 'ring-2 ring-purple-600 border-purple-300' : ''}`}>
-          <p className="font-display font-black text-3xl text-purple-700">{counts.system}</p><p className="text-xs font-bold text-gray-500 mt-1">System Supervisors</p>
+        <button onClick={() => setRoleFilter('system_supervisor')} className={`card rounded-xl p-4 text-left ${roleFilter === 'system_supervisor' ? 'border-gold-300 ring-2 ring-gold-400' : ''}`}>
+          <p className="font-display font-black text-3xl text-navy-900">{counts.system}</p><p className="text-xs font-bold text-gray-500 mt-1">System Supervisors</p>
         </button>
       </div>
 

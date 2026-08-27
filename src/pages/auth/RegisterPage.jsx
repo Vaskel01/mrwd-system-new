@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
-import AppIcon from '../../components/ui/AppIcon'
+import AuthBrandPanel from '../../components/auth/AuthBrandPanel'
 import { isPasswordValid } from '../../lib/passwordPolicy'
 import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
 
@@ -20,22 +20,6 @@ const schema = z.object({
   message: "Passwords don't match",
   path: ['confirm'],
 })
-
-function LeafPattern() {
-  return (
-    <svg className="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-      {[
-        [60,  80,  40], [180, 140, 55], [80,  260, 35],
-        [300, 80,  45], [240, 220, 50], [140, 380, 40],
-        [320, 340, 38], [60,  460, 52], [260, 480, 43],
-        [180, 540, 36], [340, 540, 47],
-      ].map(([cx, cy, r], i) => (
-        <ellipse key={i} cx={cx} cy={cy} rx={r * 0.6} ry={r} fill="white"
-          transform={`rotate(${i * 30} ${cx} ${cy})`} />
-      ))}
-    </svg>
-  )
-}
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -67,59 +51,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex font-sans">
 
-      {/* ── Left panel ── */}
-      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band">
-        <LeafPattern />
-
-        <Link to="/" className="relative flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District Complaint System</p>
-            <p className="text-gold-300 text-xs mt-0.5">Roxas City, Capiz</p>
-          </div>
-        </Link>
-
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 mb-6">
-            <span className="w-2 h-2 rounded-full bg-gold-300 animate-pulse" />
-            <span className="text-gold-300 text-xs font-medium">System is online</span>
-          </div>
-          <h1 className="font-display font-extrabold text-white text-5xl leading-tight mb-5">
-            Join in<br/>
-            under a<br/>
-            <span className="text-gold-300">minute.</span>
-          </h1>
-          <p className="text-gold-300 text-lg leading-relaxed max-w-sm">
-            Create one account to report water service problems and follow complaint updates.
-          </p>
-
-          <div className="mt-8 space-y-3">
-            {[
-              { icon: 'document', text: 'Report a water service problem' },
-              { icon: 'refresh', text: 'Track each complaint from review to resolution' },
-              { icon: 'announcement', text: 'Read current service advisories' },
-              { icon: 'droplet', text: 'View your billing information' },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
-                  <AppIcon name={f.icon} className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-gold-300 text-sm font-medium">{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-          <p className="text-white/90 text-sm leading-relaxed">
-            Keep your complaint history, service updates, and billing information together in one MRWD account.
-          </p>
-        </div>
-      </div>
+      <AuthBrandPanel
+        title={'Create your\nMRWD account'}
+        accent="today."
+        description="Create one account to report water service problems and follow complaint updates."
+        footer="Keep your complaint history, service updates, and billing information together in one MRWD account."
+      />
 
       {/* ── Right panel (form) ── */}
       <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
@@ -167,8 +104,8 @@ export default function RegisterPage() {
 
               <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Full name</label>
-                  <input aria-label="Full name" type="text" placeholder="Juan dela Cruz" autoComplete="name"
+                  <label htmlFor="register-name" className="block text-sm font-semibold text-gray-700 mb-2">Full name</label>
+                  <input id="register-name" aria-label="Full name" type="text" placeholder="Juan dela Cruz" autoComplete="name"
                     {...register('full_name')}
                     className={`input-field ${errors.full_name ? 'input-error' : ''}`}
                   />
@@ -176,8 +113,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
-                  <input aria-label="Email" type="email" placeholder="you@example.com" autoComplete="email"
+                  <label htmlFor="register-email" className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
+                  <input id="register-email" aria-label="Email" type="email" placeholder="you@example.com" autoComplete="email"
                     {...register('email')}
                     className={`input-field ${errors.email ? 'input-error' : ''}`}
                   />
@@ -185,9 +122,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                  <label htmlFor="register-password" className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                   <div className="relative">
-                    <input aria-label="Password"
+                    <input id="register-password" aria-label="Password"
                       type={showPass ? 'text' : 'password'}
                       placeholder="At least 8 characters"
                       autoComplete="new-password"
@@ -195,7 +132,7 @@ export default function RegisterPage() {
                       className={`input-field pr-11 ${errors.password ? 'input-error' : ''}`}
                     />
                     <button type="button" onClick={() => setShowPass(v => !v)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
+                      className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
                       aria-label={showPass ? 'Hide passwords' : 'Show passwords'}
                       aria-pressed={showPass}>
                       {showPass
@@ -209,8 +146,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm password</label>
-                  <input aria-label="Confirm"
+                  <label htmlFor="register-confirm" className="block text-sm font-semibold text-gray-700 mb-2">Confirm password</label>
+                  <input id="register-confirm" aria-label="Confirm"
                     type={showPass ? 'text' : 'password'}
                     placeholder="Re-enter your password"
                     autoComplete="new-password"

@@ -241,11 +241,11 @@ export default function AppLayout({ children }) {
           return (
             <div key={item.to}>
               {(index === 0 || navItems[index - 1]?.section !== item.section) && (
-                <p className="mb-1 mt-4 px-3 text-[11px] font-black uppercase tracking-[0.18em] text-navy-400 first:mt-0">{item.section}</p>
+                <p className="mb-1 mt-4 px-3 text-xs font-black uppercase tracking-[0.16em] text-navy-300 first:mt-0">{item.section}</p>
               )}
               <NavLink to={item.to} onClick={closeSidebar}
               className={({ isActive }) =>
-                `group w-full min-h-[42px] flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150 rounded-lg ${
+                `group flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-white/15 text-white shadow-sm'
                     : 'text-navy-200 hover:bg-white/8 hover:text-white'
@@ -283,7 +283,7 @@ export default function AppLayout({ children }) {
           </div>
         </div>
         <button onClick={handleSignOut}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-navy-300 hover:text-white hover:bg-white/8 text-sm font-medium transition-all rounded-lg">
+          className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-navy-300 transition-all hover:bg-white/8 hover:text-white">
           <SignOutIcon className="w-4 h-4" />
           Sign out
         </button>
@@ -314,15 +314,15 @@ export default function AppLayout({ children }) {
         <div className="lg:ml-60 min-w-0 flex flex-col min-h-screen">
 
           {/* ── Top bar ── */}
-          <header className="app-topbar sticky top-0 z-20 h-14 min-w-0 flex items-center justify-between gap-2 px-3 sm:px-6">
+          <header className="app-topbar sticky top-0 z-20 flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-6">
 
             {/* Left: hamburger + breadcrumb */}
             <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-              <button type="button" onClick={() => navigate(-1)} className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Go back" title="Go back">
+              <button type="button" onClick={() => navigate(-1)} className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-navy-200 hover:text-navy-800 lg:flex" aria-label="Go back" title="Go back">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
               </button>
               <button onClick={() => setSidebarOpen(v => !v)}
-                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-200 lg:hidden"
                 aria-label="Toggle navigation" aria-expanded={sidebarOpen} aria-controls="primary-navigation">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7"/>
@@ -347,23 +347,23 @@ export default function AppLayout({ children }) {
 
             {/* Right: date + avatar */}
             <div className="shrink-0 flex items-center gap-2 sm:gap-3">
-              <button type="button" onClick={() => setCommandOpen(true)} className="hidden md:flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-500 shadow-sm transition hover:border-navy-200 hover:text-navy-800" aria-label="Open quick find">
+              <button type="button" onClick={() => setCommandOpen(true)} className="hidden min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 shadow-sm transition hover:border-navy-200 hover:text-navy-800 md:flex" aria-label="Open quick find">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
-                <span>Quick find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-[11px] text-gray-500">⌘K</span>
+                <span>Quick find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-xs text-gray-600">⌘K</span>
               </button>
-              <button type="button" onClick={() => setCommandOpen(true)} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white" aria-label="Open quick find">
+              <button type="button" onClick={() => setCommandOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-white md:hidden" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
               <PageHelpTooltip key={pageHelp?.title || location.pathname} help={pageHelp} />
               <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <button onClick={() => navigate('/notifications')} className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white"
+              <button onClick={() => navigate('/notifications')} className="relative flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-white"
                 aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
                 <BellIcon className="w-4 h-4" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                {unreadCount > 0 && <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-black text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
-              <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-navy-900"
+              <button onClick={() => navigate('/profile')} className="flex h-11 w-11 items-center justify-center rounded-full text-xs font-black text-navy-900"
                    style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }} aria-label="Open profile">
                 {user?.full_name?.charAt(0) || '?'}
               </button>
@@ -381,7 +381,7 @@ export default function AppLayout({ children }) {
           </main>
 
           {/* ── Footer ── */}
-          <footer className="app-footer px-3 sm:px-6 py-3 text-center text-[11px] text-gray-500 border-t border-gray-200/60">
+          <footer className="app-footer border-t border-gray-200/60 px-3 py-3 text-center text-xs text-gray-600 sm:px-6">
             Metro Roxas Water District © {new Date().getFullYear()} · All rights reserved
           </footer>
         </div>

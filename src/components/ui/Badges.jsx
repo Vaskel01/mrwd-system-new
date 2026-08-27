@@ -12,16 +12,16 @@ export function PriorityBadge({ priority }) {
 export function StatusBadge({ status }) {
   const map = {
     pending:     'badge-pending',
-    forwarded:   'inline-flex max-w-full whitespace-normal text-center leading-tight items-center px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200 rounded-sm',
+    forwarded:   'inline-flex max-w-full items-center rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-center text-xs font-semibold leading-tight text-brand-700 whitespace-normal',
     assigned:    'badge-assigned',
     en_route:    'badge-in_progress',
     in_progress: 'badge-in_progress',
-    awaiting_verification: 'inline-flex max-w-full whitespace-normal text-center leading-tight items-center px-2.5 py-0.5 text-xs font-semibold bg-violet-100 text-violet-700 border border-violet-200 rounded-sm',
+    awaiting_verification: 'inline-flex max-w-full items-center rounded-md border border-water-200 bg-water-50 px-2.5 py-1 text-center text-xs font-semibold leading-tight text-navy-700 whitespace-normal',
     resolved:    'badge-completed',
     completed:   'badge-completed',
-    rejected:    'inline-flex max-w-full whitespace-normal text-center leading-tight items-center px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700 border border-red-200 rounded-sm',
-    cancelled:   'inline-flex max-w-full whitespace-normal text-center leading-tight items-center px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200 rounded-sm',
-    blocked:     'inline-flex max-w-full whitespace-normal text-center leading-tight items-center px-2.5 py-0.5 text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200 rounded-sm',
+    rejected:    'inline-flex max-w-full items-center rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-center text-xs font-semibold leading-tight text-red-700 whitespace-normal',
+    cancelled:   'inline-flex max-w-full items-center rounded-md border border-gray-200 bg-gray-100 px-2.5 py-1 text-center text-xs font-semibold leading-tight text-gray-700 whitespace-normal',
+    blocked:     'inline-flex max-w-full items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-center text-xs font-semibold leading-tight text-amber-800 whitespace-normal',
   }
   const labels = STATUS_LABELS
   return <span className={map[status] || 'badge-pending'} aria-label={`Status: ${labels[status] || status}`}>{labels[status] || status}</span>

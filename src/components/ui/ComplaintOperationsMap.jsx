@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 
 const STATUS_COLOR = {
-  pending: '#f59e0b',
+  pending: '#94a3b8',
   forwarded: '#2563eb',
-  assigned: '#7c3aed',
-  in_progress: '#0f766e',
-  en_route: '#0f766e',
+  assigned: '#3463b0',
+  in_progress: '#0ea5e9',
+  en_route: '#38bdf8',
   blocked: '#ea580c',
   awaiting_verification: '#9333ea',
   resolved: '#16a34a',

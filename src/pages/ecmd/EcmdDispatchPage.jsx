@@ -307,11 +307,11 @@ export default function EcmdDispatchPage() {
                       </td>
                       <td className="px-3 py-4 align-top text-right">
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-[11px] font-black text-gray-700 hover:border-navy-200">View</button>
+                          <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700 hover:border-navy-200">View</button>
                           {item.status === 'awaiting_verification' ? (
-                            <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-violet-600 px-3 py-2 text-[11px] font-black text-white">Verify</button>
+                            <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-black text-white hover:bg-navy-900">Verify</button>
                           ) : (
-                            <button onClick={event => { event.stopPropagation(); openAssign(item) }} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-[11px] font-black text-white hover:bg-navy-900">{item.assigned_to ? 'Reassign' : 'Assign'}</button>
+                            <button onClick={event => { event.stopPropagation(); openAssign(item) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-black text-white hover:bg-navy-900">{item.assigned_to ? 'Reassign' : 'Assign'}</button>
                           )}
                         </div>
                       </td>
@@ -331,7 +331,7 @@ export default function EcmdDispatchPage() {
                     <p className="mt-2 text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={item.status}/><span className="text-xs text-gray-500">{item.assigned_name || 'Unassigned'}</span></div>
                   </button>
-                  <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2"><button onClick={() => navigate(`/complaints/${item.id}`)} className="btn-secondary w-full rounded-lg text-xs">View details</button>{item.status === 'awaiting_verification' ? <button onClick={() => navigate(`/complaints/${item.id}`)} className="inline-flex w-full items-center justify-center whitespace-nowrap rounded-lg bg-violet-600 px-3 py-2 text-xs font-black text-white">Verify</button> : <button onClick={() => openAssign(item)} className="btn-primary w-full rounded-lg text-xs">{item.assigned_to ? 'Reassign' : 'Assign'}</button>}</div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2"><button onClick={() => navigate(`/complaints/${item.id}`)} className="btn-secondary w-full rounded-lg text-xs">View details</button>{item.status === 'awaiting_verification' ? <button onClick={() => navigate(`/complaints/${item.id}`)} className="btn-primary w-full rounded-lg text-xs">Verify</button> : <button onClick={() => openAssign(item)} className="btn-primary w-full rounded-lg text-xs">{item.assigned_to ? 'Reassign' : 'Assign'}</button>}</div>
                 </article>
               ))}
               {!filtered.length && <div className="px-5 py-12 text-center"><p className="text-sm font-bold text-gray-500">No complaints in this queue.</p></div>}

@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '../../store/authStore'
-import AppIcon from '../../components/ui/AppIcon'
+import AuthBrandPanel from '../../components/auth/AuthBrandPanel'
 import { homeForUser } from '../../lib/accessControl'
 
 const schema = z.object({
@@ -12,27 +12,7 @@ const schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
-function LoginWaveArtwork() {
-  return (
-    <div className="login-wave-art" aria-hidden="true">
-      <div className="login-wave-parallax">
-        <svg className="login-wave-layer login-wave-back" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 118C150 66 298 65 449 116s296 51 446 3 236-45 305-13v214H0Z" fill="currentColor" />
-        </svg>
-        <svg className="login-wave-layer login-wave-middle" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 175c169-49 320-43 470 7s292 45 430-4 221-39 300-6v148H0Z" fill="currentColor" />
-        </svg>
-        <svg className="login-wave-layer login-wave-front" viewBox="0 0 1200 320" preserveAspectRatio="none">
-          <path d="M0 236c160-37 302-31 449 7s294 35 437-2 232-29 314-3v82H0Z" fill="currentColor" />
-          <path className="login-wave-highlight" d="M0 236c160-37 302-31 449 7s294 35 437-2 232-29 314-3" fill="none" />
-        </svg>
-      </div>
-    </div>
-  )
-}
-
 export default function LoginPage() {
-  const infoPanelRef = useRef(null)
   const navigate = useNavigate()
   const signIn   = useAuthStore(s => s.signIn)
   const loading  = useAuthStore(s => s.loading)
@@ -55,94 +35,14 @@ export default function LoginPage() {
     }
   }
 
-  const handlePanelPointerMove = event => {
-    if (event.pointerType && event.pointerType !== 'mouse') return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-    const panel = infoPanelRef.current
-    if (!panel) return
-
-    const bounds = panel.getBoundingClientRect()
-    const horizontal = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-    const vertical = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
-
-    panel.style.setProperty('--login-wave-x', `${(horizontal - 0.5) * 10}px`)
-    panel.style.setProperty('--login-wave-y', `${(vertical - 0.5) * 4}px`)
-  }
-
-  const resetPanelPointer = () => {
-    const panel = infoPanelRef.current
-    if (!panel) return
-    panel.style.setProperty('--login-wave-x', '0px')
-    panel.style.setProperty('--login-wave-y', '0px')
-  }
-
-
   return (
     <div className="min-h-screen flex font-sans">
-
-      {/* ── Left panel ── */}
-      <div
-        ref={infoPanelRef}
-        onPointerMove={handlePanelPointerMove}
-        onPointerLeave={resetPanelPointer}
-        className="auth-info-panel hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col justify-between p-12 page-band"
-      >
-        <LoginWaveArtwork />
-
-        {/* Logo */}
-        <Link to="/" className="relative flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.97 5.06-7 8.36-7 11a7 7 0 0014 0c0-2.64-2.03-5.94-7-11z"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-white font-display font-bold text-sm leading-none">Metro Roxas Water District Complaint System</p>
-            <p className="text-gold-300 text-xs mt-0.5">Roxas City, Capiz</p>
-          </div>
-        </Link>
-
-        {/* Center content */}
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 mb-6">
-            <span className="w-2 h-2 rounded-full bg-gold-300 animate-pulse" />
-            <span className="text-gold-300 text-xs font-medium">System is online</span>
-          </div>
-          <h1 className="font-display font-extrabold text-white text-5xl leading-tight mb-5">
-            Your water<br/>
-            concerns<br/>
-            <span className="text-gold-300">matter.</span>
-          </h1>
-          <p className="text-gold-300 text-lg leading-relaxed max-w-sm">
-            Report water service problems, follow complaint updates, and view important MRWD information in one place.
-          </p>
-
-          {/* Feature list */}
-          <div className="mt-8 space-y-3">
-            {[
-              { icon: 'document', text: 'Report a water service problem' },
-              { icon: 'refresh', text: 'Track each complaint from review to resolution' },
-              { icon: 'announcement', text: 'Read current service advisories' },
-              { icon: 'droplet', text: 'View your billing information' },
-            ].map((f, i) => (
-              <div key={i} className="auth-feature-row flex items-center gap-3">
-                <div className="auth-feature-icon w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-sm shrink-0">
-                  <AppIcon name={f.icon} className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-gold-300 text-sm font-medium">{f.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom quote */}
-        <div className="relative bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20">
-          <p className="text-white/90 text-sm leading-relaxed">
-            Customers can submit complaints, follow updates, read service advisories, and view billing information from one account.
-          </p>
-        </div>
-      </div>
+      <AuthBrandPanel
+        title={'Your water\nconcerns'}
+        accent="matter."
+        description="Report water service problems, follow complaint updates, and view important MRWD information in one place."
+        footer="Customers can submit complaints, follow updates, read service advisories, and view billing information from one account."
+      />
 
       {/* ── Right panel (form) ── */}
       <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
@@ -179,14 +79,14 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
+              <label htmlFor="login-email" className="block text-sm font-semibold text-gray-700 mb-2">Email address</label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
                   </svg>
                 </span>
-                <input aria-label="Email" type="email" placeholder="you@example.com" autoComplete="email"
+                <input id="login-email" aria-label="Email" type="email" placeholder="you@example.com" autoComplete="email"
                   {...register('email')}
                   className={`input-field pl-10 ${errors.email ? 'input-error' : ''}`}
                 />
@@ -195,14 +95,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <label htmlFor="login-password" className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                   </svg>
                 </span>
-                <input aria-label="Password"
+                <input id="login-password" aria-label="Password"
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
@@ -210,7 +110,7 @@ export default function LoginPage() {
                   className={`input-field pl-10 pr-11 ${errors.password ? 'input-error' : ''}`}
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                   aria-pressed={showPass}>
                   {showPass

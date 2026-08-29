@@ -18,7 +18,7 @@
     "check:source": "node scripts/check-source.mjs"
   },
   "dependencies": {
-    "@fontsource/roboto": "^5.2.8",
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.110.0",
     "cors": "^2.8.5",

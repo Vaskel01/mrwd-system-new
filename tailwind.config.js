@@ -59,8 +59,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Roboto', 'system-ui', 'sans-serif'],
-        sans:    ['Roboto', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans:    ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
         'float':     'float 6s ease-in-out infinite',

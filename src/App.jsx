@@ -5,6 +5,7 @@ import AppLayout from './components/layout/AppLayout'
 import { PageLoader } from './components/ui/Feedback'
 import { CAPABILITIES } from './lib/accessControl'
 import PageHelpTooltip from './components/ui/PageHelpTooltip'
+import ThemeToggle from './components/ui/ThemeToggle'
 import { getPageHelp, PUBLIC_PAGE_HELP_PATHS } from './config/pageHelp'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
@@ -45,12 +46,13 @@ const ProfilePage = lazy(() => import('./pages/shared/ProfilePage'))
 const MaintenanceReportPage = lazy(() => import('./pages/shared/MaintenanceReportPage'))
 
 
-function PublicPageHelp() {
+function PublicPageControls() {
   const location = useLocation()
   if (!PUBLIC_PAGE_HELP_PATHS.has(location.pathname)) return null
   const help = getPageHelp(location.pathname)
   return (
-    <div className="fixed right-3 top-3 z-50 sm:right-5 sm:top-5">
+    <div className="fixed right-3 top-3 z-50 flex items-center gap-2 sm:right-5 sm:top-5">
+      <ThemeToggle />
       <PageHelpTooltip key={help?.title || location.pathname} help={help} floating />
     </div>
   )
@@ -63,7 +65,7 @@ function AppPage({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <PublicPageHelp />
+      <PublicPageControls />
       <Suspense fallback={<PageLoader label="Loading page…" />}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />

@@ -9,6 +9,7 @@ import { apiFetch } from '../../lib/api'
 import QuickCommandPalette from '../ui/QuickCommandPalette'
 import ToastViewport from '../ui/ToastViewport'
 import PageHelpTooltip from '../ui/PageHelpTooltip'
+import ThemeToggle from '../ui/ThemeToggle'
 import { getPageHelp } from '../../config/pageHelp'
 
 const NAV = {
@@ -354,6 +355,7 @@ export default function AppLayout({ children }) {
               <button type="button" onClick={() => setCommandOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-white md:hidden" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
+              <ThemeToggle />
               <PageHelpTooltip key={pageHelp?.title || location.pathname} help={pageHelp} />
               <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}

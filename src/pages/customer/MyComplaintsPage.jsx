@@ -156,7 +156,7 @@ export default function MyComplaintsPage() {
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, complaint type, description, address, or status" /></div>
           <div className="flex gap-2 flex-wrap">
             {[['all', 'All'], ['pending', 'Pending review'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
-              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="px-4 py-2 rounded-full text-sm font-semibold"
+              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="filter-chip px-4 py-2 rounded-full text-sm font-semibold"
                 style={filter === value ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>
               </button>

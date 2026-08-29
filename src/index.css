@@ -824,9 +824,14 @@ html[data-theme='dark'] .skip-link { color: var(--md-on-surface); }
 html[data-theme='dark'] .qol-clickable-row:hover { background-color: rgba(63, 102, 158, .22); }
 html[data-theme='dark'] .qol-clickable-row:focus-within { box-shadow: inset 3px 0 0 var(--md-primary); }
 
-html[data-theme='dark'] .bg-white,
-html[data-theme='dark'] [class*="bg-white/"] { background-color: var(--md-surface-container) !important; }
+html[data-theme='dark'] .bg-white { background-color: var(--md-surface-container) !important; }
+html[data-theme='dark'] .bg-white\/70 { background-color: rgba(17, 28, 46, .82) !important; }
+html[data-theme='dark'] .bg-white\/95 { background-color: rgba(17, 28, 46, .95) !important; }
 html[data-theme='dark'] .hover\:bg-white:hover { background-color: #1a2940 !important; }
+html[data-theme='dark'] .hover\:bg-gray-50:hover,
+html[data-theme='dark'] .hover\:bg-gray-50\/70:hover,
+html[data-theme='dark'] .hover\:bg-gray-100:hover,
+html[data-theme='dark'] .hover\:bg-navy-50:hover { background-color: #17263d !important; }
 html[data-theme='dark'] .bg-gray-50,
 html[data-theme='dark'] .bg-slate-50,
 html[data-theme='dark'] .bg-navy-50,
@@ -849,6 +854,48 @@ html[data-theme='dark'] .text-navy-700,
 html[data-theme='dark'] .text-navy-600 { color: #c6d2e4 !important; }
 html[data-theme='dark'] .text-gray-500,
 html[data-theme='dark'] .text-navy-500 { color: #a9b6c9 !important; }
+
+/* Dark mode filter contract: inactive controls stay dark; the selected
+   control becomes a high-contrast white surface with navy text. */
+html[data-theme='dark'] .filter-chip {
+  border-color: #32435d !important;
+  background: #0d1728 !important;
+  color: #c6d2e4 !important;
+  box-shadow: none !important;
+}
+html[data-theme='dark'] .filter-chip:hover {
+  border-color: #526784 !important;
+  background: #17263d !important;
+  color: #f1f5fb !important;
+}
+html[data-theme='dark'] .filter-chip[aria-pressed='true'],
+html[data-theme='dark'] .filter-chip[aria-selected='true'] {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0f2240 !important;
+}
+html[data-theme='dark'] .filter-chip[aria-pressed='true'] span,
+html[data-theme='dark'] .filter-chip[aria-selected='true'] span {
+  background: #dbeafe !important;
+  color: #1b3366 !important;
+}
+
+/* Light gold controls retain dark ink in either theme. Dark mode should not
+   turn navy utility text white when the supporting surface remains light. */
+html[data-theme='dark'] button[class*="bg-gold-"],
+html[data-theme='dark'] a[class*="bg-gold-"],
+html[data-theme='dark'] [role='button'][class*="bg-gold-"] {
+  color: #0f2240 !important;
+}
+html[data-theme='dark'] .bg-gold-50,
+html[data-theme='dark'] .bg-gold-100 {
+  background-color: #f9f0c5 !important;
+  color: #0f2240 !important;
+}
+html[data-theme='dark'] .bg-gold-50 .text-navy-900,
+html[data-theme='dark'] .bg-gold-100 .text-navy-900,
+html[data-theme='dark'] .bg-gold-50 .text-navy-800,
+html[data-theme='dark'] .bg-gold-100 .text-navy-800 { color: #0f2240 !important; }
 
 html[data-theme='dark'] .border-gray-100,
 html[data-theme='dark'] .border-gray-200,
@@ -895,6 +942,42 @@ html[data-theme='dark'] .text-blue-800,
 html[data-theme='dark'] .text-blue-900 { color: #93c5fd !important; }
 html[data-theme='dark'] .border-blue-200,
 html[data-theme='dark'] .border-blue-300 { border-color: rgba(96, 165, 250, .36) !important; }
+
+html[data-theme='dark'] .bg-brand-50,
+html[data-theme='dark'] .bg-water-50 { background-color: rgba(30, 64, 175, .24) !important; }
+html[data-theme='dark'] .text-brand-700,
+html[data-theme='dark'] .text-water-700 { color: #93c5fd !important; }
+html[data-theme='dark'] .border-brand-200,
+html[data-theme='dark'] .border-water-200 { border-color: rgba(96, 165, 250, .36) !important; }
+
+html[data-theme='dark'] .badge-low,
+html[data-theme='dark'] .badge-completed {
+  border-color: rgba(74, 222, 128, .34);
+  background: rgba(20, 83, 45, .3);
+  color: #86efac;
+}
+html[data-theme='dark'] .badge-medium {
+  border-color: rgba(251, 191, 36, .36);
+  background: rgba(120, 53, 15, .3);
+  color: #fcd34d;
+}
+html[data-theme='dark'] .badge-high {
+  border-color: rgba(248, 113, 113, .38);
+  background: rgba(127, 29, 29, .3);
+  color: #fca5a5;
+}
+html[data-theme='dark'] .badge-pending {
+  border-color: #3a4a62;
+  background: #1a273a;
+  color: #c6d2e4;
+}
+html[data-theme='dark'] .badge-assigned,
+html[data-theme='dark'] .badge-en_route,
+html[data-theme='dark'] .badge-in_progress {
+  border-color: rgba(96, 165, 250, .36);
+  background: rgba(30, 64, 175, .24);
+  color: #93c5fd;
+}
 
 html[data-theme='dark'] .app-topbar button[aria-label="Open profile"],
 html[data-theme='dark'] .btn-gold { color: #0f2240 !important; }

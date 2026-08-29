@@ -316,8 +316,8 @@ export default function SystemAuditLogPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <div className="card grid gap-2 rounded-xl p-2 sm:grid-cols-2" role="tablist" aria-label="Log type">
-        <button type="button" role="tab" aria-selected={mode === 'audit'} onClick={() => { setMode('audit'); setPage(1); setSearch('') }} className={`rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'audit' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Activity log</button>
-        <button type="button" role="tab" aria-selected={mode === 'security'} onClick={() => { setMode('security'); setPage(1); setSearch('') }} className={`rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'security' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Security events</button>
+        <button type="button" role="tab" aria-selected={mode === 'audit'} onClick={() => { setMode('audit'); setPage(1); setSearch('') }} className={`filter-chip rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'audit' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Activity log</button>
+        <button type="button" role="tab" aria-selected={mode === 'security'} onClick={() => { setMode('security'); setPage(1); setSearch('') }} className={`filter-chip rounded-lg px-4 py-2.5 text-sm font-black ${mode === 'security' ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Security events</button>
       </div>
 
       <div className="qol-filter-bar card rounded-xl p-4 space-y-3">

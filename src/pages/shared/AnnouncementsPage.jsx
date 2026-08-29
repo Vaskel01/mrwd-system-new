@@ -110,8 +110,8 @@ export default function AnnouncementsPage() {
           {categories.map(cat => {
             const cfg = CAT_CONFIG[cat]
             return (
-              <button key={cat} onClick={() => setActiveCategory(cat)}
-                className={`text-xs font-black px-3 py-1.5 border uppercase tracking-wide transition-colors ${
+              <button key={cat} onClick={() => setActiveCategory(cat)} aria-pressed={activeCategory === cat}
+                className={`filter-chip text-xs font-black px-3 py-1.5 border uppercase tracking-wide transition-colors ${
                   activeCategory === cat
                     ? 'bg-navy-900 text-white border-navy-900'
                     : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'

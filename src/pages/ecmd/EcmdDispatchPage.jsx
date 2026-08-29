@@ -203,7 +203,8 @@ export default function EcmdDispatchPage() {
               <button
                 key={filter.key}
                 onClick={() => setQueueFilter(filter.key)}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black transition ${queueFilter === filter.key ? 'border-navy-700 bg-navy-700 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-navy-200 hover:text-navy-800'}`}
+                aria-pressed={queueFilter === filter.key}
+                className={`filter-chip flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black transition ${queueFilter === filter.key ? 'border-navy-700 bg-navy-700 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-navy-200 hover:text-navy-800'}`}
               >
                 {filter.label}
                 <span className={`rounded-full px-1.5 py-0.5 text-xs ${queueFilter === filter.key ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500'}`}>{counts[filter.key] || 0}</span>

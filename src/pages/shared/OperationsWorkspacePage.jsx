@@ -165,7 +165,7 @@ export default function OperationsWorkspacePage({ module = 'system' }) {
       {message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{message}</div>}
 
       <div className="card grid grid-cols-1 gap-2 rounded-xl p-2 min-[420px]:grid-cols-2 lg:grid-cols-5" role="tablist" aria-label="Workspace sections">
-        {moduleConfig.tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`min-h-10 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
+        {moduleConfig.tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`filter-chip min-h-10 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
       </div>
 
       {tab === 'overview' && <OverviewTab data={data} busy={busy} run={run} complaintMap={complaintMap} staffMap={staffMap} module={module} />}

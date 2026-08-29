@@ -4,6 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        md: {
+          background: '#f4f7fb',
+          surface: '#f4f7fb',
+          'surface-container': '#f0f4fa',
+          'surface-container-low': '#e5e7eb',
+          'surface-variant': '#dbeafe',
+          primary: '#1b3366',
+          'on-primary': '#ffffff',
+          secondary: '#dbeafe',
+          'on-secondary': '#0f2240',
+          tertiary: '#e6b020',
+          outline: '#9ca3af',
+          'on-surface': '#111827',
+          'on-surface-variant': '#4b5563',
+        },
         brand: {
           50:  '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe',
           300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6',
@@ -44,8 +59,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        sans:    ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Roboto', 'system-ui', 'sans-serif'],
+        sans:    ['Roboto', 'system-ui', 'sans-serif'],
       },
       animation: {
         'float':     'float 6s ease-in-out infinite',
@@ -67,6 +82,9 @@ export default {
         'card-hover': '0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.06)',
         'sidebar': '4px 0 24px rgba(7,21,41,.18)',
         'topbar': '0 1px 0 rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04)',
+        'md-1': '0 1px 2px rgba(15,34,64,.08), 0 2px 6px rgba(15,34,64,.05)',
+        'md-2': '0 2px 6px rgba(15,34,64,.10), 0 8px 20px rgba(15,34,64,.08)',
+        'md-3': '0 8px 24px rgba(15,34,64,.14), 0 20px 48px rgba(15,34,64,.10)',
       },
     },
   },

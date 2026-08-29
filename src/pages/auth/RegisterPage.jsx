@@ -59,8 +59,8 @@ export default function RegisterPage() {
       />
 
       {/* ── Right panel (form) ── */}
-      <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
-        <div className="w-full max-w-md">
+      <div className="auth-form-panel flex flex-1 items-center justify-center px-5 py-10">
+        <div className="auth-form-card w-full max-w-md rounded-[32px] p-6 shadow-md-2 sm:p-8">
 
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg bg-navy-800 flex items-center justify-center">
@@ -78,7 +78,7 @@ export default function RegisterPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
               </div>
-              <h2 className="font-display font-extrabold text-gray-900 text-2xl mb-2">Confirm your email</h2>
+                <h2 className="mb-2 font-display text-2xl font-medium text-gray-900">Confirm your email</h2>
               <p className="text-gray-500 text-base mb-6">
                 We sent a confirmation link to finish setting up your account. Once confirmed, you can sign in.
               </p>
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           ) : (
             <>
               <div className="mb-8">
-                <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Create an account</h2>
+                <h2 className="mb-2 font-display text-2xl font-medium text-gray-900 sm:text-3xl">Create an account</h2>
                 <p className="text-gray-500 text-base">Enter your details to create your MRWD customer account.</p>
               </div>
 

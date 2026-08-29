@@ -17,7 +17,7 @@
   html { scroll-behavior: smooth; }
 
   body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Roboto', system-ui, sans-serif;
     background-color: #f4f7fb;
     color: #111827;
     -webkit-font-smoothing: antialiased;
@@ -42,7 +42,7 @@
   select:focus-visible,
   textarea:focus-visible,
   summary:focus-visible {
-    outline: 3px solid #e6b020;
+    outline: 2px solid #1b3366;
     outline-offset: 2px;
   }
 }
@@ -135,7 +135,7 @@
 
   /* ── Section header ── */
   .section-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Roboto', system-ui, sans-serif;
     font-weight: 800; color: #0f2240; letter-spacing: -0.02em;
   }
 
@@ -360,7 +360,7 @@
 }
 
 @layer utilities {
-  .font-display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  .font-display { font-family: 'Roboto', system-ui, sans-serif; }
   .text-balance { text-wrap: balance; }
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
@@ -453,3 +453,225 @@ p, li { text-wrap: pretty; }
 .app-main form label > textarea { font-weight: 400; }
 .app-main .card > p,
 .app-main .card > div > p { line-height: 1.55; }
+
+/* ── Material You adaptation ─────────────────────────────────────────
+   These shared overrides translate the established MRWD application
+   primitives into an MD3 tonal surface and state-layer system. */
+:root {
+  --md-background: #f4f7fb;
+  --md-surface: #f4f7fb;
+  --md-surface-container: #f0f4fa;
+  --md-surface-container-low: #e5e7eb;
+  --md-secondary-container: #dbeafe;
+  --md-primary: #1b3366;
+  --md-on-primary: #ffffff;
+  --md-tertiary: #e6b020;
+  --md-outline: #9ca3af;
+  --md-on-surface: #111827;
+  --md-on-surface-variant: #4b5563;
+  --md-easing: cubic-bezier(.2, 0, 0, 1);
+}
+
+body {
+  background: var(--md-background);
+  color: var(--md-on-surface);
+}
+
+.font-black,
+.font-extrabold { font-weight: 700; }
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 87% 8%, rgba(219, 234, 254, .75), transparent 26rem),
+    radial-gradient(circle at 22% 92%, rgba(230, 176, 32, .12), transparent 30rem),
+    var(--md-background);
+}
+
+.app-shell::before,
+.app-shell::after,
+.auth-form-panel::before,
+.auth-form-panel::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(64px);
+  opacity: .22;
+}
+
+.app-shell::before,
+.auth-form-panel::before {
+  width: 26rem;
+  height: 18rem;
+  top: 8%;
+  right: -8rem;
+  background: #93c5fd;
+  transform: rotate(-18deg);
+}
+
+.app-shell::after,
+.auth-form-panel::after {
+  width: 22rem;
+  height: 22rem;
+  bottom: -8rem;
+  left: 20%;
+  background: #e6b020;
+  opacity: .1;
+}
+
+.app-topbar {
+  background: rgba(244, 247, 251, .82);
+  border-bottom-color: rgba(27, 51, 102, .1);
+  backdrop-filter: blur(20px);
+}
+
+.app-main .page-band {
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 86% 15%, rgba(147, 197, 253, .32), transparent 28%),
+    radial-gradient(circle at 72% 120%, rgba(230, 176, 32, .18), transparent 34%),
+    #1b3366;
+  box-shadow: 0 8px 24px rgba(15, 34, 64, .14), 0 20px 48px rgba(15, 34, 64, .1);
+}
+
+.card,
+.stat-card {
+  border: 0;
+  border-radius: 1.5rem;
+  background: var(--md-surface-container);
+  box-shadow: 0 1px 2px rgba(15, 34, 64, .08), 0 2px 6px rgba(15, 34, 64, .05);
+  transition: background-color 300ms var(--md-easing), box-shadow 300ms var(--md-easing), transform 300ms var(--md-easing);
+}
+
+.card-hover:hover,
+button.card:hover {
+  background: #eaf0f8;
+  box-shadow: 0 2px 6px rgba(15, 34, 64, .1), 0 8px 20px rgba(15, 34, 64, .08);
+  transform: scale(1.02);
+}
+
+.app-shell .bg-white,
+.app-shell section.bg-white,
+.app-shell article.bg-white {
+  background-color: var(--md-surface-container) !important;
+}
+
+body .bg-white,
+.card .bg-white { background-color: var(--md-surface-container) !important; }
+
+.skip-link { background: var(--md-surface-container); }
+
+span.inline-flex.border { border-radius: 9999px !important; }
+
+.btn-primary,
+.btn-secondary,
+.btn-gold,
+.btn-danger,
+a.btn-primary,
+a.btn-secondary,
+a.btn-gold,
+a.btn-danger,
+button:not(.card) {
+  border-radius: 9999px !important;
+  transition-duration: 300ms !important;
+  transition-timing-function: var(--md-easing) !important;
+}
+
+.btn-primary {
+  border: 0;
+  background: var(--md-primary);
+  box-shadow: none;
+}
+.btn-primary:hover {
+  background: rgba(27, 51, 102, .9);
+  box-shadow: 0 2px 6px rgba(15, 34, 64, .1), 0 8px 20px rgba(15, 34, 64, .08);
+}
+.btn-primary:active { background: rgba(27, 51, 102, .8); }
+
+.btn-secondary {
+  border: 0;
+  background: var(--md-secondary-container);
+  color: #0f2240;
+  box-shadow: none;
+}
+.btn-secondary:hover { background: rgba(219, 234, 254, .9); }
+.btn-secondary:active { background: rgba(219, 234, 254, .8); }
+
+.btn-gold {
+  border: 0;
+  background: var(--md-tertiary);
+  box-shadow: 0 2px 6px rgba(169, 114, 20, .16);
+}
+
+.input-field {
+  min-height: 3.5rem;
+  border: 0;
+  border-bottom: 2px solid var(--md-outline);
+  border-radius: .75rem .75rem 0 0 !important;
+  background: var(--md-surface-container-low);
+  box-shadow: none;
+  transition: border-color 200ms var(--md-easing), background-color 200ms var(--md-easing), box-shadow 200ms var(--md-easing);
+}
+.input-field:hover { background: #dde1e7; }
+.input-field:focus {
+  border-color: var(--md-primary);
+  background: var(--md-surface-container-low);
+  box-shadow: 0 0 0 2px rgba(27, 51, 102, .14);
+}
+
+.badge-low,
+.badge-medium,
+.badge-high,
+.badge-pending,
+.badge-assigned,
+.badge-en_route,
+.badge-in_progress,
+.badge-completed {
+  border-radius: 9999px;
+  padding: .3rem .7rem;
+}
+
+.qol-clickable-row {
+  transition: background-color 300ms var(--md-easing), box-shadow 300ms var(--md-easing), transform 300ms var(--md-easing);
+}
+.qol-clickable-row:hover { background-color: rgba(219, 234, 254, .45); }
+
+.auth-form-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 95% 8%, rgba(147, 197, 253, .55), transparent 34%),
+    radial-gradient(circle at 10% 95%, rgba(230, 176, 32, .13), transparent 32%),
+    var(--md-background);
+}
+.auth-form-card {
+  background: var(--md-surface-container);
+  box-shadow: 0 8px 24px rgba(15, 34, 64, .14), 0 20px 48px rgba(15, 34, 64, .1);
+}
+
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-gold:active,
+.btn-danger:active {
+  transform: scale(.95);
+}
+
+button:not(.card) {
+  min-height: 2.75rem;
+  font-weight: 500 !important;
+}
+
+.card > .page-band:first-child {
+  border-radius: 1.5rem 1.5rem 0 0;
+}
+
+@media (max-width: 639px) {
+  .app-main .page-band { border-radius: 1.5rem; }
+  .card, .stat-card { border-radius: 1.25rem; }
+}

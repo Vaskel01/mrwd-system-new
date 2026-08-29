@@ -45,8 +45,8 @@ export default function LoginPage() {
       />
 
       {/* ── Right panel (form) ── */}
-      <div className="flex-1 flex items-center justify-center px-5 py-10" style={{ background: '#f4f7fb' }}>
-        <div className="w-full max-w-md">
+      <div className="auth-form-panel flex flex-1 items-center justify-center px-5 py-10">
+        <div className="auth-form-card w-full max-w-md rounded-[32px] p-6 shadow-md-2 sm:p-8">
 
           {/* Mobile logo */}
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
@@ -60,7 +60,7 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="mb-8">
-            <h2 className="font-display font-extrabold text-gray-900 text-2xl sm:text-3xl mb-2">Sign in to your account</h2>
+            <h2 className="mb-2 font-display text-2xl font-medium text-gray-900 sm:text-3xl">Sign in to your account</h2>
             <p className="text-gray-500 text-base">Enter your email and password to continue.</p>
           </div>
 

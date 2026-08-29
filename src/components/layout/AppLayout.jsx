@@ -245,20 +245,20 @@ export default function AppLayout({ children }) {
               )}
               <NavLink to={item.to} onClick={closeSidebar}
               className={({ isActive }) =>
-                `group flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                `group flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(.2,0,0,1)] ${
                   isActive
-                    ? 'bg-white/15 text-white shadow-sm'
-                    : 'text-navy-200 hover:bg-white/8 hover:text-white'
+                    ? 'bg-md-secondary text-md-on-secondary shadow-md-1'
+                    : 'text-navy-100 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-gold-300' : 'text-navy-400 group-hover:text-white'}`}>
+                  <span className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-navy-800' : 'text-navy-300 group-hover:text-white'}`}>
                     <Icon className="w-full h-full" />
                   </span>
                   <span className="whitespace-nowrap">{item.label}</span>
-                  {item.notification && unreadCount > 0 ? <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-gold-400 text-navy-950 text-xs font-black flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span> : isActive && <span className="ml-auto w-1 h-1 rounded-full bg-gold-400" />}
+                  {item.notification && unreadCount > 0 ? <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-gold-400 px-1 text-xs font-black text-navy-950">{unreadCount > 99 ? '99+' : unreadCount}</span> : isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-500" />}
                 </>
               )}
               </NavLink>
@@ -272,7 +272,7 @@ export default function AppLayout({ children }) {
 
       {/* User card */}
       <div className="px-3 py-4 shrink-0">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/8 mb-2">
+        <div className="mb-2 flex items-center gap-2.5 rounded-3xl bg-white/10 px-3 py-2.5">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-black text-navy-900 shrink-0"
                style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}>
             {user?.full_name?.charAt(0) || '?'}

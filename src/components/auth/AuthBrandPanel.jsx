@@ -75,7 +75,7 @@ export default function AuthBrandPanel({ title, accent, description, footer }) {
           <span className="h-2 w-2 rounded-full bg-gold-300" aria-hidden="true" />
           <span className="text-xs font-bold text-gold-300">MRWD online services</span>
         </div>
-        <h1 className="max-w-lg whitespace-pre-line font-display text-5xl font-extrabold leading-tight text-white">
+        <h1 className="max-w-lg whitespace-pre-line font-display text-5xl font-medium leading-[1.15] text-white xl:text-6xl">
           {title}{' '}<span className="text-gold-300">{accent}</span>
         </h1>
         <p className="mt-5 max-w-md text-lg leading-relaxed text-navy-100">{description}</p>

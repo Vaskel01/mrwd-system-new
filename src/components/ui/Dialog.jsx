@@ -66,14 +66,14 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
       <section
         ref={panelRef}
         tabIndex={-1}
-        className={`relative max-h-[92vh] w-full ${maxWidth} overflow-y-auto rounded-2xl bg-white shadow-2xl`}
+        className={`relative max-h-[92vh] w-full ${maxWidth} overflow-y-auto rounded-[28px] bg-md-surface-container shadow-md-3`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={supportingText ? descriptionId : undefined}
       >
-        <header className="page-band wave-header px-6 py-5 pr-14">
-          <h2 id={titleId} className="font-display text-xl font-black text-white">{title}</h2>
+        <header className="page-band wave-header rounded-t-[28px] px-6 py-5 pr-14">
+          <h2 id={titleId} className="font-display text-xl font-medium text-white">{title}</h2>
           {supportingText ? <p id={descriptionId} className="mt-1 text-sm leading-5 text-navy-200">{supportingText}</p> : null}
           <button
             type="button"

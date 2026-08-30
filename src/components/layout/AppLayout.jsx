@@ -17,13 +17,11 @@ const NAV = {
     { to: '/customer/my-complaints', icon: ListIcon,    label: 'My complaints' },
     { to: '/customer/billing',       icon: BillingIcon, label: 'Billing' },
     { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
-    { to: '/profile',                icon: ProfileIcon, label: 'My profile' },
   ],
   admin: [],
   maintenance_personnel: [
     { to: '/maintenance/tasks',         icon: WrenchIcon, label: 'My tasks' },
     { to: '/maintenance/announcements', icon: BellIcon,   label: 'Announcements' },
-    { to: '/profile',                   icon: ProfileIcon, label: 'My profile' },
   ],
 }
 
@@ -50,7 +48,6 @@ function adminNavigation(user) {
   add(CAPABILITIES.SYSTEM_AUDIT, { section: 'System Administration', to: '/system/audit-log', icon: AuditIcon, label: 'Activity & security log' })
   add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/announcements', icon: BellIcon, label: 'Staff announcements' })
   add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/health', icon: HealthIcon, label: 'System health' })
-  items.push({ section: 'Account', to: '/profile', icon: ProfileIcon, label: 'My profile' })
   return items
 }
 
@@ -96,9 +93,6 @@ function HealthIcon({ className }) {
 }
 function AuditIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-6 4h4m-6 8h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-}
-function ProfileIcon({ className }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0"/></svg>
 }
 function SignOutIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -366,7 +360,7 @@ export default function AppLayout({ children }) {
                 {unreadCount > 0 && <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-black text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
               <button onClick={() => navigate('/profile')} className="flex h-11 w-11 items-center justify-center rounded-full text-xs font-black text-navy-900"
-                   style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }} aria-label="Open profile">
+                   style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }} aria-label="My profile" title="My profile">
                 {user?.full_name?.charAt(0) || '?'}
               </button>
             </div>

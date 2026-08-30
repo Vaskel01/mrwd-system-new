@@ -635,6 +635,14 @@ button:not(.card) {
   padding: .3rem .7rem;
 }
 
+.badge-low,
+.badge-medium,
+.badge-high {
+  width: max-content;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .qol-clickable-row {
   transition: background-color 300ms var(--md-easing), box-shadow 300ms var(--md-easing), transform 300ms var(--md-easing);
 }
@@ -855,8 +863,8 @@ html[data-theme='dark'] .text-navy-600 { color: #c6d2e4 !important; }
 html[data-theme='dark'] .text-gray-500,
 html[data-theme='dark'] .text-navy-500 { color: #a9b6c9 !important; }
 
-/* Dark mode filter contract: inactive controls stay dark; the selected
-   control becomes a high-contrast white surface with navy text. */
+/* Dark mode filter contract: inactive controls stay dark; selected controls
+   use the same navy action color as Assign and Reassign buttons. */
 html[data-theme='dark'] .filter-chip {
   border-color: #32435d !important;
   background: #0d1728 !important;
@@ -870,14 +878,25 @@ html[data-theme='dark'] .filter-chip:hover {
 }
 html[data-theme='dark'] .filter-chip[aria-pressed='true'],
 html[data-theme='dark'] .filter-chip[aria-selected='true'] {
-  border-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #0f2240 !important;
+  border-color: #3463b0 !important;
+  background: #1b3366 !important;
+  color: #ffffff !important;
 }
 html[data-theme='dark'] .filter-chip[aria-pressed='true'] span,
 html[data-theme='dark'] .filter-chip[aria-selected='true'] span {
-  background: #dbeafe !important;
-  color: #1b3366 !important;
+  background: #244d96 !important;
+  color: #ffffff !important;
+}
+
+/* Fractional Tailwind table backgrounds do not share the plain bg-gray-50
+   selector, so give every application table header an explicit dark surface. */
+html[data-theme='dark'] .app-main table > thead {
+  border-color: #32435d !important;
+  background: #17263d !important;
+  color: #dbe7f8 !important;
+}
+html[data-theme='dark'] .app-main table > thead th {
+  color: #dbe7f8 !important;
 }
 
 /* Light gold controls retain dark ink in either theme. Dark mode should not
@@ -979,7 +998,7 @@ html[data-theme='dark'] .badge-in_progress {
   color: #93c5fd;
 }
 
-html[data-theme='dark'] .app-topbar button[aria-label="Open profile"],
+html[data-theme='dark'] .app-topbar button[aria-label="My profile"],
 html[data-theme='dark'] .btn-gold { color: #0f2240 !important; }
 html[data-theme='dark'] .leaflet-tile-pane { filter: brightness(.72) saturate(.78) contrast(1.08); }
 html[data-theme='dark'] .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, .25); }

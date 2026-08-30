@@ -713,6 +713,20 @@ button:not(.card) {
   line-height: 1;
 }
 
+.theme-toggle--menu {
+  width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  justify-content: flex-start;
+  gap: .75rem;
+  border: 0;
+  border-radius: .75rem;
+  padding: .5rem .75rem;
+  background: transparent;
+  box-shadow: none;
+}
+.theme-toggle--menu:hover { background: #f3f4f6; }
+
 body,
 .app-shell,
 .app-topbar,
@@ -998,8 +1012,10 @@ html[data-theme='dark'] .badge-in_progress {
   color: #93c5fd;
 }
 
-html[data-theme='dark'] .app-topbar button[aria-label="My profile"],
+html[data-theme='dark'] .account-menu__trigger,
+html[data-theme='dark'] .account-menu__avatar,
 html[data-theme='dark'] .btn-gold { color: #0f2240 !important; }
+html[data-theme='dark'] .theme-toggle--menu:hover { background: #17263d; }
 html[data-theme='dark'] .leaflet-tile-pane { filter: brightness(.72) saturate(.78) contrast(1.08); }
 html[data-theme='dark'] .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, .25); }
 

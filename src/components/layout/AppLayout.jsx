@@ -94,6 +94,9 @@ function HealthIcon({ className }) {
 function AuditIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-6 4h4m-6 8h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
 }
+function ProfileIcon({ className }) {
+  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0"/></svg>
+}
 function SignOutIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
 }
@@ -139,8 +142,11 @@ export default function AppLayout({ children }) {
   const navItems = role === 'admin' ? adminNavigation(user) : (NAV[role] || [])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
   const mainRef = useRef(null)
+  const accountMenuRef = useRef(null)
+  const accountMenuButtonRef = useRef(null)
   const unreadCount = useNotificationStore(state => state.unreadCount)
   const fetchUnreadCount = useNotificationStore(state => state.fetchUnreadCount)
   const clearNotifications = useNotificationStore(state => state.clear)
@@ -166,8 +172,9 @@ export default function AppLayout({ children }) {
     return () => window.clearInterval(interval)
   }, [fetchUnreadCount])
 
-  const handleSignOut = () => { clearNotifications(); signOut(); navigate('/', { replace: true }) }
+  const handleSignOut = () => { setAccountMenuOpen(false); clearNotifications(); signOut(); navigate('/', { replace: true }) }
   const closeSidebar  = () => setSidebarOpen(false)
+  const openAccountPage = path => { setAccountMenuOpen(false); navigate(path) }
 
   // Current page label and contextual help
   const currentItem = navItems.find(i => location.pathname.startsWith(i.to))
@@ -178,6 +185,24 @@ export default function AppLayout({ children }) {
     document.title = `${currentPageLabel} · Metro Roxas Water District`
     mainRef.current?.scrollTo({ top: 0, behavior: 'instant' })
   }, [location.pathname, currentPageLabel])
+
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined
+    const closeOnOutsidePress = event => {
+      if (!accountMenuRef.current?.contains(event.target)) setAccountMenuOpen(false)
+    }
+    const closeOnEscape = event => {
+      if (event.key !== 'Escape') return
+      setAccountMenuOpen(false)
+      accountMenuButtonRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePress)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePress)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [accountMenuOpen])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
@@ -349,7 +374,6 @@ export default function AppLayout({ children }) {
               <button type="button" onClick={() => setCommandOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-white md:hidden" aria-label="Open quick find">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
               </button>
-              <ThemeToggle />
               <PageHelpTooltip key={pageHelp?.title || location.pathname} help={pageHelp} />
               <span className="hidden sm:block text-xs text-gray-500">
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -359,10 +383,64 @@ export default function AppLayout({ children }) {
                 <BellIcon className="w-4 h-4" />
                 {unreadCount > 0 && <span className="absolute right-0 top-0 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-black text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
               </button>
-              <button onClick={() => navigate('/profile')} className="flex h-11 w-11 items-center justify-center rounded-full text-xs font-black text-navy-900"
-                   style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }} aria-label="My profile" title="My profile">
-                {user?.full_name?.charAt(0) || '?'}
-              </button>
+              <div ref={accountMenuRef} className="relative">
+                <button
+                  ref={accountMenuButtonRef}
+                  type="button"
+                  onClick={() => setAccountMenuOpen(value => !value)}
+                  className="account-menu__trigger relative flex h-11 w-11 items-center justify-center rounded-full text-xs font-black text-navy-900 shadow-sm transition-transform hover:scale-105"
+                  style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}
+                  aria-label="Account menu"
+                  aria-haspopup="true"
+                  aria-expanded={accountMenuOpen}
+                  aria-controls="account-menu"
+                  title="Account menu"
+                >
+                  {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                  <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-white bg-navy-800 text-white" aria-hidden="true">
+                    <svg className={`h-2.5 w-2.5 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="m7 10 5 5 5-5"/></svg>
+                  </span>
+                </button>
+
+                {accountMenuOpen && (
+                  <div id="account-menu" className="account-menu absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(18rem,calc(100vw-1.5rem))] rounded-3xl border border-gray-200 bg-white p-2 shadow-2xl" aria-label="Account options">
+                    <div className="rounded-2xl bg-navy-50 px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="account-menu__avatar grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-black text-navy-900" style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}>
+                          {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-navy-900">{user?.full_name || 'MRWD user'}</p>
+                          <p className="truncate text-xs text-gray-500">{user?.email || config.tag}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-xs font-bold text-gray-600">
+                        <span className={`h-2 w-2 rounded-full ${online ? 'bg-green-500' : 'bg-amber-500'}`} />
+                        {online ? 'Online' : 'Offline'} · {config.tag}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 space-y-1">
+                      <button type="button" onClick={() => openAccountPage('/profile')} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-700 transition hover:bg-gray-100">
+                        <ProfileIcon className="h-5 w-5 text-navy-700" />
+                        <span><span className="block text-sm font-bold">My profile</span><span className="block text-xs text-gray-500">Personal details and security</span></span>
+                      </button>
+                      <button type="button" onClick={() => openAccountPage('/notifications')} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-gray-700 transition hover:bg-gray-100">
+                        <span className="relative"><BellIcon className="h-5 w-5 text-navy-700" />{unreadCount > 0 && <span className="absolute -right-2 -top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-600" />}</span>
+                        <span className="min-w-0 flex-1"><span className="block text-sm font-bold">Notifications</span><span className="block text-xs text-gray-500">{unreadCount ? `${unreadCount} unread` : 'You are all caught up'}</span></span>
+                        {unreadCount > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-black text-red-700">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+                      </button>
+                      <ThemeToggle variant="menu" />
+                    </div>
+
+                    <div className="my-2 h-px bg-gray-200" />
+                    <button type="button" onClick={handleSignOut} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-red-700 transition hover:bg-red-50">
+                      <SignOutIcon className="h-5 w-5" />
+                      <span className="text-sm font-bold">Sign out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 

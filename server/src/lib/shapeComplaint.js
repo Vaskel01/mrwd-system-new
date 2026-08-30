@@ -14,6 +14,8 @@
 //   (joined maintenance_tasks)  → assigned_to, assigned_name, task_notes
 //   (computed)                  → similar_ids, similar_count (possible duplicates)
 
+import { deriveCategoryInsights } from './priorityScoring.js'
+
 // Statuses still considered "active work" for duplicate-detection
 // purposes — no point flagging two reports as duplicates of each
 // other if one's already closed out.
@@ -112,6 +114,12 @@ export function presentComplaintForRole(complaint, role, { canViewClassifier = r
     'classification_keywords',
     'classification_negated_keywords',
     'classification_reasons',
+    'classification_category_candidates',
+    'classification_secondary_categories',
+    'classification_multi_issue',
+    'classification_ambiguous',
+    'classification_category_dominance',
+    'classification_routing_recommendations',
     'classifier_version',
     'classification_method',
   ]
@@ -136,6 +144,9 @@ export function presentComplaintForRole(complaint, role, { canViewClassifier = r
 
 function shapeOne(row, categoryMap, profileMap, taskMap) {
   const task = taskMap[row.id]
+  const classificationKeywords = Array.isArray(row.classification_keywords) ? row.classification_keywords : []
+  const classifiedCategory = row.classified_category || categoryMap[row.category_id] || 'Unknown'
+  const categoryInsights = deriveCategoryInsights(classificationKeywords, classifiedCategory)
   return {
     id: row.id,
     reference_number: row.reference_number || `MRWD-${String(row.id).slice(0, 8).toUpperCase()}`,
@@ -160,14 +171,20 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     priority_is_overridden: Boolean(row.priority_overridden_at),
     rule_score: row.rule_score,
     sentiment_score: row.sentiment_score,
-    classified_category: row.classified_category || categoryMap[row.category_id] || 'Unknown',
+    classified_category: classifiedCategory,
     classification_confidence: row.classification_confidence == null ? null : Number(row.classification_confidence),
     classification_sentiment: row.classification_sentiment || null,
     classification_mismatch: Boolean(row.classification_mismatch),
     classification_basis: row.classification_basis || null,
-    classification_keywords: Array.isArray(row.classification_keywords) ? row.classification_keywords : [],
+    classification_keywords: classificationKeywords,
     classification_negated_keywords: Array.isArray(row.classification_negated_keywords) ? row.classification_negated_keywords : [],
     classification_reasons: Array.isArray(row.classification_reasons) ? row.classification_reasons : [],
+    classification_category_candidates: categoryInsights.category_candidates,
+    classification_secondary_categories: categoryInsights.secondary_categories,
+    classification_multi_issue: categoryInsights.multi_issue,
+    classification_ambiguous: categoryInsights.classification_ambiguous,
+    classification_category_dominance: categoryInsights.category_dominance,
+    classification_routing_recommendations: categoryInsights.routing_recommendations,
     classifier_version: row.classifier_version || null,
     classification_method: row.classification_method || null,
     assigned_to: task ? task.assigned_staff_id : null,

@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { priorityFromScore, scoreComplaint } from '../src/lib/priorityScoring.js'
+import { summarizeEvaluation } from '../src/lib/classifierEvaluation.js'
+import { parseLabelledCsv, validateLabelledComplaints } from '../src/lib/labelledComplaintData.js'
 import { presentComplaintForRole } from '../src/lib/shapeComplaint.js'
 import { isPasswordValid, passwordStrength } from '../../src/lib/passwordPolicy.js'
 import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/lib/profileUpdate.js'
@@ -193,6 +195,7 @@ test('priority thresholds include exact boundary values', () => {
   assert.equal(priorityFromScore(30), 'medium')
   assert.equal(priorityFromScore(59), 'medium')
   assert.equal(priorityFromScore(60), 'high')
+  assert.equal(priorityFromScore(55, { priorityThresholds: { high: 55, medium: 25 } }), 'high')
 })
 
 test('password policy rejects short or single-character-class passwords', () => {
@@ -297,4 +300,99 @@ test('weak competing evidence keeps the selected category for safe routing', () 
   assert.ok(result.evidence_confidence < 60)
   assert.equal(result.classification_mismatch, false)
   assert.match(result.classification_basis, /low-confidence text evidence/)
+})
+
+test('classifier tolerates one typo inside a strong multi-word phrase', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'A brst pipe is floding the road.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'Water Leak')
+  assert.equal(result.priority, 'high')
+  assert.ok(result.matched_keywords.some(item =>
+    item.canonical_term === 'burst pipe' && item.match_quality === 'fuzzy' && item.observed_term === 'brst pipe'))
+})
+
+test('classifier expands conservative mixed-language complaint abbreviations', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'Wlang wtr sa buong brgy since 6 hrs.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'No Water')
+  assert.equal(result.priority, 'high')
+  assert.ok(result.matched_keywords.some(item => item.matched_term === 'walang water'))
+})
+
+test('classifier exposes cross-workflow evidence for a multi-issue complaint', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'No water since yesterday and my payment is not reflected.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'No Water')
+  assert.equal(result.multi_issue, true)
+  assert.ok(result.secondary_categories.some(item => item.category === 'Billing Concern'))
+  assert.ok(result.routing_recommendations.some(item => item.code === 'cross_workflow_review'))
+})
+
+test('classifier flags equally supported service symptoms as ambiguous', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'Brown water with low pressure is coming from the faucet.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.multi_issue, true)
+  assert.equal(result.classification_ambiguous, true)
+  assert.equal(result.category_dominance, 50)
+  assert.ok(result.routing_recommendations.some(item => item.code === 'confirm_primary_issue'))
+})
+
+test('non-classifier roles cannot see multi-issue evidence or routing hints', () => {
+  const source = {
+    priority: 'high',
+    classified_category: 'No Water',
+    classification_multi_issue: true,
+    classification_ambiguous: true,
+    classification_category_candidates: [{ category: 'No Water', score: 9 }],
+    classification_secondary_categories: [{ category: 'Billing Concern', score: 4 }],
+    classification_category_dominance: 69,
+    classification_routing_recommendations: [{ code: 'cross_workflow_review', label: 'Review both.' }],
+  }
+  for (const role of ['customer', 'maintenance_personnel']) {
+    const shown = presentComplaintForRole(source, role)
+    assert.equal(shown.classification_multi_issue, undefined)
+    assert.equal(shown.classification_ambiguous, undefined)
+    assert.equal(shown.classification_category_candidates, undefined)
+    assert.equal(shown.classification_secondary_categories, undefined)
+    assert.equal(shown.classification_category_dominance, undefined)
+    assert.equal(shown.classification_routing_recommendations, undefined)
+  }
+})
+
+test('evaluation reports per-class metrics and warns about imbalanced small samples', () => {
+  const results = [
+    { expected_category: 'No Water', predicted_category: 'No Water', expected_priority: 'high', predicted_priority: 'high' },
+    { expected_category: 'No Water', predicted_category: 'Water Leak', expected_priority: 'high', predicted_priority: 'medium' },
+    { expected_category: 'No Water', predicted_category: 'No Water', expected_priority: 'high', predicted_priority: 'high' },
+    { expected_category: 'No Water', predicted_category: 'No Water', expected_priority: 'medium', predicted_priority: 'medium' },
+    { expected_category: 'Water Leak', predicted_category: 'Water Leak', expected_priority: 'high', predicted_priority: 'high' },
+  ]
+  const summary = summarizeEvaluation(results)
+  assert.equal(summary.category_accuracy, 80)
+  assert.equal(summary.category_metrics.per_class['Water Leak'].recall, 100)
+  assert.equal(summary.category_imbalance_ratio, 4)
+  assert.ok(summary.warnings.some(warning => warning.includes('imbalance')))
+})
+
+test('labelled CSV parsing handles quoted commas and validates fields', () => {
+  const parsed = parseLabelledCsv('id,split,selected_type,description,has_photo,expected_category,expected_priority\nL1,validation,Other,"No water, since noon",false,No Water,high\n')
+  const validated = validateLabelledComplaints(parsed, ['Other', 'No Water'])
+  assert.equal(validated[0].description, 'No water, since noon')
+  assert.equal(validated[0].has_photo, false)
 })

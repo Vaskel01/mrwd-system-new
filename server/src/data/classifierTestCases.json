@@ -246,5 +246,37 @@
     "has_photo": false,
     "expected_category": "Water Leak",
     "expected_priority": "high"
+  },
+  {
+    "id": "TC-032",
+    "selected_type": "Other",
+    "description": "A brst pipe is floding the road.",
+    "has_photo": false,
+    "expected_category": "Water Leak",
+    "expected_priority": "high"
+  },
+  {
+    "id": "TC-033",
+    "selected_type": "Other",
+    "description": "Wlang wtr sa buong brgy since 6 hrs.",
+    "has_photo": false,
+    "expected_category": "No Water",
+    "expected_priority": "high"
+  },
+  {
+    "id": "TC-034",
+    "selected_type": "Other",
+    "description": "No water since yesterday and my payment is not reflected.",
+    "has_photo": false,
+    "expected_category": "No Water",
+    "expected_priority": "high"
+  },
+  {
+    "id": "TC-035",
+    "selected_type": "Other",
+    "description": "Brown water with low pressure is coming from the faucet.",
+    "has_photo": false,
+    "expected_category": "Dirty / Discolored Water",
+    "expected_priority": "medium"
   }
 ]

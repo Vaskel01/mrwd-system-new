@@ -43,6 +43,8 @@ function ClassifierAnalysis({ complaint }) {
   const confidence = complaint.classification_confidence == null ? null : Math.round(Number(complaint.classification_confidence))
   const sentimentStyles = { urgent: 'bg-red-100 text-red-800 border-red-200', negative: 'bg-amber-100 text-amber-800 border-amber-200', neutral: 'bg-green-100 text-green-800 border-green-200' }
   const finalScore = Number(complaint.algorithm_priority_score ?? complaint.priority_score ?? 0)
+  const secondaryCategories = complaint.classification_secondary_categories || []
+  const routingRecommendations = complaint.classification_routing_recommendations || []
   const suggestedPriority = finalScore >= 60 ? 'high' : finalScore >= 30 ? 'medium' : 'low'
   const urgencyLabel = complaint.classification_sentiment === 'urgent'
     ? 'Urgent language found'
@@ -83,6 +85,31 @@ function ClassifierAnalysis({ complaint }) {
           </div>
 
           {complaint.classification_mismatch && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"><p className="text-xs font-bold text-amber-900">Complaint type may need review</p><p className="mt-0.5 text-xs text-amber-700">Selected “{complaint.complaint_type},” classified as “{complaint.classified_category}.”</p></div>}
+
+          {complaint.classification_multi_issue && (
+            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black text-blue-950">Multiple issues detected</p>
+                  <p className="mt-0.5 text-xs text-blue-800">Review each supported issue instead of routing from the primary label alone.</p>
+                </div>
+                {complaint.classification_ambiguous && <span className="mt-1 inline-flex w-fit rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-900 sm:mt-0">Primary issue needs confirmation</span>}
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full border border-blue-300 bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-950">Primary: {complaint.classified_category}</span>
+                {secondaryCategories.map(item => (
+                  <span key={item.category} className="inline-flex items-center rounded-full border border-navy-200 bg-white px-2.5 py-1 text-xs font-bold text-navy-800">
+                    {item.category} · {item.relative_strength}% strength
+                  </span>
+                ))}
+              </div>
+              {routingRecommendations.length > 0 && (
+                <ul className="mt-2.5 space-y-1">
+                  {routingRecommendations.map(item => <li key={item.code} className="flex gap-2 text-xs text-blue-900"><span aria-hidden="true">•</span><span>{item.label}</span></li>)}
+                </ul>
+              )}
+            </div>
+          )}
 
           <details className="mt-4 rounded-lg border border-gray-200 bg-white">
             <summary className="cursor-pointer px-4 py-3 text-xs font-black text-navy-800">See why this was suggested</summary>

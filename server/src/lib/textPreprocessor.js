@@ -24,6 +24,30 @@ export const STOPWORDS = new Set([
 
 export const CLAUSE_BOUNDARY = '__clause__'
 
+// Conservative complaint-language aliases. These are intentionally limited to
+// unambiguous service-domain shorthand seen in SMS/chat-style reports. Dataset
+// terms remain canonical; only incoming complaint tokens are expanded.
+export const TOKEN_ALIASES = Object.freeze({
+  wtr: 'water',
+  mtr: 'meter',
+  acct: 'account',
+  accnt: 'account',
+  brgy: 'barangay',
+  hr: 'hour',
+  hrs: 'hours',
+  min: 'minute',
+  mins: 'minutes',
+  svc: 'service',
+  hndi: 'hindi',
+  ndi: 'hindi',
+  wlang: 'walang',
+  walng: 'walang',
+})
+
+export function expandAliases(tokens) {
+  return tokens.map(token => token === CLAUSE_BOUNDARY ? token : (TOKEN_ALIASES[token] || token))
+}
+
 function foldText(rawText) {
   return String(rawText || '')
     .normalize('NFKD')
@@ -54,7 +78,7 @@ export function tokenizeWithClauseBoundaries(rawText) {
     .replace(/[^a-z0-9_\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  return tokenize(normalized)
+  return expandAliases(tokenize(normalized))
 }
 
 /** Splits normalized text into word tokens. */
@@ -118,7 +142,7 @@ export function stem(word) {
  */
 export function preprocess(rawText) {
   const normalized = normalizeText(rawText)
-  const tokens = tokenize(normalized)
+  const tokens = expandAliases(tokenize(normalized))
   const filteredTokens = removeStopwords(tokens)
   const stemmedTokens = filteredTokens.map(stem)
   return { normalized, tokens, filteredTokens, stemmedTokens }

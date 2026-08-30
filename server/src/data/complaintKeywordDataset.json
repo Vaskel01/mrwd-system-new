@@ -1,6 +1,6 @@
 {
   "dataset_name": "MRWD Complaint Keyword Classification Dataset",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "created_for": "MRWD Centralized Complaint Management and Maintenance Task Assignment System",
   "classification_outputs": [
     "predicted complaint category",
@@ -28,7 +28,7 @@
     {
       "id": "KW-002",
       "term": "no water",
-      "synonyms": ["water unavailable", "water supply stopped", "dry faucets"],
+      "synonyms": ["water unavailable", "water supply stopped", "dry faucets", "walang water", "wala water", "no tubig"],
       "suggestive_phrases": ["nothing comes out of the faucet", "we cannot get any water", "there is nothing coming from the tap"],
       "match_type": "phrase",
       "complaint_category": "No Water",

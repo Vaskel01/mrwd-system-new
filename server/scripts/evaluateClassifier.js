@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { scoreComplaint } from '../src/lib/priorityScoring.js'
+import { summarizeEvaluation } from '../src/lib/classifierEvaluation.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const cases = JSON.parse(readFileSync(join(__dirname, '../src/data/classifierTestCases.json'), 'utf-8'))
@@ -33,21 +34,13 @@ const results = cases.map(test => {
   }
 })
 
-const categoryCorrect = results.filter(row => row.category_correct).length
-const priorityCorrect = results.filter(row => row.priority_correct).length
-const bothCorrect = results.filter(row => row.both_correct).length
-const pct = value => Number(((value / results.length) * 100).toFixed(2))
+const summary = summarizeEvaluation(results)
 
 const report = {
   generated_at: new Date().toISOString(),
   classifier_version: config.classifierVersion,
-  total_cases: results.length,
-  category_accuracy: pct(categoryCorrect),
-  priority_accuracy: pct(priorityCorrect),
-  combined_accuracy: pct(bothCorrect),
-  category_correct: categoryCorrect,
-  priority_correct: priorityCorrect,
-  combined_correct: bothCorrect,
+  dataset_purpose: 'Designed development/regression cases; not an independent accuracy estimate.',
+  ...summary,
   results,
 }
 
@@ -55,9 +48,12 @@ writeFileSync(join(__dirname, '../../docs/classifier-evaluation-results.json'), 
 
 console.log(`Classifier: ${report.classifier_version}`)
 console.log(`Cases: ${report.total_cases}`)
-console.log(`Category accuracy: ${report.category_accuracy}% (${categoryCorrect}/${results.length})`)
-console.log(`Priority accuracy: ${report.priority_accuracy}% (${priorityCorrect}/${results.length})`)
-console.log(`Both correct: ${report.combined_accuracy}% (${bothCorrect}/${results.length})`)
+console.log(`Category accuracy: ${report.category_accuracy}% (${report.category_correct}/${results.length})`)
+console.log(`Category macro F1: ${report.category_metrics.macro_f1}%`)
+console.log(`Priority accuracy: ${report.priority_accuracy}% (${report.priority_correct}/${results.length})`)
+console.log(`Priority macro F1: ${report.priority_metrics.macro_f1}%`)
+console.log(`Both correct: ${report.combined_accuracy}% (${report.combined_correct}/${results.length})`)
+for (const warning of report.warnings) console.log(`Warning: ${warning}`)
 
 for (const row of results.filter(item => !item.both_correct)) {
   console.log(`- ${row.id}: expected ${row.expected_category}/${row.expected_priority}; got ${row.predicted_category}/${row.predicted_priority} (${row.priority_score})`)

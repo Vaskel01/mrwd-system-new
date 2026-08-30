@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "npm --prefix server test",
     "test:classifier": "npm --prefix server run evaluate:classifier",
+    "evaluate:labelled": "node server/scripts/evaluateLabelledComplaints.js",
+    "calibrate:classifier": "node server/scripts/calibrateClassifier.js",
     "verify": "npm run check:source && npm run lint && npm run build && npm run test",
     "dev:client": "vite",
     "dev:server": "npm --prefix server run dev",

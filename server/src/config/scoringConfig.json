@@ -1,6 +1,6 @@
 {
-  "classifierVersion": "hybrid-sentiment-v1.4.0",
-  "classificationMethod": "Hybrid sentiment-aware dataset-backed priority scoring algorithm",
+  "classifierVersion": "hybrid-sentiment-v1.5.0",
+  "classificationMethod": "Hybrid sentiment-aware dataset-backed multi-issue priority scoring algorithm",
   "typeScores": {
     "No Water": 40,
     "Water Leak": 35,
@@ -16,6 +16,7 @@
     "minimum": -10,
     "maximum": 50
   },
+  "keywordAdjustmentScale": 1,
   "photoBonus": 10,
   "scoreCap": 100,
   "priorityThresholds": {
@@ -25,6 +26,9 @@
   "categoryConfidenceSmoothing": 5,
   "categorySelectionThreshold": 60,
   "categoryMismatchThreshold": 60,
+  "secondaryCategoryMinimumScore": 4,
+  "secondaryCategoryMinimumRatio": 0.25,
+  "categoryAmbiguityDominanceThreshold": 60,
   "negatedEvidenceMitigation": 5,
   "sentimentThresholds": {
     "urgent": 12,

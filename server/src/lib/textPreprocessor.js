@@ -22,16 +22,39 @@ export const STOPWORDS = new Set([
   'thank', 'thanks', 'hi', 'hello', 'dear', 'sir', 'maam', 'am', 'pm',
 ])
 
+export const CLAUSE_BOUNDARY = '__clause__'
+
+function foldText(rawText) {
+  return String(rawText || '')
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+}
+
 /**
  * Lowercases text and strips punctuation/special characters,
  * collapsing whitespace. Leaves plain words separated by single spaces.
  */
 export function normalizeText(rawText) {
-  return (rawText || '')
-    .toLowerCase()
+  return foldText(rawText)
     .replace(/[^a-z0-9\s]/g, ' ')   // strip punctuation/special chars
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/**
+ * Tokenizes complaint text while retaining hard punctuation as a sentinel.
+ * The classifier uses these sentinels to keep negation inside its clause, so
+ * "no leak; flooding" does not incorrectly negate the flooding report.
+ */
+export function tokenizeWithClauseBoundaries(rawText) {
+  const normalized = foldText(rawText)
+    .replace(/[.!?;:,\n\r]+/g, ` ${CLAUSE_BOUNDARY} `)
+    .replace(/[^a-z0-9_\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return tokenize(normalized)
 }
 
 /** Splits normalized text into word tokens. */

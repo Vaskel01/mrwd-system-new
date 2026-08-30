@@ -1,6 +1,6 @@
 {
   "dataset_name": "MRWD Complaint Keyword Classification Dataset",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "created_for": "MRWD Centralized Complaint Management and Maintenance Task Assignment System",
   "classification_outputs": [
     "predicted complaint category",
@@ -317,6 +317,7 @@
     {
       "id": "KW-021",
       "term": "tagas ng tubig",
+      "synonyms": ["tagas", "may tagas"],
       "match_type": "phrase",
       "complaint_category": "Water Leak",
       "category_weight": 9,

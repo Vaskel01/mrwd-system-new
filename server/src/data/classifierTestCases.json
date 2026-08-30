@@ -198,5 +198,53 @@
     "has_photo": false,
     "expected_category": "No Water",
     "expected_priority": "high"
+  },
+  {
+    "id": "TC-026",
+    "selected_type": "Other",
+    "description": "No leak; burst pipe flooding the street.",
+    "has_photo": false,
+    "expected_category": "Water Leak",
+    "expected_priority": "high"
+  },
+  {
+    "id": "TC-027",
+    "selected_type": "Water Leak",
+    "description": "No leak was visible yesterday, but now there is a leak flooding the road.",
+    "has_photo": false,
+    "expected_category": "Water Leak",
+    "expected_priority": "high"
+  },
+  {
+    "id": "TC-028",
+    "selected_type": "Water Leak",
+    "description": "It isn't flooding, only a small leak beside the meter.",
+    "has_photo": false,
+    "expected_category": "Water Leak",
+    "expected_priority": "medium"
+  },
+  {
+    "id": "TC-029",
+    "selected_type": "Meter Problem",
+    "description": "Hindi tagas ang problema, meter reading lamang.",
+    "has_photo": false,
+    "expected_category": "Meter Problem",
+    "expected_priority": "low"
+  },
+  {
+    "id": "TC-030",
+    "selected_type": "Billing Concern",
+    "description": "This is only a meter question.",
+    "has_photo": false,
+    "expected_category": "Billing Concern",
+    "expected_priority": "low"
+  },
+  {
+    "id": "TC-031",
+    "selected_type": "Other",
+    "description": "This is not only flooding but a burst pipe across the road.",
+    "has_photo": false,
+    "expected_category": "Water Leak",
+    "expected_priority": "high"
   }
 ]

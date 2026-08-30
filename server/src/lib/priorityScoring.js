@@ -5,13 +5,19 @@
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { normalizeText, tokenize, stem } from './textPreprocessor.js'
+import { CLAUSE_BOUNDARY, normalizeText, tokenize, tokenizeWithClauseBoundaries, stem } from './textPreprocessor.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const scoringConfig = JSON.parse(readFileSync(join(__dirname, '../config/scoringConfig.json'), 'utf-8'))
 const keywordDataset = JSON.parse(readFileSync(join(__dirname, '../data/complaintKeywordDataset.json'), 'utf-8'))
 
-const NEGATION_WORDS = new Set(['no', 'not', 'never', 'none', 'without'])
+const NEGATION_WORDS = new Set([
+  'no', 'not', 'never', 'none', 'without',
+  'cannot', 'cant', 'dont', 'doesnt', 'didnt', 'isnt', 'arent', 'wasnt', 'werent', 'wont', 'wouldnt', 'shouldnt', 'couldnt',
+  'hindi', 'walang', 'wala', 'indi', 'dili',
+])
+const NEGATION_BREAKERS = new Set(['but', 'however', 'though', 'although', 'yet', 'except', 'pero', 'ngunit', 'subalit', 'kaso'])
+const NEGATION_EXCEPTIONS = new Set(['only', 'just', 'merely'])
 const NEGATION_WINDOW = 3
 const ACTIVE_ENTRIES = keywordDataset.entries.filter(entry => entry.active !== false)
 
@@ -43,8 +49,15 @@ const WORD_CANDIDATES = MATCH_CANDIDATES
   .filter(candidate => candidate.tokens.length === 1)
 
 function isNegated(tokens, startIndex) {
-  const from = Math.max(0, startIndex - NEGATION_WINDOW)
-  return tokens.slice(from, startIndex).some(token => NEGATION_WORDS.has(token))
+  let inspected = 0
+  for (let i = startIndex - 1; i >= 0 && inspected < NEGATION_WINDOW; i -= 1) {
+    const token = tokens[i]
+    if (token === CLAUSE_BOUNDARY || NEGATION_BREAKERS.has(token)) break
+    if (NEGATION_WORDS.has(token) && NEGATION_EXCEPTIONS.has(tokens[i + 1])) continue
+    inspected += 1
+    if (NEGATION_WORDS.has(token)) return true
+  }
+  return false
 }
 
 function sameSlice(tokens, start, phraseTokens) {
@@ -53,13 +66,16 @@ function sameSlice(tokens, start, phraseTokens) {
 }
 
 function extractDatasetMatches(description) {
-  const normalized = normalizeText(description)
-  const tokens = tokenize(normalized)
+  const tokens = tokenizeWithClauseBoundaries(description)
   const stemmedTokens = tokens.map(stem)
   const consumed = new Array(tokens.length).fill(false)
   const matched = []
-  const negated = []
+  const negatedMatches = new Map()
   const matchedEntryIds = new Set()
+  const rememberNegated = (entry, matchedTerm) => {
+    const key = `${entry.id}:${matchedTerm}`
+    if (!negatedMatches.has(key)) negatedMatches.set(key, { ...entry, matched_term: matchedTerm })
+  }
 
   for (const candidate of PHRASE_CANDIDATES) {
     const { entry } = candidate
@@ -68,8 +84,8 @@ function extractDatasetMatches(description) {
       const rangeUsed = candidate.tokens.some((_, offset) => consumed[i + offset])
       if (rangeUsed || !sameSlice(stemmedTokens, i, candidate.stemmedTokens)) continue
       if (entry.negation_sensitive && isNegated(tokens, i)) {
-        negated.push(candidate.matchedTerm)
-        break
+        rememberNegated(entry, candidate.matchedTerm)
+        continue
       }
       matched.push({ ...entry, matched_term: candidate.matchedTerm })
       matchedEntryIds.add(entry.id)
@@ -84,8 +100,8 @@ function extractDatasetMatches(description) {
     for (let i = 0; i < tokens.length; i += 1) {
       if (consumed[i] || stemmedTokens[i] !== candidate.stemmedTokens[0]) continue
       if (entry.negation_sensitive && isNegated(tokens, i)) {
-        negated.push(candidate.matchedTerm)
-        break
+        rememberNegated(entry, candidate.matchedTerm)
+        continue
       }
       matched.push({ ...entry, matched_term: candidate.matchedTerm })
       matchedEntryIds.add(entry.id)
@@ -94,7 +110,12 @@ function extractDatasetMatches(description) {
     }
   }
 
-  return { matched, negated: [...new Set(negated)] }
+  const negatedEntries = [...negatedMatches.values()]
+  return {
+    matched,
+    negated: [...new Set(negatedEntries.map(entry => entry.matched_term || entry.term))],
+    negatedMatches: negatedEntries,
+  }
 }
 
 function classifyCategory(matched, selectedCategory, hasDescription) {
@@ -116,12 +137,28 @@ function classifyCategory(matched, selectedCategory, hasDescription) {
   }
 
   const [predictedCategory, topScore] = ranked[0]
-  const secondScore = ranked[1]?.[1] || 0
+  const [runnerUpCategory, secondScore = 0] = ranked[1] || []
   const smoothing = scoringConfig.categoryConfidenceSmoothing ?? 5
+  const evidenceConfidence = Math.min(99, Math.round((topScore / (topScore + secondScore + smoothing)) * 100))
+  const selectionThreshold = scoringConfig.categorySelectionThreshold ?? scoringConfig.categoryMismatchThreshold ?? 60
+  if (selectedCategory && predictedCategory !== selectedCategory && evidenceConfidence < selectionThreshold) {
+    return {
+      predicted_category: selectedCategory,
+      category_confidence: 25,
+      category_scores: categoryScores,
+      evidence_category: predictedCategory,
+      evidence_confidence: evidenceConfidence,
+      runner_up_category: runnerUpCategory || null,
+      classification_basis: 'selected-category fallback (low-confidence text evidence)',
+    }
+  }
   return {
     predicted_category: predictedCategory,
-    category_confidence: Math.min(99, Math.round((topScore / (topScore + secondScore + smoothing)) * 100)),
+    category_confidence: evidenceConfidence,
     category_scores: categoryScores,
+    evidence_category: predictedCategory,
+    evidence_confidence: evidenceConfidence,
+    runner_up_category: runnerUpCategory || null,
     classification_basis: 'matched complaint-language dataset',
   }
 }
@@ -142,7 +179,7 @@ function classifySentiment(matched) {
 export function scoreComplaint({ complaint_type, description, has_photo, base_severity_score }) {
   const cfg = scoringConfig
   const reasons = []
-  const { matched, negated } = extractDatasetMatches(description)
+  const { matched, negated, negatedMatches } = extractDatasetMatches(description)
   const categoryResult = classifyCategory(matched, complaint_type, Boolean(normalizeText(description)))
   const classification_mismatch = Boolean(
     complaint_type &&
@@ -161,16 +198,25 @@ export function scoreComplaint({ complaint_type, description, has_photo, base_se
     cfg.keywordAdjustmentLimits?.minimum ?? -10,
     Math.min(rawKeywordAdjustment, cfg.keywordAdjustmentLimits?.maximum ?? 50)
   )
+  const matchedEntryIds = new Set(matched.map(entry => entry.id))
+  const strongestDeniedSeverity = negatedMatches
+    .filter(entry => !matchedEntryIds.has(entry.id))
+    .reduce((highest, entry) => Math.max(highest, Number(entry.priority_weight) || 0), 0)
+  const negatedMitigationLimit = Math.abs(Number(cfg.negatedEvidenceMitigation ?? 0))
+  const negatedAdjustment = strongestDeniedSeverity > 0
+    ? -Math.min(strongestDeniedSeverity, negatedMitigationLimit)
+    : 0
   const classification_sentiment = classifySentiment(matched)
   const sentimentAdjustment = Number(cfg.sentimentAdjustments?.[classification_sentiment] ?? 0)
   const photoAdjustment = has_photo ? (cfg.photoBonus ?? 10) : 0
 
   // Hybrid score: rule-based category severity + dataset keyword severity
-  // + an explicit sentiment adjustment + supporting photo evidence.
+  // + an explicit sentiment adjustment + supporting photo evidence, with a
+  // small capped mitigation when the complainant explicitly denies a severe symptom.
   const sentiment_score = sentimentAdjustment
   const priority_score = Math.max(
     0,
-    Math.min(rule_score + keywordAdjustment + sentimentAdjustment + photoAdjustment, cfg.scoreCap ?? 100)
+    Math.min(rule_score + keywordAdjustment + negatedAdjustment + sentimentAdjustment + photoAdjustment, cfg.scoreCap ?? 100)
   )
 
   if (matched.length) {
@@ -180,9 +226,14 @@ export function scoreComplaint({ complaint_type, description, has_photo, base_se
   } else {
     reasons.push('No dataset phrase matched; selected category used as fallback')
   }
-  reasons.push(`Text classified as ${categoryResult.predicted_category} (${categoryResult.category_confidence}% confidence)`)
+  if (categoryResult.evidence_category && categoryResult.evidence_category !== categoryResult.predicted_category) {
+    reasons.push(`Weak text evidence favored ${categoryResult.evidence_category} (${categoryResult.evidence_confidence}%); retained selected category ${categoryResult.predicted_category}`)
+  } else {
+    reasons.push(`Text classified as ${categoryResult.predicted_category} (${categoryResult.category_confidence}% confidence)`)
+  }
   if (classification_mismatch) reasons.push(`Selected type differs from the text classification (${complaint_type})`)
   if (negated.length) reasons.push(`Negated terms ignored: "${negated.slice(0, 4).join(', ')}"`)
+  if (negatedAdjustment) reasons.push(`Explicitly denied severe symptom (${negatedAdjustment})`)
   reasons.push(`Sentiment adjustment (${classification_sentiment}, +${sentimentAdjustment})`)
   if (has_photo) reasons.push(`Photo evidence (+${photoAdjustment})`)
   else reasons.push('No photo evidence (+0)')
@@ -210,12 +261,16 @@ export function scoreComplaint({ complaint_type, description, has_photo, base_se
     sentiment_score,
     priority_score,
     keyword_adjustment: keywordAdjustment,
+    negated_adjustment: negatedAdjustment,
     sentiment_adjustment: sentimentAdjustment,
     photo_adjustment: photoAdjustment,
     evidence_adjustment: photoAdjustment,
     predicted_category: categoryResult.predicted_category,
     category_confidence: categoryResult.category_confidence,
     category_scores: categoryResult.category_scores,
+    evidence_category: categoryResult.evidence_category || null,
+    evidence_confidence: categoryResult.evidence_confidence || 0,
+    runner_up_category: categoryResult.runner_up_category || null,
     classification_basis: categoryResult.classification_basis,
     classification_sentiment,
     classification_mismatch,

@@ -47,20 +47,24 @@ The dataset includes English and selected commonly used Filipino complaint phras
 1. Normalize the complaint text.
 2. Expand each canonical entry into its configured synonyms and suggestive phrases.
 3. Match longer phrases before individual words.
-4. Normalize common word variants through deterministic stemming.
-5. Ignore configured negated issues, such as “there is no leak.”
-6. Preserve domain phrases in which “no” expresses the issue, such as “no water.”
-7. Sum category evidence and select the strongest category.
-8. Use the predicted category base severity when the mismatch threshold is reached.
-9. Add the configured dataset, sentiment, and photo-evidence adjustments.
-10. Bound the final score from 0 to 100.
-11. Classify the result as Low, Medium, or High Priority.
+4. Normalize accents, contractions, and common word variants through deterministic stemming.
+5. Keep negation inside punctuation and contrast-clause boundaries.
+6. Recognize English, Filipino, and Hiligaynon negation while preserving domain phrases in which “no” or “wala” expresses the issue, such as “no water.”
+7. Continue scanning after a negated occurrence so a later positive report can still match.
+8. Sum category evidence and select the strongest category.
+9. Retain the customer-selected category when competing text evidence is below the configured confidence threshold, avoiding unsafe routing from one weak term.
+10. Use the predicted category base severity when a confident mismatch is found.
+11. Add the configured dataset, sentiment, and photo-evidence adjustments.
+12. Apply a small capped mitigation when a severe symptom is explicitly denied; this cannot erase stronger positive emergency evidence.
+13. Bound the final score from 0 to 100.
+14. Classify the result as Low, Medium, or High Priority.
 
 ## Formula and thresholds
 
 ```text
 Final Priority Score = Base Severity
                      + Dataset Match Adjustment
+                     + Negated-Evidence Mitigation
                      + Sentiment Adjustment
                      + Photo-Evidence Bonus
 ```
@@ -69,6 +73,7 @@ Final Priority Score = Base Severity
 - Negative sentiment: `+5`
 - Urgent sentiment: `+10`
 - Attached complaint photo: `+10`
+- Explicitly denied severe symptom: up to `-5`
 - Low Priority: `0–29`
 - Medium Priority: `30–59`
 - High Priority: `60–100`
@@ -111,7 +116,7 @@ Run:
 npm run test:classifier
 ```
 
-The command evaluates the 25 labeled development cases and regenerates `docs/classifier-evaluation-results.json`.
+The command evaluates the labeled development cases—including clause boundaries, contractions, local-language negation, repeated terms, and weak-evidence routing—and regenerates `docs/classifier-evaluation-results.json`.
 
 The current development cases confirm deterministic behavior on the designed examples. They must not be presented as real-world classifier accuracy. Formal evaluation should:
 

@@ -142,7 +142,7 @@ test('hybrid score applies an explicit sentiment adjustment', () => {
   assert.equal(negative.classification_sentiment, 'negative')
   assert.equal(negative.sentiment_adjustment, 5)
   assert.equal(negative.sentiment_score, 5)
-  assert.equal(negative.priority_score, Math.min(100, negative.rule_score + negative.keyword_adjustment + negative.sentiment_adjustment + negative.photo_adjustment))
+  assert.equal(negative.priority_score, Math.min(100, negative.rule_score + negative.keyword_adjustment + negative.negated_adjustment + negative.sentiment_adjustment + negative.photo_adjustment))
 })
 
 test('urgent sentiment receives a larger adjustment than neutral sentiment', () => {
@@ -236,4 +236,65 @@ test('expanded local suggestive phrases classify No Water and water-quality conc
   })
   assert.equal(noWater.predicted_category, 'No Water')
   assert.equal(quality.predicted_category, 'Dirty / Discolored Water')
+})
+
+test('negation stays inside punctuation and contrast-clause boundaries', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Other',
+    description: 'No leak; burst pipe flooding the street.',
+    has_photo: false,
+    base_severity_score: 10,
+  })
+  assert.equal(result.predicted_category, 'Water Leak')
+  assert.equal(result.priority, 'high')
+  assert.ok(result.matched_keywords.some(item => item.matched_term === 'burst pipe'))
+  assert.ok(result.matched_keywords.some(item => item.matched_term === 'flooding'))
+})
+
+test('a later positive occurrence can match after an earlier negated occurrence', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Water Leak',
+    description: 'No leak was visible yesterday, but now there is a leak flooding the road.',
+    has_photo: false,
+    base_severity_score: 35,
+  })
+  assert.ok(result.negated_keywords.includes('leak'))
+  assert.ok(result.matched_keywords.some(item => item.matched_term === 'leak'))
+  assert.equal(result.negated_adjustment, 0)
+  assert.equal(result.priority, 'high')
+})
+
+test('contractions and local-language negation suppress denied symptoms', () => {
+  const contraction = scoreComplaint({
+    complaint_type: 'Water Leak',
+    description: "It isn't flooding, only a small leak beside the meter.",
+    has_photo: false,
+    base_severity_score: 35,
+  })
+  const local = scoreComplaint({
+    complaint_type: 'Meter Problem',
+    description: 'Hindi tagas ang problema, meter reading lamang.',
+    has_photo: false,
+    base_severity_score: 15,
+  })
+  assert.ok(contraction.negated_keywords.includes('flooding'))
+  assert.equal(contraction.negated_adjustment, -5)
+  assert.equal(contraction.priority, 'medium')
+  assert.ok(local.negated_keywords.includes('tagas'))
+  assert.equal(local.predicted_category, 'Meter Problem')
+  assert.equal(local.priority, 'low')
+})
+
+test('weak competing evidence keeps the selected category for safe routing', () => {
+  const result = scoreComplaint({
+    complaint_type: 'Billing Concern',
+    description: 'This is only a meter question.',
+    has_photo: false,
+    base_severity_score: 5,
+  })
+  assert.equal(result.predicted_category, 'Billing Concern')
+  assert.equal(result.evidence_category, 'Meter Problem')
+  assert.ok(result.evidence_confidence < 60)
+  assert.equal(result.classification_mismatch, false)
+  assert.match(result.classification_basis, /low-confidence text evidence/)
 })

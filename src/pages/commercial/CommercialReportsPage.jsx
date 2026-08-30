@@ -3,6 +3,18 @@ import { apiFetch } from '../../lib/api'
 import { addDaysYmd, manilaDateYmd, manilaMonthRange } from '../../lib/date'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
+import AppIcon from '../../components/ui/AppIcon'
+import {
+  AnalyticsKpi,
+  AnalyticsSectionHeading,
+  AnalyticsSignal,
+  AnalyticsTable,
+  DistributionBar,
+  RankedBarList,
+} from '../../components/analytics/AnalyticsPrimitives'
+
+const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
+const RESOLVED_STATUSES = new Set(['resolved', 'completed'])
 
 function titleCase(value) {
   return String(value || 'Unknown').replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase())
@@ -13,47 +25,65 @@ function escapeCsv(value) {
   return `"${text.replaceAll('"', '""')}"`
 }
 
-function thisMonthRange() {
-  return manilaMonthRange()
+function percent(value, total) {
+  return total ? Math.round(value / total * 100) : 0
 }
 
+function hoursBetween(start, end) {
+  const duration = new Date(end) - new Date(start)
+  return Number.isFinite(duration) && duration >= 0 ? duration / 36e5 : null
+}
 
-function BarList({ data, total }) {
-  const entries = Object.entries(data || {}).sort((a, b) => b[1] - a[1])
-  return <div className="space-y-3">{entries.length === 0 ? <p className="text-sm text-gray-500">No data yet.</p> : entries.map(([label, count]) => <div key={label}><div className="flex justify-between text-xs mb-1"><span className="font-bold text-gray-700">{titleCase(label)}</span><span className="text-gray-500">{count}</span></div><div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-brand-500 rounded-full" style={{ width: `${total ? Math.max(3, count / total * 100) : 0}%` }} /></div></div>)}</div>
+function formatDuration(hours) {
+  if (hours == null) return '—'
+  if (hours < 24) return `${Math.round(hours)}h`
+  return `${(hours / 24).toFixed(hours < 240 ? 1 : 0)}d`
+}
+
+function bucketLocation(item) {
+  const raw = String(item.zone || item.address || '').trim()
+  if (!raw) return 'Unspecified area'
+  const parts = raw.split(',').map(part => part.trim()).filter(Boolean)
+  return parts.length > 1 ? parts[parts.length - 2] : parts[0]
+}
+
+function monthLabel(value) {
+  return new Date(`${value}-01T00:00:00`).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })
 }
 
 export default function CommercialReportsPage() {
-  const complaints = useComplaintStore(s => s.complaints)
-  const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
+  const complaints = useComplaintStore(state => state.complaints)
+  const fetchComplaints = useComplaintStore(state => state.fetchComplaints)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [initialRange] = useState(() => thisMonthRange())
+  const [initialRange] = useState(() => manilaMonthRange())
   const [fromDate, setFromDate] = useState(initialRange.from)
   const [toDate, setToDate] = useState(initialRange.to)
+  const [analysisNow, setAnalysisNow] = useState(() => Date.now())
 
   const load = async () => {
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
       const params = new URLSearchParams({ from: fromDate, to: toDate })
       const [result] = await Promise.all([apiFetch(`/reports/summary?${params}`), fetchComplaints()])
       setData(result)
-    } catch (err) { setError(err.message) } finally { setLoading(false) }
+      setAnalysisNow(Date.now())
+    } catch (loadError) {
+      setError(loadError.message)
+    } finally {
+      setLoading(false)
+    }
   }
+
   useEffect(() => {
     let active = true
     const params = new URLSearchParams({ from: fromDate, to: toDate })
     Promise.all([apiFetch(`/reports/summary?${params}`), fetchComplaints()])
-      .then(([result]) => {
-        if (active) setData(result)
-      })
-      .catch(err => {
-        if (active) setError(err.message)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
+      .then(([result]) => { if (active) { setData(result); setAnalysisNow(Date.now()) } })
+      .catch(loadError => { if (active) setError(loadError.message) })
+      .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [fetchComplaints, fromDate, toDate])
 
@@ -64,33 +94,87 @@ export default function CommercialReportsPage() {
     return filed >= from && filed <= to
   }), [complaints, fromDate, toDate])
 
+  const analytics = useMemo(() => {
+    const now = analysisNow
+    const resolved = scopedComplaints.filter(item => RESOLVED_STATUSES.has(item.status))
+    const active = scopedComplaints.filter(item => ACTIVE_STATUSES.has(item.status))
+    const resolutionHours = resolved
+      .map(item => hoursBetween(item.created_at, item.verified_at || item.completed_at || item.updated_at))
+      .filter(value => value != null)
+    const averageResolutionHours = resolutionHours.length
+      ? resolutionHours.reduce((sum, value) => sum + value, 0) / resolutionHours.length
+      : null
+    const aging = { '0–1 day': 0, '2–3 days': 0, '4–7 days': 0, '8+ days': 0 }
+    for (const item of active) {
+      const days = Math.max(0, (now - new Date(item.created_at).getTime()) / 864e5)
+      if (days < 2) aging['0–1 day'] += 1
+      else if (days < 4) aging['2–3 days'] += 1
+      else if (days < 8) aging['4–7 days'] += 1
+      else aging['8+ days'] += 1
+    }
+    const locationCounts = new Map()
+    for (const item of scopedComplaints) {
+      const label = bucketLocation(item)
+      locationCounts.set(label, (locationCounts.get(label) || 0) + 1)
+    }
+    const oldestActiveDays = active.reduce((oldest, item) =>
+      Math.max(oldest, Math.floor(Math.max(0, now - new Date(item.created_at).getTime()) / 864e5)), 0)
+
+    return {
+      total: scopedComplaints.length,
+      resolved: resolved.length,
+      active: active.length,
+      pending: scopedComplaints.filter(item => item.status === 'pending').length,
+      rejected: scopedComplaints.filter(item => item.status === 'rejected').length,
+      cancelled: scopedComplaints.filter(item => item.status === 'cancelled').length,
+      highPriority: scopedComplaints.filter(item => item.priority === 'high').length,
+      highPriorityActive: active.filter(item => item.priority === 'high').length,
+      reopened: scopedComplaints.filter(item => item.reopened_at).length,
+      classifierReview: scopedComplaints.filter(item => item.classification_mismatch || item.classification_multi_issue).length,
+      resolutionRate: percent(resolved.length, scopedComplaints.length),
+      averageResolutionHours,
+      oldestActiveDays,
+      aging,
+      locations: [...locationCounts].map(([label, value]) => ({ label, value })),
+    }
+  }, [analysisNow, scopedComplaints])
+
+  const summary = data?.summary || {}
+  const feedbackCoverage = percent(summary.feedback_count || 0, analytics.resolved)
   const csvRows = useMemo(() => scopedComplaints.map(item => [
     item.reference_number, item.complaint_type, item.customer_name, item.status, item.priority,
     item.assigned_name || '', item.address, item.created_at, item.completed_at || '', item.description,
   ]), [scopedComplaints])
+
+  const monthlyRows = useMemo(() => (data?.monthly_summary || []).map(item => ({
+    ...item,
+    label: monthLabel(item.month),
+    completionRate: percent(item.completed, item.filed),
+    backlogChange: item.filed - item.completed,
+  })).reverse(), [data])
 
   const exportCsv = () => {
     const headers = ['Complaint Reference', 'Complaint Type', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Submitted', 'Resolved', 'Description']
     const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-    const link = document.createElement('a'); link.href = url; link.download = `mrwd-complaints-${fromDate}-to-${toDate}.csv`; link.click(); URL.revokeObjectURL(url)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `mrwd-complaints-${fromDate}-to-${toDate}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   const selectPreset = preset => {
     const today = manilaDateYmd()
     if (preset === 'month') {
-      const range = thisMonthRange()
+      const range = manilaMonthRange()
       setFromDate(range.from)
       setToDate(range.to)
-      return
-    }
-    if (preset === '30days') {
+    } else if (preset === '30days') {
       setFromDate(addDaysYmd(today, -29))
       setToDate(today)
-      return
-    }
-    if (preset === 'quarter') {
+    } else if (preset === 'quarter') {
       const [year, month] = today.split('-').map(Number)
       const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1
       setFromDate(`${year}-${String(quarterStartMonth).padStart(2, '0')}-01`)
@@ -98,71 +182,115 @@ export default function CommercialReportsPage() {
     }
   }
 
-  if (loading && !data) return <PageLoader label="Preparing reports…" />
-  const summary = data?.summary || {}
+  if (loading && !data) return <PageLoader label="Preparing complaint analytics…" />
+
+  const signals = [
+    analytics.highPriorityActive > 0
+      ? { title: `${analytics.highPriorityActive} active High-priority complaint${analytics.highPriorityActive === 1 ? '' : 's'}`, detail: 'Review routing and customer follow-up before lower-priority work.', tone: 'urgent', icon: 'alert' }
+      : { title: 'No active High-priority backlog', detail: 'The selected period has no unresolved High-priority complaints.', tone: 'good', icon: 'check' },
+    analytics.oldestActiveDays >= 4
+      ? { title: `Oldest active complaint is ${analytics.oldestActiveDays} days old`, detail: 'Check for blocked work, missing customer information, or delayed verification.', tone: 'watch', icon: 'clock' }
+      : { title: 'Active complaints are recent', detail: 'No active complaint in this period is older than four days.', tone: 'good', icon: 'clock' },
+    analytics.classifierReview > 0
+      ? { title: `${analytics.classifierReview} categorization review${analytics.classifierReview === 1 ? '' : 's'}`, detail: 'These complaints contain a type mismatch or multiple supported issues.', tone: 'info', icon: 'clipboard' }
+      : { title: 'No categorization exceptions', detail: 'No type mismatch or multi-issue evidence was recorded in this period.', tone: 'good', icon: 'check' },
+  ]
+
+  const monthlyColumns = [
+    { key: 'label', label: 'Month', className: 'font-bold text-navy-900' },
+    { key: 'filed', label: 'Submitted', className: 'font-black text-navy-900' },
+    { key: 'completed', label: 'Resolved', className: 'font-black text-green-700' },
+    { key: 'completionRate', label: 'Resolved / submitted', render: row => `${row.completionRate}%` },
+    { key: 'backlogChange', label: 'Backlog movement', render: row => <span className={row.backlogChange > 0 ? 'font-bold text-amber-700' : 'font-bold text-green-700'}>{row.backlogChange > 0 ? '+' : ''}{row.backlogChange}</span> },
+  ]
 
   return (
-    <div className="space-y-5 report-print-area">
-      <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6 no-print">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="report-print-area space-y-5">
+      <header className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6 no-print">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Commercial Services Department</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Complaint reports</h1>
-            <p className="text-navy-300 text-sm mt-1">Review complaint volume, outcomes, resolution activity, and customer feedback.</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services · NSCCCD</p>
+            <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Complaint analytics</h1>
+            <p className="mt-1 max-w-3xl text-sm text-navy-300">Understand demand, customer impact, workflow outcomes, and the exceptions that need follow-up.</p>
           </div>
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
-            <button onClick={exportCsv} className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-white text-navy-800 text-xs font-black">Export CSV</button>
-            <button onClick={() => window.print()} className="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-white/40 text-white text-xs font-black">Print or save as PDF</button>
-          </div>
-        </div>
-      </div>
-      <div className="hidden print:block"><h1 className="font-display font-black text-2xl">Metro Roxas Water District Complaint Report</h1><p className="text-sm text-gray-500">Generated {new Date().toLocaleString('en-PH')}</p></div>
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      <div className="card rounded-xl p-4 no-print">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-3">
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 flex-1">
-            <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">From</label>
-              <input type="date" value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} className="input-field rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">To</label>
-              <input type="date" value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} className="input-field rounded-lg" />
-            </div>
-          </div>
-          <div className="grid w-full grid-cols-1 min-[420px]:grid-cols-3 gap-2 lg:w-auto">
-            <button type="button" onClick={() => selectPreset('month')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">This month</button>
-            <button type="button" onClick={() => selectPreset('30days')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">Last 30 days</button>
-            <button type="button" onClick={() => selectPreset('quarter')} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">This quarter</button>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+            <button onClick={exportCsv} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-black text-navy-800"><AppIcon name="download" className="h-4 w-4" />Export CSV</button>
+            <button onClick={() => window.print()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/40 px-4 py-2.5 text-xs font-black text-white hover:bg-white/10"><AppIcon name="document" className="h-4 w-4" />Print report</button>
           </div>
         </div>
-        <p className="mt-3 text-xs text-gray-500">All charts and exports below use the selected submission-date range.</p>
-      </div>
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3">
-        {[['Total Complaints', summary.total ?? 0, 'text-navy-900'], ['Active Complaints', summary.active ?? 0, 'text-brand-700'], ['Resolved', summary.resolved ?? summary.completed ?? 0, 'text-green-700'], ['Average Rating', summary.average_rating ? `${summary.average_rating}/5` : '—', 'text-amber-600']].map(([label, value, color]) => <div key={label} className="card rounded-xl p-4"><p className={`font-display font-black text-3xl ${color}`}>{value}</p><p className="text-xs font-bold text-gray-500 mt-1">{label}</p></div>)}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-4">Complaints by status</h2><BarList data={data?.by_status} total={summary.total} /></div>
-        <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-4">Complaints by type</h2><BarList data={data?.by_category} total={summary.total} /></div>
-        <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-4">Complaints by priority</h2><BarList data={data?.by_priority} total={summary.total} /></div>
-      </div>
-      <div className="card rounded-xl p-4 sm:p-5">
-        <div className="mb-4"><h2 className="font-display font-bold text-navy-900">Monthly activity</h2><p className="mt-1 text-xs text-gray-500">Compare complaints submitted with complaints verified as resolved by ECMD.</p></div>
-        <div className="min-w-0 overflow-hidden rounded-lg border border-gray-100">
-          <table className="w-full table-fixed text-left text-sm">
-            <thead><tr className="border-b-2 border-gray-200 bg-gray-50"><th className="px-3 py-3 text-[11px] font-black uppercase text-gray-500">Month</th><th className="px-3 py-3 text-[11px] font-black uppercase text-gray-500">Submitted</th><th className="px-3 py-3 text-[11px] font-black uppercase text-gray-500">Resolved</th><th className="px-3 py-3 text-[11px] font-black uppercase text-gray-500">Change in open complaints</th></tr></thead>
-            <tbody className="divide-y divide-gray-100">{data?.monthly_summary?.length ? data.monthly_summary.map(item => <tr key={item.month}><td className="px-3 py-3 break-words font-bold text-navy-900">{new Date(`${item.month}-01T00:00:00`).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</td><td className="px-3 py-3">{item.filed}</td><td className="px-3 py-3 text-green-700">{item.completed}</td><td className="px-3 py-3">{item.filed - item.completed}</td></tr>) : <tr><td colSpan="4" className="p-6 text-center text-gray-500">No complaint activity in this period.</td></tr>}</tbody>
-          </table>
+      </header>
+
+      <div className="hidden print:block"><h1 className="font-display text-2xl font-black">Metro Roxas Water District Complaint Analytics</h1><p className="text-sm text-gray-500">{fromDate} to {toDate} · Generated {new Date().toLocaleString('en-PH')}</p></div>
+      {error ? <ErrorBanner message={error} onRetry={load} /> : null}
+
+      <section className="card rounded-xl p-4 no-print" aria-label="Analytics date range">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="grid flex-1 grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-gray-500">From<input type="date" value={fromDate} max={toDate} onChange={event => setFromDate(event.target.value)} className="input-field mt-1.5 rounded-lg" /></label>
+            <label className="block text-xs font-black uppercase tracking-wider text-gray-500">To<input type="date" value={toDate} min={fromDate} onChange={event => setToDate(event.target.value)} className="input-field mt-1.5 rounded-lg" /></label>
+          </div>
+          <div className="grid w-full grid-cols-3 gap-2 lg:w-auto" aria-label="Quick date ranges">
+            {[['month', 'This month'], ['30days', 'Last 30 days'], ['quarter', 'This quarter']].map(([value, label]) => <button key={value} type="button" onClick={() => selectPreset(value)} className="btn-secondary min-w-0 rounded-lg px-2 text-xs">{label}</button>)}
+          </div>
         </div>
-      </div>
-      <div className="card rounded-xl p-4 sm:p-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
-          <div><h2 className="font-display font-bold text-navy-900">Resolution and feedback summary</h2><p className="text-xs text-gray-500 mt-1">Calculated from resolved complaints and submitted customer feedback.</p></div>
-          <div className="text-sm text-gray-600 break-words"><b>{summary.feedback_count ?? 0}</b> feedback responses · <b>{summary.average_rating ?? '—'}</b> average rating</div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500"><span>Submission-date basis · Manila time</span><span className="font-bold text-navy-700">{analytics.total} complaint{analytics.total === 1 ? '' : 's'} in scope</span></div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-6" aria-label="Complaint performance indicators">
+        <AnalyticsKpi label="Complaints" value={analytics.total} detail={`${analytics.pending} awaiting initial review`} icon="clipboard" />
+        <AnalyticsKpi label="Resolution rate" value={`${analytics.resolutionRate}%`} detail={`${analytics.resolved} resolved in period`} icon="check" accent="green" />
+        <AnalyticsKpi label="Active backlog" value={analytics.active} detail={`${analytics.oldestActiveDays}d oldest active`} icon="assignment" accent={analytics.oldestActiveDays >= 4 ? 'amber' : 'blue'} />
+        <AnalyticsKpi label="High priority" value={analytics.highPriority} detail={`${analytics.highPriorityActive} still active`} icon="alert" accent={analytics.highPriorityActive ? 'red' : 'green'} />
+        <AnalyticsKpi label="Avg. resolution" value={formatDuration(analytics.averageResolutionHours)} detail="Submission to completion" icon="clock" accent="blue" />
+        <AnalyticsKpi label="Customer rating" value={summary.average_rating ? `${summary.average_rating}/5` : '—'} detail={`${summary.feedback_count || 0} responses · ${feedbackCoverage}% coverage`} icon="star" accent="amber" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
+        <div className="card rounded-xl p-5">
+          <AnalyticsSectionHeading eyebrow="Workflow health" title="Complaint flow and aging" description="See how much work is still moving through the service process and how long active complaints have been waiting." />
+          <div className="mt-5"><DistributionBar total={analytics.total} items={[
+            { label: 'Resolved', value: analytics.resolved, accent: 'green' },
+            { label: 'Active', value: analytics.active, accent: 'blue' },
+            { label: 'Pending review', value: analytics.pending, accent: 'amber' },
+            { label: 'Rejected / cancelled', value: analytics.rejected + analytics.cancelled, accent: 'red' },
+          ]} /></div>
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div><p className="mb-3 text-xs font-black uppercase tracking-wider text-gray-500">Active complaint age</p><RankedBarList items={analytics.aging} total={analytics.active} maxItems={4} /></div>
+            <div className="space-y-2.5">{signals.map(signal => <AnalyticsSignal key={signal.title} {...signal} />)}</div>
+          </div>
         </div>
 
-        <p className="text-sm text-gray-600">Maintenance workload and availability are shown in ECMD Field Operations.</p>
-      </div>
+        <div className="card rounded-xl p-5">
+          <AnalyticsSectionHeading eyebrow="Customer experience" title="Resolution and feedback quality" description="Feedback is useful only when enough resolved complaints receive a response." />
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-gray-50 p-4"><p className="text-xs font-black uppercase tracking-wider text-gray-500">Feedback coverage</p><p className="mt-2 text-2xl font-black text-navy-900">{feedbackCoverage}%</p><p className="mt-1 text-xs text-gray-500">of resolved complaints</p></div>
+            <div className="rounded-xl bg-gray-50 p-4"><p className="text-xs font-black uppercase tracking-wider text-gray-500">Reopened</p><p className="mt-2 text-2xl font-black text-navy-900">{analytics.reopened}</p><p className="mt-1 text-xs text-gray-500">in selected period</p></div>
+          </div>
+          <div className="mt-4">
+            {feedbackCoverage < 30 && analytics.resolved > 0
+              ? <AnalyticsSignal tone="watch" icon="feedback" title="Feedback coverage is limited" detail="Use the rating cautiously and encourage feedback after verified resolution." />
+              : <AnalyticsSignal tone="good" icon="feedback" title="Customer feedback is represented" detail={analytics.resolved ? 'Coverage is sufficient for a directional customer-service signal.' : 'Feedback will appear after complaints are resolved.'} />}
+          </div>
+          <dl className="mt-4 divide-y divide-gray-100 text-sm">
+            <div className="flex justify-between gap-3 py-3"><dt className="text-gray-500">Rejected complaints</dt><dd className="font-black text-navy-900">{analytics.rejected}</dd></div>
+            <div className="flex justify-between gap-3 py-3"><dt className="text-gray-500">Customer cancellations</dt><dd className="font-black text-navy-900">{analytics.cancelled}</dd></div>
+            <div className="flex justify-between gap-3 py-3"><dt className="text-gray-500">Classification review flags</dt><dd className="font-black text-navy-900">{analytics.classifierReview}</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-3">
+        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Complaint demand" description="Most reported complaint types." /><div className="mt-5"><RankedBarList items={Object.entries(data?.by_category || {}).map(([label, value]) => ({ label, value }))} total={analytics.total} /></div></div>
+        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Priority mix" description="Urgency assigned after complaint review." /><div className="mt-5"><RankedBarList items={Object.entries(data?.by_priority || {}).map(([label, value]) => ({ label: titleCase(label), value, accent: label === 'high' ? 'red' : label === 'medium' ? 'amber' : 'green' }))} total={analytics.total} /></div></div>
+        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Areas generating demand" description="Locations are grouped from the submitted zone or address." /><div className="mt-5"><RankedBarList items={analytics.locations} total={analytics.total} /></div></div>
+      </section>
+
+      <section className="card rounded-xl p-4 sm:p-5">
+        <AnalyticsSectionHeading eyebrow="Trend" title="Monthly throughput" description="Submitted and resolved counts use their own event dates. Backlog movement is submitted minus resolved for the month." aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Latest first</span>} />
+        <div className="mt-4"><AnalyticsTable columns={monthlyColumns} rows={monthlyRows} rowKey={row => row.month} emptyLabel="No complaint activity falls within this period." /></div>
+      </section>
+
+      <p className="px-1 text-xs leading-5 text-gray-500">Analytics are decision-support summaries based on the selected complaint submission range. A low-volume period can produce unstable rates; open the complaint review queue before making case-level decisions.</p>
     </div>
   )
 }

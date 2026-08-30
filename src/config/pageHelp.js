@@ -106,8 +106,8 @@ const PAGE_HELP = [
     ],
   }),
   exact('/commercial/reports', {
-    title: 'Complaint reports',
-    summary: 'Review complaint trends and summary information for Commercial Services reporting.',
+    title: 'Complaint analytics',
+    summary: 'Review complaint demand, aging, outcomes, customer experience, and exceptions for Commercial Services decisions.',
     tips: [
       'Adjust the report filters before using the totals for a specific period or purpose.',
       'Use reports for trends and summaries; open Complaint review when you need to work on an individual complaint.',
@@ -162,8 +162,8 @@ const PAGE_HELP = [
     ],
   }),
   exact('/ecmd/field-operations', {
-    title: 'Field operations',
-    summary: 'Manage ECMD operational records such as incidents, inventory, maintenance notes, and related field-work information.',
+    title: 'Field operations analytics',
+    summary: 'Monitor queue aging, throughput, field capacity, recurring areas, incidents, and related operational records.',
     tips: [
       'Use incidents to group complaints that appear to come from the same larger service problem.',
       'Inventory adjustments should match real stock movement and include a clear reason.',
@@ -190,8 +190,8 @@ const PAGE_HELP = [
   }),
 
   exact('/system/dashboard', {
-    title: 'System overview',
-    summary: 'Monitor the overall MRWD application, administration workload, and system-level items that need attention.',
+    title: 'System governance analytics',
+    summary: 'Monitor staffing coverage, approval workload, notification delivery, archives, and system-level items that need attention.',
     tips: [
       'Use this page for administration and oversight rather than Commercial or ECMD operational work.',
       'Open Staff accounts for account access changes and Activity & security log for traceable system actions.',

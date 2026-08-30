@@ -31,10 +31,10 @@ function adminNavigation(user) {
     if (hasCapability(user, capability)) items.push(item)
   }
 
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System overview' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System analytics' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial overview' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint review' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint reports' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint analytics' })
   add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/export-center', icon: ExportIcon, label: 'Exports & schedules' })
   add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services · NSCCCD', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & billing' })
   add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service advisories' })

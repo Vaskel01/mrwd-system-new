@@ -35,7 +35,7 @@ export function PageLoader({ label = 'Loading…', compact = false }) {
 }
 
 // "Nothing here yet" state — for empty lists, empty search results, etc.
-export function EmptyState({ icon = <AppIcon name="document" className="h-9 w-9" />, title, description, action }) {
+export function EmptyState({ icon = <AppIcon name="document" className="h-10 w-10" />, title, description, action }) {
   return (
     <div className="bg-white border border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center">
       <div className="mb-3 flex justify-center text-4xl" aria-hidden="true">{icon}</div>

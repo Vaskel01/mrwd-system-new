@@ -7,6 +7,7 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { COMPLAINT_TYPES } from '../../config/staticData'
 import { ErrorBanner } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
+import { MAP_PIN_DARK_COLOR } from '../../config/uiTokens'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
@@ -83,7 +84,7 @@ function PinMap({ lat, lng, onPinChange }) {
 
       // Custom marker icon
       const icon = L.divIcon({
-        html: `<div style="width:28px;height:28px;background:#1b3366;border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>`,
+        html: `<div style="width:28px;height:28px;background:${MAP_PIN_DARK_COLOR};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>`,
         iconSize: [28, 28], iconAnchor: [14, 28], className: '',
       })
 
@@ -342,16 +343,13 @@ export default function SubmitComplaintPage() {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-5">
       {draftRestored && <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between"><div><b>Draft restored.</b> Your unfinished complaint was recovered from this browser. {draftSavedAt && <span className="text-blue-700"> Changes are saved automatically.</span>}</div><button type="button" onClick={() => { window.localStorage.removeItem(DRAFT_KEY); reset({ complaint_type: '', description: '', address: '' }); setGpsCoords(null); setLocationMode(null); setStep(0); setFurthestStep(0); setDraftRestored(false); setDraftSavedAt(null) }} className="text-xs font-black text-blue-800 underline">Discard draft</button></div>}
       {/* Page header */}
-      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
-        <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
-          <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
-        </svg>
-        <p className="relative text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
-        <h1 className="relative font-display font-black text-white text-2xl sm:text-3xl">Submit a complaint</h1>
-        <p className="relative text-navy-300 text-sm mt-1">Tell us what happened and where. Clear details help MRWD review your complaint faster.</p>
+      <div className="page-band wave-header page-header">
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-[.15em] text-gold-400">Customer account</p>
+        <h1 className="text-white">Submit a complaint</h1>
+        <p>Tell us what happened and where. Clear details help MRWD review your complaint faster.</p>
       </div>
 
       {/* Step rail */}
@@ -362,7 +360,7 @@ export default function SubmitComplaintPage() {
           return (
           <button type="button" key={i} onClick={() => canJump && setStep(i)} disabled={!canJump}
             aria-current={i === step ? 'step' : undefined}
-            className={`h-10 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-lg text-xs font-bold transition-colors border ${
+            className={`min-h-11 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-colors border ${
               i === step ? 'bg-navy-900 text-white border-navy-900' :
               completed ? 'bg-navy-800 text-white border-gold-500 cursor-pointer hover:bg-navy-700' :
                           'bg-white text-gray-500 border-gray-200'
@@ -398,7 +396,7 @@ export default function SubmitComplaintPage() {
                 ))}
               </div>
               {errors.complaint_type && <p className="mt-3 text-xs text-red-600 font-semibold">{errors.complaint_type.message}</p>}
-              <button type="button" onClick={goNext} className="btn-primary w-full mt-5" style={{ borderRadius: 8 }}>Continue</button>
+              <button type="button" onClick={goNext} className="btn-primary mt-5 w-full">Continue</button>
             </div>
           </div>
         )}
@@ -479,7 +477,7 @@ export default function SubmitComplaintPage() {
                     >
                       <AppIcon name="location" className="h-6 w-6 shrink-0" />
                       <span className="text-xs leading-tight">Use saved service address</span>
-                      {locationMode === 'saved' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
+                      {locationMode === 'saved' && <span className="text-xs font-semibold text-navy-600">Selected</span>}
                     </button>
                   )}
                   {/* GPS button */}
@@ -500,7 +498,7 @@ export default function SubmitComplaintPage() {
                       <AppIcon name="location" className="h-6 w-6 shrink-0" />
                     )}
                     <span className="text-xs text-center leading-tight">{gpsLoading ? 'Getting location…' : 'Use my location'}</span>
-                    {locationMode === 'gps' && !gpsLoading && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
+                    {locationMode === 'gps' && !gpsLoading && <span className="text-xs font-semibold text-navy-600">Selected</span>}
                   </button>
 
                   {/* Pin on map button */}
@@ -523,7 +521,7 @@ export default function SubmitComplaintPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                     </svg>
                     <span className="text-xs text-center leading-tight">Choose on map</span>
-                    {locationMode === 'pin' && <span className="text-[11px] font-semibold text-navy-600">Selected</span>}
+                    {locationMode === 'pin' && <span className="text-xs font-semibold text-navy-600">Selected</span>}
                   </button>
               </div>
 

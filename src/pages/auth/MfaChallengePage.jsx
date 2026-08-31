@@ -39,7 +39,7 @@ export default function MfaChallengePage() {
     } catch (err) { setError(err.message) } finally { setVerifying(false) }
   }
 
-  return <div className="min-h-screen bg-[#f4f7fb] px-4 py-12 flex items-center justify-center">
+  return <div className="flex min-h-screen items-center justify-center bg-md-background px-4 py-12">
     <div className="w-full max-w-md card rounded-2xl p-6 sm:p-8">
       <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-navy-800 text-white">
         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>

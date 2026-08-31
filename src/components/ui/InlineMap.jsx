@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import AppIcon from './AppIcon'
+import { MAP_PIN_COLOR } from '../../config/uiTokens'
 
 export default function InlineMap({ lat, lng, accuracy, height = 200 }) {
   const containerRef = useRef(null)
@@ -25,7 +26,7 @@ export default function InlineMap({ lat, lng, accuracy, height = 200 }) {
       }).addTo(map)
 
       const icon = leaflet.divIcon({
-        html: '<div style="width:22px;height:22px;background:#1d4ed8;border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+        html: `<div style="width:22px;height:22px;background:${MAP_PIN_COLOR};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
         iconSize: [22, 22],
         iconAnchor: [11, 22],
         className: '',
@@ -34,8 +35,8 @@ export default function InlineMap({ lat, lng, accuracy, height = 200 }) {
       if (accuracy && accuracy > 5) {
         leaflet.circle([lat, lng], {
           radius: accuracy,
-          color: '#1d4ed8',
-          fillColor: '#1d4ed8',
+          color: MAP_PIN_COLOR,
+          fillColor: MAP_PIN_COLOR,
           fillOpacity: 0.08,
           weight: 1,
         }).addTo(map)

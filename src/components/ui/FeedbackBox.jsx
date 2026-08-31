@@ -108,7 +108,7 @@ export default function FeedbackBox({ complaintId }) {
             </div>
           </div>
           {existing.created_at && (
-            <p className="text-[11px] text-green-700/70">Submitted {formatDate(existing.created_at)}</p>
+            <p className="text-xs text-green-700/70">Submitted {formatDate(existing.created_at)}</p>
           )}
         </div>
         <div className="mt-3 pt-3 border-t border-green-200/70">
@@ -125,7 +125,7 @@ export default function FeedbackBox({ complaintId }) {
   if (!canSubmit) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
-        <AppIcon name="feedback" className="mx-auto mb-2 h-8 w-8 text-gray-500" />
+        <AppIcon name="feedback" className="mx-auto mb-2 h-10 w-10 text-gray-500" />
         <p className="font-bold text-gray-700">No customer feedback yet</p>
         <p className="text-sm text-gray-500 mt-1">The customer has not submitted a rating or comment for this resolved complaint.</p>
       </div>

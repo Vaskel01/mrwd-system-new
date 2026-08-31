@@ -195,7 +195,7 @@ export default function MaintenanceTasksPage() {
               <option value="oldest">Oldest submitted</option>
               <option value="type">Complaint type A–Z</option>
             </select></label>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm">Clear filters</button>
+            <button onClick={resetFilters} className="btn-secondary filter-action rounded-lg text-sm">Clear filters</button>
           </div>
         </div>
       )}
@@ -205,7 +205,7 @@ export default function MaintenanceTasksPage() {
       ) : (
         <>
           <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
-            <table className="w-full table-fixed text-sm">
+            <table className="data-table">
               <colgroup>
                 <col className="w-[31%]" />
                 <col className="w-[24%]" />
@@ -250,7 +250,7 @@ export default function MaintenanceTasksPage() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <p className="break-words text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-orange-700">Needs attention</p>}
+                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-amber-700">Needs attention</p>}
                     </td>
                     <td className="px-4 py-3 align-top">{renderAction(task)}</td>
                   </tr>

@@ -1,15 +1,5 @@
 import { useEffect, useRef } from 'react'
-
-const STATUS_COLOR = {
-  pending: '#94a3b8',
-  forwarded: '#2563eb',
-  assigned: '#3463b0',
-  in_progress: '#0ea5e9',
-  en_route: '#38bdf8',
-  blocked: '#ea580c',
-  awaiting_verification: '#9333ea',
-  resolved: '#16a34a',
-}
+import { MAP_MARKER_FALLBACK, STATUS_VISUAL_TOKENS } from '../../config/uiTokens'
 
 export default function ComplaintOperationsMap({ complaints = [], height = 420, onOpen }) {
   const containerRef = useRef(null)
@@ -54,7 +44,7 @@ export default function ComplaintOperationsMap({ complaints = [], height = 420, 
       if (layerRef.current) layerRef.current.remove()
       const group = window.L.featureGroup()
       points.forEach(item => {
-        const color = STATUS_COLOR[item.status] || '#334155'
+        const color = STATUS_VISUAL_TOKENS[item.status] || MAP_MARKER_FALLBACK
         const marker = window.L.circleMarker([item.gps.lat, item.gps.lng], {
           radius: item.priority === 'high' ? 9 : 7,
           color: '#fff',

@@ -166,7 +166,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
         </div>
 
         {dashboard.attention.length === 0 ? (
-          <div className="p-4"><EmptyState icon={<AppIcon name="check" className="h-9 w-9" />} title="Nothing needs immediate attention" description="There are no urgent workflow items in this queue right now." /></div>
+          <div className="p-4"><EmptyState icon={<AppIcon name="check" className="h-10 w-10" />} title="Nothing needs immediate attention" description="There are no urgent workflow items in this queue right now." /></div>
         ) : (
           <div className="divide-y divide-gray-100">
             {dashboard.attention.map(item => (

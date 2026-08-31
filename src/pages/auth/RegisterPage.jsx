@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
       {/* ── Right panel (form) ── */}
       <div className="auth-form-panel flex flex-1 items-center justify-center px-5 py-10">
-        <div className="auth-form-card w-full max-w-md rounded-[32px] p-6 shadow-md-2 sm:p-8">
+        <div className="auth-form-card w-full max-w-md p-6 shadow-md-2 sm:p-8">
 
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg bg-navy-800 flex items-center justify-center">

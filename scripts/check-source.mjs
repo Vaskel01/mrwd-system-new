@@ -68,8 +68,12 @@ const uiFiles = files.filter(file => rel(file).startsWith('src/') && /\.(jsx?|cs
 for (const file of uiFiles) {
   const name = rel(file)
   const content = fs.readFileSync(file, 'utf8')
-  if (/text-\[(?:9|10)px\]|text-gray-400/.test(content)) failures.push(`Readability regression found in ${name}: avoid sub-12px text and low-contrast text-gray-400.`)
+  if (/text-\[(?:9|10|11)px\]|text-gray-400/.test(content)) failures.push(`Readability regression found in ${name}: use text-xs or larger and avoid low-contrast text-gray-400.`)
   if (name !== 'src/components/ui/Dialog.jsx' && content.includes('fixed inset-0 z-50')) failures.push(`Ad-hoc modal overlay found in ${name}; use the shared Dialog component.`)
+  if (name.startsWith('src/pages/') && !name.startsWith('src/pages/auth/')) {
+    const waveHeaders = [...content.matchAll(/className="([^"]*page-band wave-header[^"]*)"/g)]
+    if (waveHeaders.some(match => !match[1].includes('page-header'))) failures.push(`Unstandardized page wave header found in ${name}; use the shared page-header geometry.`)
+  }
 }
 
 const secretPatterns = [

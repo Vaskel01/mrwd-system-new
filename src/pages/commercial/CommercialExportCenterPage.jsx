@@ -99,9 +99,9 @@ export default function CommercialExportCenterPage() {
   if (loading) return <PageLoader label="Loading exports and schedules…" />
 
   return (
-    <div className="space-y-6">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Commercial Services Department</p>
+    <div className="space-y-5">
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services Department</p>
         <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Exports & Scheduled Reports</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-navy-300">Filter complaint records, export the results, or save the same filters as a recurring report.</p>
       </div>

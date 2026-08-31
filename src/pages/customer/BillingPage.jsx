@@ -43,9 +43,9 @@ export default function BillingPage() {
 
   if (error && bills.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
-          <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+      <div className="space-y-5">
+        <div className="page-band wave-header page-header">
+          <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
           <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
         </div>
         <ErrorBanner message={error} onRetry={fetchBills} />
@@ -54,19 +54,16 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
-        <svg className="absolute bottom-0 left-0 right-0 w-full opacity-10" viewBox="0 0 1200 60" preserveAspectRatio="none">
-          <path d="M0,30 C200,0 400,60 600,30 C800,0 1000,60 1200,30 L1200,60 L0,60 Z" fill="white"/>
-        </svg>
+      <div className="page-band wave-header page-header">
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
             <p className="text-navy-300 text-sm mt-1">Account: <span className="text-white font-semibold">{user?.full_name}</span></p>
           </div>
-          <p className="font-display font-black text-4xl leading-none" style={{ color: '#e6b020' }}>{formatPeso(totalUnpaid)}</p>
+          <p className="font-display text-4xl font-black leading-none text-gold-400">{formatPeso(totalUnpaid)}</p>
         </div>
       </div>
 
@@ -131,7 +128,7 @@ export default function BillingPage() {
 
         {bills.length === 0 ? (
           <div className="p-8">
-            <EmptyState icon={<AppIcon name="billing" className="h-9 w-9" />} title="No bills yet"
+            <EmptyState icon={<AppIcon name="billing" className="h-10 w-10" />} title="No bills yet"
               description="New billing statements will appear here after they are issued." />
           </div>
         ) : (
@@ -162,7 +159,7 @@ export default function BillingPage() {
 
         {/* Desktop: table */}
         <div className="hidden min-w-0 overflow-hidden lg:block">
-          <table className="w-full table-fixed text-sm">
+          <table className="data-table">
             <thead>
               <tr className="border-b border-gray-200 text-left">
                 {['Period','Water use','Reading','Amount','Due Date','Status'].map(h => (

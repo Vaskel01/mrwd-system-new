@@ -83,8 +83,8 @@ export default function SystemHealthPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">System Administration</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">System Administration</p>
         <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-black text-white sm:text-3xl">System health & recovery</h1>
@@ -140,7 +140,7 @@ export default function SystemHealthPage() {
       <section className="card rounded-xl p-5">
         <h2 className="font-display font-black text-navy-900">Recent security activity</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
-          {(health?.recent_security_events || []).map(event => <div key={event.id} className="rounded-lg border border-gray-200 p-3"><div className="flex justify-between gap-2"><p className="break-words text-xs font-black text-navy-900">{String(event.event_type).replaceAll('_', ' ')}</p><StatusPill ok={event.success}>{event.success ? 'Success' : 'Failed'}</StatusPill></div><p className="mt-1 break-all text-[11px] text-gray-500">{event.actor_email || 'Unknown account'} · {formatDate(event.created_at)}</p></div>)}
+          {(health?.recent_security_events || []).map(event => <div key={event.id} className="rounded-lg border border-gray-200 p-3"><div className="flex justify-between gap-2"><p className="break-words text-xs font-black text-navy-900">{String(event.event_type).replaceAll('_', ' ')}</p><StatusPill ok={event.success}>{event.success ? 'Success' : 'Failed'}</StatusPill></div><p className="mt-1 break-all text-xs text-gray-500">{event.actor_email || 'Unknown account'} · {formatDate(event.created_at)}</p></div>)}
         </div>
       </section>
 

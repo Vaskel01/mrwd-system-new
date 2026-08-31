@@ -104,7 +104,7 @@ function ProfileValue({ profileId, profileDirectory }) {
 
   if (!profile) {
     return (
-      <span className="font-mono text-[11px] text-gray-500" title={profileId}>
+      <span className="font-mono text-xs text-gray-500" title={profileId}>
         {shortId(profileId)}
       </span>
     )
@@ -114,7 +114,7 @@ function ProfileValue({ profileId, profileDirectory }) {
     <span>
       <span className="font-bold text-gray-800">{profile.full_name || profile.email || 'Unknown staff member'}</span>
       {profile.email && profile.full_name && (
-        <span className="block text-[11px] text-gray-500 mt-0.5">{profile.email}</span>
+        <span className="block text-xs text-gray-500 mt-0.5">{profile.email}</span>
       )}
     </span>
   )
@@ -184,7 +184,7 @@ function DetailValue({ detailKey, value, profileDirectory }) {
 
   if (typeof value === 'string' && UUID_PATTERN.test(value)) {
     return (
-      <span className="font-mono text-[11px] text-gray-500" title={value}>
+      <span className="font-mono text-xs text-gray-500" title={value}>
         {shortId(value)}
       </span>
     )
@@ -302,10 +302,10 @@ export default function SystemAuditLogPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 sm:px-6 py-6">
+      <div className="page-band wave-header page-header">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">System Administration</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-widest">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Activity & security log</h1>
             <p className="text-navy-300 text-sm mt-1">Review important complaint, staff, sign-in, export, approval, and security activity.</p>
           </div>
@@ -341,7 +341,7 @@ export default function SystemAuditLogPage() {
             <label className="block text-xs font-black uppercase tracking-wider text-gray-500 mb-1.5">To</label>
             <input type="date" value={toDate} min={fromDate || undefined} onChange={event => { setToDate(event.target.value); setPage(1) }} className="input-field rounded-lg" />
           </div>
-          <button type="button" onClick={() => { setFromDate(''); setToDate(''); setSearch(''); setActorFilter(''); setActionFilter(''); setEntityFilter(''); setEventType(''); setEventSuccess('all'); setPage(1) }} className="btn-secondary rounded-lg self-end">Clear filters</button>
+          <button type="button" onClick={() => { setFromDate(''); setToDate(''); setSearch(''); setActorFilter(''); setActionFilter(''); setEntityFilter(''); setEventType(''); setEventSuccess('all'); setPage(1) }} className="btn-secondary filter-action self-end rounded-lg">Clear filters</button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
           <span>Showing {mode === 'security' ? securityEvents.length : logs.length} of {visibleTotal} {mode === 'security' ? 'security events' : 'activity entries'}. Use the filters to narrow server-side history.</span>
@@ -363,7 +363,7 @@ export default function SystemAuditLogPage() {
       </> : <>
 
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
-        <table className="w-full table-fixed text-sm">
+        <table className="data-table">
           <colgroup>
             <col className="w-[16%]" />
             <col className="w-[16%]" />
@@ -409,7 +409,7 @@ export default function SystemAuditLogPage() {
             <div className="rounded-lg bg-gray-50 p-3">
               <p className="text-xs font-black uppercase tracking-wider text-gray-500">Record</p>
               <p className="font-bold text-gray-700 capitalize mt-1 break-words">{item.entity_type}</p>
-              <p className="font-mono text-[11px] text-gray-500 mt-1 break-all">{item.entity_id ? item.entity_id : 'Multiple records'}</p>
+              <p className="font-mono text-xs text-gray-500 mt-1 break-all">{item.entity_id ? item.entity_id : 'Multiple records'}</p>
             </div>
             <div className="text-xs overflow-hidden">
               <p className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2">Details</p>

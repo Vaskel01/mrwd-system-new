@@ -69,7 +69,7 @@ export default function ScheduledReportsPanel({
             <option value="monthly">Monthly</option>
           </select>
         </label>
-        <button disabled={Boolean(busy)} className="btn-primary min-h-10 rounded-lg px-4">{busy === 'create' ? 'Saving…' : 'Save schedule'}</button>
+        <button disabled={Boolean(busy)} className="btn-primary min-h-11 rounded-lg px-4">{busy === 'create' ? 'Saving…' : 'Save schedule'}</button>
       </form>
 
       {error && <div className="mt-4"><ErrorBanner message={error} /></div>}
@@ -107,7 +107,7 @@ export default function ScheduledReportsPanel({
                   <p className="text-xs font-black text-gray-800">{pretty(item.report_type)} · {item.row_count} records</p>
                   <span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${item.status === 'failed' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{item.status || 'ready'}</span>
                 </div>
-                <p className="mt-1 text-[11px] text-gray-500">{new Date(item.generated_at).toLocaleString('en-PH')}</p>
+                <p className="mt-1 text-xs text-gray-500">{new Date(item.generated_at).toLocaleString('en-PH')}</p>
               </div>
             ))}
             {!visibleRuns.length && <p className="rounded-xl border border-dashed border-gray-200 px-4 py-7 text-center text-sm text-gray-500">No report runs yet.</p>}

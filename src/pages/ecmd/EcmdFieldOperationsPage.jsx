@@ -170,13 +170,13 @@ export default function EcmdFieldOperationsPage() {
   if (loading && !complaints.length) return <PageLoader label="Loading ECMD field operations…" />
 
   return <div className="space-y-5">
-    <header className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
+    <header className="page-band wave-header page-header">
       <p className="text-xs font-bold uppercase tracking-widest text-gold-400">ECMD · WDLCD</p>
       <div className="mt-1 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div><h1 className="font-display text-2xl font-black text-white sm:text-3xl">Field operations analytics</h1><p className="mt-1 max-w-3xl text-sm text-navy-300">Balance the active queue, staff capacity, complaint aging, area demand, incidents, and completed field work.</p></div>
         <div className="flex flex-col gap-2 min-[420px]:flex-row">
           <div className="flex rounded-lg border border-white/30 p-1" aria-label="Performance window">
-            {[7, 30, 90].map(days => <button key={days} type="button" aria-pressed={windowDays === days} onClick={() => setWindowDays(days)} className={`filter-chip min-h-9 rounded-md px-3 text-xs font-black ${windowDays === days ? 'bg-white text-navy-900' : 'text-white hover:bg-white/10'}`}>{days} days</button>)}
+            {[7, 30, 90].map(days => <button key={days} type="button" aria-pressed={windowDays === days} onClick={() => setWindowDays(days)} className={`filter-chip min-h-11 rounded-lg border px-3 text-xs font-black ${windowDays === days ? 'border-navy-700 bg-navy-800 text-white' : 'border-white/30 text-white hover:bg-white/10'}`}>{days} days</button>)}
           </div>
           <button onClick={() => setIncidentOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gold-400 px-4 py-2.5 text-xs font-black text-navy-950"><AppIcon name="alert" className="h-4 w-4" />Create incident</button>
         </div>
@@ -230,7 +230,7 @@ export default function EcmdFieldOperationsPage() {
       <AnalyticsSectionHeading eyebrow="Capacity" title="Workload and availability" description="Active assignments are a capacity signal, not a measure of task difficulty or staff performance." aside={<span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-black text-green-800">{analytics.availableStaff}/{workload.length} available</span>} />
       <div className="mt-5 grid gap-5 lg:grid-cols-[.75fr_1.25fr]">
         <div><RankedBarList items={workload.map(person => ({ label: person.full_name, value: Number(person.active_tasks || 0), accent: Number(person.active_tasks || 0) >= 4 ? 'amber' : 'blue' }))} total={analytics.assignedTasks} emptyLabel="No active staff workload is available." /></div>
-        <div className="grid gap-3 md:grid-cols-2">{workload.map(person => <article key={person.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-gray-900">{person.full_name}</p><p className="mt-1 text-xs capitalize text-gray-500">{String(person.availability_status || 'available').replaceAll('_',' ')}</p></div><span className="shrink-0 rounded-lg bg-navy-50 px-2.5 py-1 text-xs font-black text-navy-800">{person.active_tasks} task{person.active_tasks === 1 ? '' : 's'}</span></div>{person.blocked_tasks > 0 ? <p className="mt-2 text-xs font-bold text-orange-700">{person.blocked_tasks} blocked task{person.blocked_tasks === 1 ? '' : 's'}</p> : null}{person.availability_note ? <p className="mt-2 text-xs leading-5 text-gray-500">{person.availability_note}</p> : null}</article>)}</div>
+        <div className="grid gap-3 md:grid-cols-2">{workload.map(person => <article key={person.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-gray-900">{person.full_name}</p><p className="mt-1 text-xs capitalize text-gray-500">{String(person.availability_status || 'available').replaceAll('_',' ')}</p></div><span className="shrink-0 rounded-lg bg-navy-50 px-2.5 py-1 text-xs font-black text-navy-800">{person.active_tasks} task{person.active_tasks === 1 ? '' : 's'}</span></div>{person.blocked_tasks > 0 ? <p className="mt-2 text-xs font-bold text-amber-700">{person.blocked_tasks} blocked task{person.blocked_tasks === 1 ? '' : 's'}</p> : null}{person.availability_note ? <p className="mt-2 text-xs leading-5 text-gray-500">{person.availability_note}</p> : null}</article>)}</div>
       </div>
     </section>
 

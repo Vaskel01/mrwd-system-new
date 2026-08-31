@@ -104,8 +104,8 @@ export default function SystemAnnouncementsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">System Administration</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">System Administration</p>
         <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Staff announcements</h1>
         <p className="mt-1 text-sm text-navy-300">Publish notices for staff groups or customers. Customer service advisories are still managed by Commercial Services.</p>
       </div>
@@ -168,7 +168,7 @@ export default function SystemAnnouncementsPage() {
                   </div>
                   <h2 className="mt-2 font-display text-lg font-black text-navy-900">{announcement.title}</h2>
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">{announcement.content}</p>
-                  <p className="mt-3 text-[11px] text-gray-500">Published by {announcement.created_by_name} · {new Date(announcement.created_at).toLocaleString('en-PH')}</p>
+                  <p className="mt-3 text-xs text-gray-500">Published by {announcement.created_by_name} · {new Date(announcement.created_at).toLocaleString('en-PH')}</p>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => edit(announcement)} className="btn-secondary rounded-lg text-xs">Edit</button>

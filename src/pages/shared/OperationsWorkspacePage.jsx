@@ -155,8 +155,8 @@ export default function OperationsWorkspacePage({ module = 'system' }) {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">{moduleConfig.eyebrow}</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">{moduleConfig.eyebrow}</p>
         <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{moduleConfig.title}</h1>
         <p className="mt-1 max-w-3xl text-sm text-navy-300">{moduleConfig.description}</p>
       </div>
@@ -165,7 +165,7 @@ export default function OperationsWorkspacePage({ module = 'system' }) {
       {message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{message}</div>}
 
       <div className="card grid grid-cols-1 gap-2 rounded-xl p-2 min-[420px]:grid-cols-2 lg:grid-cols-5" role="tablist" aria-label="Workspace sections">
-        {moduleConfig.tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`filter-chip min-h-10 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
+        {moduleConfig.tabs.map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)} className={`filter-chip min-h-11 rounded-lg px-3 py-2 text-xs font-black ${tab === value ? 'bg-navy-800 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{label}</button>)}
       </div>
 
       {tab === 'overview' && <OverviewTab data={data} busy={busy} run={run} complaintMap={complaintMap} staffMap={staffMap} module={module} />}
@@ -348,7 +348,7 @@ function BillingTab({ data, busy, run }) {
         <div><p className={`font-black ${preview.invalid_count ? 'text-red-700' : 'text-gray-500'}`}>{preview.invalid_count}</p><p className="text-gray-500">Invalid</p></div>
         {kind === 'accounts' ? <div><p className="font-black text-navy-800">{preview.new_count} new · {preview.update_count} update</p><p className="text-gray-500">Account list changes</p></div> : <div><p className="font-black text-navy-800">{preview.can_import ? 'Ready' : 'Fix file'}</p><p className="text-gray-500">Import result</p></div>}
       </div>
-      {preview.errors?.length > 0 && <div className="mt-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black text-red-800">Issues found</p><button type="button" onClick={() => downloadErrors(kind, preview)} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-black text-red-700">Download error rows</button></div><div className="mt-2 max-h-40 space-y-1 overflow-y-auto pr-1">{preview.errors.slice(0, 12).map((item, index) => <p key={`${item.row}-${index}`} className="break-words text-[11px] text-red-800"><b>Row {item.row}:</b> {item.error}</p>)}</div>{preview.errors.length > 12 && <p className="mt-1 text-xs text-red-600">+{preview.errors.length - 12} more issue(s) in the downloadable file.</p>}</div>}
+      {preview.errors?.length > 0 && <div className="mt-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black text-red-800">Issues found</p><button type="button" onClick={() => downloadErrors(kind, preview)} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-black text-red-700">Download error rows</button></div><div className="mt-2 max-h-40 space-y-1 overflow-y-auto pr-1">{preview.errors.slice(0, 12).map((item, index) => <p key={`${item.row}-${index}`} className="break-words text-xs text-red-800"><b>Row {item.row}:</b> {item.error}</p>)}</div>{preview.errors.length > 12 && <p className="mt-1 text-xs text-red-600">+{preview.errors.length - 12} more issue(s) in the downloadable file.</p>}</div>}
     </div>
   )
 

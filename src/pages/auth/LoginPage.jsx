@@ -46,7 +46,7 @@ export default function LoginPage() {
 
       {/* ── Right panel (form) ── */}
       <div className="auth-form-panel flex flex-1 items-center justify-center px-5 py-10">
-        <div className="auth-form-card w-full max-w-md rounded-[32px] p-6 shadow-md-2 sm:p-8">
+        <div className="auth-form-card w-full max-w-md p-6 shadow-md-2 sm:p-8">
 
           {/* Mobile logo */}
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8">

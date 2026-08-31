@@ -268,10 +268,10 @@ export default function SystemStaffAccountsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
+      <div className="page-band wave-header page-header">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">System Administration</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">System Administration</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl tracking-tight">Staff accounts</h1>
             <p className="text-navy-300 text-sm mt-1">Create staff accounts, manage access, and send password reset links.</p>
           </div>
@@ -320,7 +320,7 @@ export default function SystemStaffAccountsPage() {
             </div>
             <button onClick={copyCredentials} className="px-4 py-2.5 rounded-lg text-xs font-bold text-white bg-green-700">Copy login details</button>
           </div>
-          <div className="rounded-lg border border-green-200 bg-white/70 px-3 py-2 text-[11px] leading-5 text-green-800"><p><b>On first sign-in:</b> the staff member must create a new password before using their workspace.</p>{createdCredentials.accountType === 'system_supervisor' && <p><b>For System Supervisors:</b> an authenticator app must also be set up before System Administration can be opened.</p>}<p>If copying is blocked, reveal the password and copy it manually before closing this message.</p></div>
+          <div className="rounded-lg border border-green-200 bg-white/70 px-3 py-2 text-xs leading-5 text-green-800"><p><b>On first sign-in:</b> the staff member must create a new password before using their workspace.</p>{createdCredentials.accountType === 'system_supervisor' && <p><b>For System Supervisors:</b> an authenticator app must also be set up before System Administration can be opened.</p>}<p>If copying is blocked, reveal the password and copy it manually before closing this message.</p></div>
         </div>
       )}
 
@@ -364,7 +364,7 @@ export default function SystemStaffAccountsPage() {
                   <option value="system_supervisor">System Supervisor</option>
                 </select>
                 {errors.account_type && <p className="mt-1 text-xs text-red-600">{errors.account_type.message}</p>}
-                <p className="mt-1 text-[11px] text-gray-500">Operational accounts are automatically assigned to the correct division: NSCCCD for Commercial Services and WDLCD for ECMD/Maintenance.</p>
+                <p className="mt-1 text-xs text-gray-500">Operational accounts are automatically assigned to the correct division: NSCCCD for Commercial Services and WDLCD for ECMD/Maintenance.</p>
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Email <span className="text-red-500">*</span></label>
@@ -401,7 +401,7 @@ export default function SystemStaffAccountsPage() {
             <label className="block text-xs font-bold text-gray-600">Account type<select name="staffaccountspage-role-filter-6" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All account types</option><option value="commercial_staff">Commercial Services Staff (NSCCCD)</option><option value="ecmd_staff">ECMD Staff (WDLCD)</option><option value="maintenance_personnel">Maintenance Personnel</option><option value="system_supervisor">System Supervisor</option></select></label>
             <label className="block text-xs font-bold text-gray-600">Status<select name="staffaccountspage-account-filter-7" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Deactivated</option></select></label>
             <label className="block text-xs font-bold text-gray-600">Sort<select name="staffaccountspage-sort-by-8" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="name">Name A–Z</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
-            <button onClick={resetFilters} className="btn-secondary rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear filters</button>
+            <button onClick={resetFilters} className="btn-secondary filter-action rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear filters</button>
           </div>
         </div>
       )}
@@ -409,13 +409,13 @@ export default function SystemStaffAccountsPage() {
       {loading && staff.length === 0 ? (
         <PageLoader label="Loading staff accounts…" />
       ) : staff.length === 0 ? (
-        <EmptyState icon={<AppIcon name="users" className="h-9 w-9" />} title="No staff accounts yet" description='Click "New account" to create a Commercial Services, ECMD, Maintenance Personnel, or System Supervisor login.' />
+        <EmptyState icon={<AppIcon name="users" className="h-10 w-10" />} title="No staff accounts yet" description='Click "New account" to create a Commercial Services, ECMD, Maintenance Personnel, or System Supervisor login.' />
       ) : filteredStaff.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-500">No staff accounts match the current search or filters.</div>
       ) : (
         <>
           <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
-            <table className="w-full table-fixed text-sm">
+            <table className="data-table">
               <colgroup>
                 <col className="w-[25%]" />
                 <col className="w-[22%]" />

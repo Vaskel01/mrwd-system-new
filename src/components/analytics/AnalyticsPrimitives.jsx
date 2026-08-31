@@ -18,7 +18,7 @@ const SIGNAL_STYLES = {
 export function AnalyticsKpi({ label, value, detail, icon = 'chart', accent = 'navy', footer }) {
   const colors = ACCENTS[accent] || ACCENTS.navy
   return (
-    <article className="card rounded-2xl p-4 sm:p-5">
+    <article className="card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-500">{label}</p>
@@ -123,7 +123,7 @@ export function AnalyticsSignal({ title, detail, tone = 'info', icon = 'info', a
 export function AnalyticsTable({ columns, rows, emptyLabel = 'No records are available for this period.', rowKey }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-200">
-      <table className="min-w-full text-left text-sm">
+      <table className="data-table min-w-[720px]">
         <thead><tr>{columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-3 text-xs font-black uppercase tracking-wider text-gray-500">{column.label}</th>)}</tr></thead>
         <tbody className="divide-y divide-gray-100">
           {rows.length ? rows.map((row, index) => (

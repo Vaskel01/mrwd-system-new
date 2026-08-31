@@ -52,9 +52,9 @@ function adminNavigation(user) {
 }
 
 const ROLE_CONFIG = {
-  customer:    { tag: 'Customer',      gradient: 'from-blue-500 to-blue-600', dot: '#60a5fa' },
-  admin:       { tag: 'Staff Account', gradient: 'from-navy-700 to-navy-900', dot: '#e6b020' },
-  maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dot: '#fbbf24' },
+  customer:    { tag: 'Customer',      gradient: 'from-blue-500 to-blue-600', dotBg: 'bg-blue-400', dotText: 'text-blue-300' },
+  admin:       { tag: 'Staff Account', gradient: 'from-navy-700 to-navy-900', dotBg: 'bg-gold-400', dotText: 'text-gold-300' },
+  maintenance_personnel: { tag: 'Maintenance Personnel', gradient: 'from-amber-500 to-amber-600', dotBg: 'bg-amber-400', dotText: 'text-amber-300' },
 }
 
 // ── SVG Icons ──
@@ -107,8 +107,8 @@ function WaterSeal({ size = 40 }) {
     <svg width={size} height={size} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="sealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e6b020"/>
-          <stop offset="100%" stopColor="#c9921a"/>
+          <stop offset="0%" stopColor="var(--gold-400)"/>
+          <stop offset="100%" stopColor="var(--gold-500)"/>
         </linearGradient>
       </defs>
       {/* Outer ring */}
@@ -241,18 +241,18 @@ export default function AppLayout({ children }) {
         <div className="flex items-center gap-3">
           <WaterSeal size={42} />
           <div>
-            <p className="font-display font-bold text-white text-[13px] leading-tight">Metro Roxas</p>
-            <p className="font-display font-bold text-white text-[13px] leading-tight">Water District</p>
+            <p className="font-display text-sm font-bold leading-tight text-white">Metro Roxas</p>
+            <p className="font-display text-sm font-bold leading-tight text-white">Water District</p>
             <div className="mt-1 flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: config.dot }}></div>
-              <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: config.dot }}>{config.tag}</span>
+              <div className={`h-1.5 w-1.5 rounded-full ${config.dotBg}`} />
+              <span className={`text-xs font-semibold uppercase tracking-widest ${config.dotText}`}>{config.tag}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Gold divider */}
-      <div className="mx-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(230,176,32,.4), transparent)' }} />
+      <div className="mx-4 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5" aria-label={`${config.tag} navigation`}>
@@ -288,17 +288,16 @@ export default function AppLayout({ children }) {
       </nav>
 
       {/* Bottom divider */}
-      <div className="mx-4 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+      <div className="mx-4 h-px bg-white/10" />
 
       {/* User card */}
       <div className="px-3 py-4 shrink-0">
         <div className="mb-2 flex items-center gap-2.5 rounded-3xl bg-white/10 px-3 py-2.5">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-black text-navy-900 shrink-0"
-               style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-400 to-gold-500 text-sm font-black text-navy-900">
             {user?.full_name?.charAt(0) || '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-[13px] font-semibold truncate leading-tight">{user?.full_name}</p>
+            <p className="truncate text-sm font-semibold leading-tight text-white">{user?.full_name}</p>
             <p className="text-navy-300 text-xs uppercase tracking-wider">{config.tag}</p>
           </div>
         </div>
@@ -322,15 +321,15 @@ export default function AppLayout({ children }) {
 
       {/* ── Sidebar ── */}
       <aside id="primary-navigation" aria-label="Primary navigation" className={`
-        page-band wave-sidebar fixed top-0 left-0 h-full z-40 flex flex-col shadow-sidebar
+        page-band wave-sidebar fixed top-0 left-0 z-40 flex h-full w-60 flex-col shadow-sidebar
         lg:translate-x-0 transition-transform duration-200
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `} style={{ width: 240 }}>
+      `}>
         {sidebarContent}
       </aside>
 
       {/* ── Main area ── */}
-      <div className="min-w-0 flex-1 flex flex-col min-h-screen" style={{ marginLeft: 0 }}>
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <div className="lg:ml-60 min-w-0 flex flex-col min-h-screen">
 
           {/* ── Top bar ── */}
@@ -368,7 +367,7 @@ export default function AppLayout({ children }) {
             {/* Right: date + avatar */}
             <div className="shrink-0 flex items-center gap-2 sm:gap-3">
               <button type="button" onClick={() => setCommandOpen(true)} className="hidden min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 shadow-sm transition hover:border-navy-200 hover:text-navy-800 md:flex" aria-label="Open quick find">
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7"/><path strokeLinecap="round" d="m20 20-4-4"/></svg>
                 <span>Quick find</span><span className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 text-xs text-gray-600">⌘K</span>
               </button>
               <button type="button" onClick={() => setCommandOpen(true)} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-600 hover:bg-white md:hidden" aria-label="Open quick find">
@@ -388,8 +387,7 @@ export default function AppLayout({ children }) {
                   ref={accountMenuButtonRef}
                   type="button"
                   onClick={() => setAccountMenuOpen(value => !value)}
-                  className="account-menu__trigger relative flex h-11 w-11 items-center justify-center rounded-full text-xs font-black text-navy-900 shadow-sm transition-transform hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}
+                  className="account-menu__trigger relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-gold-400 to-gold-500 text-xs font-black text-navy-900 shadow-sm transition-transform hover:scale-105"
                   aria-label="Account menu"
                   aria-haspopup="true"
                   aria-expanded={accountMenuOpen}
@@ -406,7 +404,7 @@ export default function AppLayout({ children }) {
                   <div id="account-menu" className="account-menu absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(18rem,calc(100vw-1.5rem))] rounded-3xl border border-gray-200 bg-white p-2 shadow-2xl" aria-label="Account options">
                     <div className="rounded-2xl bg-navy-50 px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="account-menu__avatar grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-black text-navy-900" style={{ background: 'linear-gradient(135deg, #e6b020, #c9921a)' }}>
+                        <div className="account-menu__avatar grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-gold-400 to-gold-500 text-sm font-black text-navy-900">
                           {user?.full_name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
                         <div className="min-w-0">

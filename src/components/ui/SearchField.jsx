@@ -23,7 +23,7 @@ const SearchField = forwardRef(function SearchField({ value, onChange, onClear, 
       {value ? (
         <button type="button" onClick={clear} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-black uppercase text-gray-500 hover:bg-gray-100 hover:text-gray-700" aria-label="Clear search">Clear</button>
       ) : hint ? (
-        <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[11px] font-bold text-gray-500 sm:inline">/</span>
+        <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-bold text-gray-500 sm:inline">/</span>
       ) : null}
     </div>
   )

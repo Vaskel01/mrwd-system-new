@@ -153,8 +153,8 @@ export default function CommercialAdvisoriesPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
-        <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
         <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
           <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Service advisories</h1>
           <button onClick={() => showForm ? closeForm() : openNewForm()}
@@ -239,7 +239,7 @@ export default function CommercialAdvisoriesPage() {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <EmptyState icon={<AppIcon name="announcement" className="h-9 w-9" />} title="No service advisories yet."
+        <EmptyState icon={<AppIcon name="announcement" className="h-10 w-10" />} title="No service advisories yet."
           description='Choose “New advisory” to publish a customer notice.' />
       ) : (
         <div className="space-y-2">

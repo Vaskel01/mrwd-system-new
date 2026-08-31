@@ -72,7 +72,7 @@ export default function PageHelpTooltip({ help, floating = false, className = ''
         }}
         className={floating
           ? 'flex min-h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-bold text-navy-800 shadow-lg transition hover:border-navy-300 hover:bg-navy-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2'
-          : 'flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-600 shadow-sm transition hover:border-navy-200 hover:text-navy-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2'
+          : 'flex h-11 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-bold text-gray-600 shadow-sm transition hover:border-navy-200 hover:text-navy-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2'
         }
         aria-label={`Page help for ${help.title}`}
         aria-expanded={open}

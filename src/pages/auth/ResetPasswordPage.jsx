@@ -39,9 +39,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-10 bg-[#f4f7fb]">
+    <div className="flex min-h-screen items-center justify-center bg-md-background px-5 py-10">
       <div className="w-full max-w-md card rounded-2xl overflow-hidden">
-        <div className="page-band wave-header px-6 py-7"><p className="text-gold-400 text-[11px] font-bold uppercase tracking-widest">Password help</p><h1 className="font-display font-black text-white text-2xl mt-1">Set a new password</h1></div>
+        <div className="page-band wave-header px-6 py-7"><p className="text-gold-400 text-xs font-bold uppercase tracking-widest">Password help</p><h1 className="font-display font-black text-white text-2xl mt-1">Set a new password</h1></div>
         <form onSubmit={submit} className="p-6 space-y-4">
           {!ready && !done && <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">Open this page from the password reset link in your email. It may take a moment to verify the link.</div>}
           {error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>}

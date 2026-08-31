@@ -206,7 +206,7 @@ export default function CommercialReportsPage() {
 
   return (
     <div className="report-print-area space-y-5">
-      <header className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6 no-print">
+      <header className="page-band wave-header page-header no-print">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services · NSCCCD</p>

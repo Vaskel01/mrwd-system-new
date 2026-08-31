@@ -116,16 +116,16 @@ export default function CommercialComplaintReviewPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl overflow-hidden px-4 sm:px-6 py-5 sm:py-6 relative">
+      <div className="page-band wave-header page-header">
         <div className="relative flex items-end justify-between">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Review complaints</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-navy-300">Check new complaints, confirm the details and priority, then send field-related complaints to WDLCD.</p>
           </div>
           <div className="text-right">
-            <p className="font-display font-black text-5xl leading-none" style={{ color: '#e6b020' }}>{filtered.length}</p>
-            <p className="text-navy-300 text-[11px] uppercase tracking-wider">matching · {complaints.length} total</p>
+            <p className="font-display text-5xl font-black leading-none text-gold-400">{filtered.length}</p>
+            <p className="text-navy-300 text-xs uppercase tracking-wider">matching · {complaints.length} total</p>
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function CommercialComplaintReviewPage() {
               <option value="oldest">Oldest submitted</option>
             </select>
           </label>
-          <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary rounded-lg text-sm">Clear filters</button>
+          <button type="button" onClick={() => { setFilterStatus('pending'); setFilterPriority('all'); setSearch(''); setSortBy('priority_oldest'); setPage(1) }} className="btn-secondary filter-action rounded-lg text-sm">Clear filters</button>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export default function CommercialComplaintReviewPage() {
       </BulkActionBar>
 
       <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
-        <table className="w-full table-fixed text-sm">
+        <table className="data-table">
           <colgroup>
             <col className="w-[31%]" />
             <col className="w-[13%]" />

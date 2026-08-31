@@ -66,26 +66,26 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
       <section
         ref={panelRef}
         tabIndex={-1}
-        className={`relative max-h-[92vh] w-full ${maxWidth} overflow-y-auto rounded-[28px] bg-md-surface-container shadow-md-3`}
+        className={`dialog-surface relative max-h-[92vh] w-full ${maxWidth} overflow-y-auto bg-md-surface-container shadow-md-3`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={supportingText ? descriptionId : undefined}
       >
-        <header className="page-band wave-header rounded-t-[28px] px-6 py-5 pr-14">
+        <header className="dialog-header page-band wave-header wave-header--dialog px-5 py-5 pr-14 sm:px-6">
           <h2 id={titleId} className="font-display text-xl font-medium text-white">{title}</h2>
           {supportingText ? <p id={descriptionId} className="mt-1 text-sm leading-5 text-navy-200">{supportingText}</p> : null}
           <button
             type="button"
             onClick={onClose}
             disabled={closeDisabled}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-lg border border-white/25 text-xl text-white hover:bg-white/10 disabled:opacity-50"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/25 text-xl text-white hover:bg-white/10 disabled:opacity-50"
             aria-label="Close dialog"
           >
             ×
           </button>
         </header>
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </section>
     </div>
   )

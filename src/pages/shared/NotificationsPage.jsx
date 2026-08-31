@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useNotificationStore } from '../../store/notificationStore'
-import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
+import { EmptyState, ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
 import Pagination from '../../components/ui/Pagination'
 
@@ -56,14 +56,14 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-6 py-6">
+      <div className="page-band wave-header page-header">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em]">Account</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em]">Account</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl mt-1">Notifications</h1>
             <p className="text-navy-300 text-sm mt-1">See complaint updates, assignments, replies, and other items that may need your attention.</p>
           </div>
-          <div className="text-right"><p className="font-display font-black text-5xl text-gold-400 leading-none">{unreadCount}</p><p className="text-navy-300 text-[11px] uppercase">unread</p></div>
+          <div className="text-right"><p className="font-display font-black text-5xl text-gold-400 leading-none">{unreadCount}</p><p className="text-navy-300 text-xs uppercase">unread</p></div>
         </div>
       </div>
 
@@ -73,11 +73,11 @@ export default function NotificationsPage() {
       ) : null}
 
       {notifications.length === 0 ? (
-        <div className="card rounded-xl p-14 text-center">
-          <AppIcon name="bell" className="w-12 h-12 mx-auto mb-3 text-navy-300" />
-          <h2 className="font-display font-bold text-navy-900">You’re all caught up</h2>
-          <p className="text-sm text-gray-500 mt-2">New notifications will appear here.</p>
-        </div>
+        <EmptyState
+          icon={<AppIcon name="bell" className="h-10 w-10" />}
+          title="You’re all caught up"
+          description="New notifications will appear here."
+        />
       ) : (
         <>
           <div className="card rounded-xl overflow-hidden divide-y divide-gray-100">
@@ -88,13 +88,13 @@ export default function NotificationsPage() {
                     <AppIcon name={ICONS[item.notification_type] || 'info'} className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3"><p className="font-bold text-gray-900">{item.title}</p><span className="text-[11px] text-gray-500 whitespace-nowrap">{formatDate(item.created_at)}</span></div>
+                    <div className="flex items-start justify-between gap-3"><p className="font-bold text-gray-900">{item.title}</p><span className="text-xs text-gray-500 whitespace-nowrap">{formatDate(item.created_at)}</span></div>
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">{item.message}</p>
                     {item.related_complaint_id ? <p className="text-xs font-bold text-brand-700 mt-2">Open complaint →</p> : null}
                   </div>
                   {!item.read_at ? <span className="w-2 h-2 rounded-full bg-brand-500 mt-2 shrink-0" aria-label="Unread" /> : null}
                 </button>
-                <button type="button" onClick={() => dismissNotification(item)} className="self-start rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600" aria-label={`Dismiss notification: ${item.title}`}>
+                <button type="button" onClick={() => dismissNotification(item)} className="flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-full p-0 text-gray-500 hover:bg-red-50 hover:text-red-600" aria-label={`Dismiss notification: ${item.title}`}>
                   <span aria-hidden="true">×</span>
                 </button>
               </article>

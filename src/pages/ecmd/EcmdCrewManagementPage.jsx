@@ -60,8 +60,8 @@ export default function EcmdCrewManagementPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p>
         <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Crew management</h1>
         <p className="mt-1 text-sm text-navy-300">Manage crews, members, temporary replacements, and reusable completion-note templates.</p>
       </div>

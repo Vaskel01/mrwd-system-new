@@ -9,6 +9,7 @@ import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
 import SearchField from '../../components/ui/SearchField'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
+import { STATUS_VISUAL_TOKENS } from '../../config/uiTokens'
 
 function timeAgo(iso) {
   const difference = Date.now() - new Date(iso).getTime()
@@ -21,17 +22,17 @@ function timeAgo(iso) {
 }
 
 const STATUS_CONFIG = {
-  pending: { bar: 10, color: '#94a3b8', icon: 'clock', label: 'Pending review', message: 'Your complaint is waiting for Commercial Services review.' },
-  forwarded: { bar: 25, color: '#2563eb', icon: 'assignment', label: 'Sent to WDLCD', message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
-  assigned: { bar: 35, color: '#3463b0', icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
-  en_route: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  in_progress: { bar: 75, color: '#3463b0', icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: '#0ea5e9', icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
-  resolved: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'WDLCD verified the completed field work and resolved the complaint.' },
-  completed: { bar: 100, color: '#16a34a', icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
-  rejected: { bar: 100, color: '#dc2626', icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },
-  cancelled: { bar: 100, color: '#64748b', icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
-  blocked: { bar: 75, color: '#ea580c', icon: 'alert', label: 'Needs attention', message: 'Maintenance Personnel asked WDLCD for help.' },
+  pending: { bar: 10, color: STATUS_VISUAL_TOKENS.pending, icon: 'clock', label: 'Pending review', message: 'Your complaint is waiting for Commercial Services review.' },
+  forwarded: { bar: 25, color: STATUS_VISUAL_TOKENS.forwarded, icon: 'assignment', label: 'Sent to WDLCD', message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
+  assigned: { bar: 35, color: STATUS_VISUAL_TOKENS.assigned, icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
+  en_route: { bar: 75, color: STATUS_VISUAL_TOKENS.en_route, icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
+  in_progress: { bar: 75, color: STATUS_VISUAL_TOKENS.in_progress, icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
+  awaiting_verification: { bar: 90, color: STATUS_VISUAL_TOKENS.awaiting_verification, icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
+  resolved: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: 'Resolved', message: 'WDLCD verified the completed field work and resolved the complaint.' },
+  completed: { bar: 100, color: STATUS_VISUAL_TOKENS.completed, icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
+  rejected: { bar: 100, color: STATUS_VISUAL_TOKENS.rejected, icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },
+  cancelled: { bar: 100, color: STATUS_VISUAL_TOKENS.cancelled, icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
+  blocked: { bar: 75, color: STATUS_VISUAL_TOKENS.blocked, icon: 'alert', label: 'Needs attention', message: 'Maintenance Personnel asked WDLCD for help.' },
 }
 
 function ComplaintCard({ complaint, onView }) {
@@ -46,7 +47,7 @@ function ComplaintCard({ complaint, onView }) {
               <h2 className="font-display font-bold text-navy-900">{complaint.complaint_type}</h2>
               <StatusBadge status={complaint.status} />
             </div>
-            <p className="text-[11px] text-gray-500 font-mono font-bold mt-1">{complaint.reference_number}</p>
+            <p className="text-xs text-gray-500 font-mono font-bold mt-1">{complaint.reference_number}</p>
           </div>
           <span className="text-xs font-bold text-gray-500 shrink-0">{timeAgo(complaint.updated_at || complaint.created_at)}</span>
         </div>
@@ -133,11 +134,11 @@ export default function MyComplaintsPage() {
   if (loading && complaints.length === 0) return <PageLoader label="Loading your complaints…" />
 
   return (
-    <div className="space-y-6">
-      <div className="page-band wave-header rounded-2xl px-6 py-6 relative overflow-hidden">
+    <div className="space-y-5">
+      <div className="page-band wave-header page-header">
         <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p className="text-gold-400 text-[11px] font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">My complaints</h1>
             <p className="text-navy-300 text-sm mt-1">View the latest status and full history of each complaint.</p>
           </div>
@@ -156,8 +157,7 @@ export default function MyComplaintsPage() {
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, complaint type, description, address, or status" /></div>
           <div className="flex gap-2 flex-wrap">
             {[['all', 'All'], ['pending', 'Pending review'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
-              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className="filter-chip px-4 py-2 rounded-full text-sm font-semibold"
-                style={filter === value ? { background: '#0f2240', color: '#fff' } : { background: '#f3f4f6', color: '#6b7280' }}>
+              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className={`filter-chip rounded-full px-4 py-2 text-sm font-semibold ${filter === value ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>
               </button>
             ))}

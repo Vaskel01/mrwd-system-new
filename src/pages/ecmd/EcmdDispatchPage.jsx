@@ -177,8 +177,8 @@ export default function EcmdDispatchPage() {
 
   return (
     <div className="space-y-5">
-      <div className="page-band wave-header rounded-2xl px-5 py-6 sm:px-6">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p><p className="mt-1 text-xs font-bold text-navy-300">Water Distribution and Leakage Control Division (WDLCD)</p>
+      <div className="page-band wave-header page-header">
+        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Engineering, Construction and Maintenance Department (ECMD)</p><p className="mt-1 text-xs font-bold text-navy-300">Water Distribution and Leakage Control Division (WDLCD)</p>
         <div className="mt-1 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-2xl font-black text-white sm:text-3xl">Complaint dispatch</h1>
@@ -225,7 +225,7 @@ export default function EcmdDispatchPage() {
             Sort
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field mt-1.5 rounded-lg"><option value="priority">Priority, then oldest</option><option value="updated">Recently updated</option><option value="oldest">Oldest submitted</option><option value="newest">Newest submitted</option></select>
           </label>
-          <div className="flex items-end gap-2"><button onClick={load} className="btn-secondary flex-1 rounded-lg"><AppIcon name="refresh" className="mr-1 inline h-4 w-4"/>Refresh</button>{(query || priority !== 'all' || sortBy !== 'priority' || queueFilter !== 'all') && <button type="button" onClick={() => { setQuery(''); setPriority('all'); setSortBy('priority'); setQueueFilter('all') }} className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-xs font-black text-gray-500 hover:bg-gray-50">Clear</button>}</div>
+          <div className="flex items-end gap-2"><button onClick={load} className="btn-secondary filter-action flex-1 rounded-lg"><AppIcon name="refresh" className="mr-1 inline h-4 w-4"/>Refresh</button>{(query || priority !== 'all' || sortBy !== 'priority' || queueFilter !== 'all') && <button type="button" onClick={() => { setQuery(''); setPriority('all'); setSortBy('priority'); setQueueFilter('all') }} className="filter-action rounded-full border border-gray-200 bg-white px-3 py-2.5 text-xs font-black text-gray-500 hover:bg-gray-50">Clear</button>}</div>
         </div>
       </section>
 
@@ -277,7 +277,7 @@ export default function EcmdDispatchPage() {
             </div>
 
             <div className="hidden min-w-0 overflow-hidden lg:block">
-              <table className="w-full table-fixed text-left">
+              <table className="data-table">
                 <thead className="border-b border-gray-100 bg-gray-50/80 text-xs font-black uppercase tracking-wider text-gray-500">
                   <tr>
                     <th className="w-[34%] px-4 py-3">Complaint</th>
@@ -291,12 +291,12 @@ export default function EcmdDispatchPage() {
                   {filtered.map(item => (
                     <tr key={item.id} onClick={() => navigate(`/complaints/${item.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${item.id}`) }} className="qol-clickable-row group hover:bg-navy-50/30">
                       <td className="px-4 py-4 align-top">
-                        <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-[11px] font-black uppercase text-gray-500">Select</span></div>
+                        <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select</span></div>
                         <button onClick={() => navigate(`/complaints/${item.id}`)} className="min-w-0 text-left">
                           <p className="break-all font-mono text-xs font-bold text-gray-500">{item.reference_number}</p>
                           <p className="mt-1 break-words text-sm font-black text-navy-900 group-hover:text-brand-700">{item.complaint_type}</p>
                           <p className="mt-1 line-clamp-2 break-words text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
-                          <p className="mt-1 break-words text-[11px] text-gray-500">{item.customer_name || 'Customer'}</p>
+                          <p className="mt-1 break-words text-xs text-gray-500">{item.customer_name || 'Customer'}</p>
                           {item.similar_count ? <p className="mt-1 text-xs font-bold text-amber-700">{item.similar_count} nearby/related report{item.similar_count === 1 ? '' : 's'}</p> : null}
                         </button>
                       </td>
@@ -326,7 +326,7 @@ export default function EcmdDispatchPage() {
             <div className="divide-y divide-gray-100 lg:hidden">
               {filtered.map(item => (
                 <article key={item.id} className="p-4">
-                  <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-[11px] font-black uppercase text-gray-500">Select complaint</span></div>
+                  <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select complaint</span></div>
                   <button onClick={() => navigate(`/complaints/${item.id}`)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs font-bold text-gray-500">{item.reference_number}</p><p className="mt-1 font-black text-navy-900">{item.complaint_type}</p></div><PriorityBadge priority={item.priority}/></div>
                     <p className="mt-2 text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
@@ -344,7 +344,7 @@ export default function EcmdDispatchPage() {
             <div className="mt-4 divide-y divide-gray-100">
               {rankedStaff.map((person, index) => {
                 const current = workloadMap[person.id] || person
-                return <div key={person.id} className="py-3 first:pt-0 last:pb-0"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-1.5"><p className="truncate text-xs font-black text-gray-900">{person.full_name}</p>{index === 0 && person.availability_status === 'available' && <span title="Recommended" className="text-gold-500">★</span>}</div><span className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-[11px] font-black uppercase ${availabilityTone(person.availability_status)}`}>{availabilityLabel(person.availability_status)}</span></div><span className="shrink-0 text-xs font-black text-navy-800">{activeTaskLabel(current.active_tasks)}</span></div>{person.availability_note && <p className="mt-1.5 line-clamp-2 text-xs text-gray-500">{person.availability_note}</p>}</div>
+                return <div key={person.id} className="py-3 first:pt-0 last:pb-0"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-1.5"><p className="truncate text-xs font-black text-gray-900">{person.full_name}</p>{index === 0 && person.availability_status === 'available' && <span title="Recommended" className="text-gold-500">★</span>}</div><span className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-xs font-black uppercase ${availabilityTone(person.availability_status)}`}>{availabilityLabel(person.availability_status)}</span></div><span className="shrink-0 text-xs font-black text-navy-800">{activeTaskLabel(current.active_tasks)}</span></div>{person.availability_note && <p className="mt-1.5 line-clamp-2 text-xs text-gray-500">{person.availability_note}</p>}</div>
               })}
               {!rankedStaff.length && <p className="py-6 text-center text-xs text-gray-500">No Maintenance Personnel are available in this list.</p>}
             </div>

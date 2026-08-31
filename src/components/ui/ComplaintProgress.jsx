@@ -92,14 +92,14 @@ export default function ComplaintProgress({ complaint, role, canCommercialReview
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5">
+      <div className="workflow-next-step rounded-xl border p-4 sm:p-5">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm" aria-hidden="true">
+          <span className="workflow-next-step__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm" aria-hidden="true">
             <AppIcon name={actionIcon} className="h-5 w-5" />
           </span>
-          <div>
-            <h2 className="font-display text-base font-black text-blue-950">{actionTitle}</h2>
-            <p className="mt-1 text-sm leading-6 text-blue-900">{actionText}</p>
+          <div className="min-w-0">
+            <h2 className="workflow-next-step__title font-display text-base font-black">{actionTitle}</h2>
+            <p className="workflow-next-step__copy mt-1 text-sm leading-6">{actionText}</p>
           </div>
         </div>
       </div>

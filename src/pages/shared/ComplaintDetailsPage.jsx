@@ -394,7 +394,7 @@ export default function ComplaintDetailsPage() {
 
       <aside className="min-w-0 space-y-4 lg:self-start lg:sticky lg:top-5 no-print">
         {canCommercialReview && <section className="card rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-brand-600">Commercial Services</p><h2 className="mt-1 font-display font-bold text-navy-900">Complaint review</h2><p className="mt-1 text-xs text-gray-500">NSCCCD reviews the complaint details and sends field-related work to WDLCD under ECMD.</p></div><StatusBadge status={complaint.status} /></div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-wider text-brand-600">Commercial Services</p><h2 className="mt-1 font-display font-bold text-navy-900">Complaint review</h2><p className="mt-1 text-xs text-gray-500">NSCCCD reviews the complaint details and sends field-related work to WDLCD under ECMD.</p></div><StatusBadge status={complaint.status} /></div>
           <div className="mt-4 space-y-2">
             {complaint.status === 'pending' && <button onClick={() => setForwardOpen(true)} className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Send to WDLCD</button>}
     {complaint.status === 'rejected' && <button onClick={() => setRestoreOpen(true)} className="btn-primary w-full rounded-lg">Undo rejection</button>}
@@ -406,7 +406,7 @@ export default function ComplaintDetailsPage() {
         </section>}
 
         {canEcmdOperate && <section className="card rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-navy-600">ECMD · WDLCD</p><h2 className="mt-1 font-display font-bold text-navy-900">Dispatch and verification</h2><p className="mt-1 text-xs text-gray-500">Assign field work and verify completed work before resolving the complaint.</p></div><StatusBadge status={complaint.status} /></div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-wider text-navy-600">ECMD · WDLCD</p><h2 className="mt-1 font-display font-bold text-navy-900">Dispatch and verification</h2><p className="mt-1 text-xs text-gray-500">Assign field work and verify completed work before resolving the complaint.</p></div><StatusBadge status={complaint.status} /></div>
           <div className="mt-4 space-y-2">
             {complaint.status === 'awaiting_verification' && <button onClick={() => { setVerifyForm({ resolution_code: 'resolved', resolution_notes: '', return_to_field: false }); setVerifyOpen(true) }} className="btn-primary w-full">Verify completed work</button>}
             {['forwarded','assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => { setAssignStaff(complaint.assigned_to || ''); setAssignCrew(complaint.assigned_crew_id || ''); setAssignNotes(complaint.task_notes || ''); setAssignReason(''); setAssignOpen(true) }} className="btn-primary w-full rounded-lg">{complaint.assigned_to ? 'Manage / Reassign Personnel' : 'Assign Maintenance Personnel'}</button>}

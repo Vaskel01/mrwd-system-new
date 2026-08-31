@@ -366,7 +366,9 @@
   .badge-cancelled,
   .badge-blocked {
     display: inline-flex;
+    width: fit-content;
     max-width: 100%;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     gap: .25rem;
@@ -379,7 +381,9 @@
     letter-spacing: .04em;
     text-align: center;
     text-transform: uppercase;
-    overflow-wrap: anywhere;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: keep-all;
   }
   .badge-low    { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
   .badge-medium { background: #fffbeb; color: #b45309; border-color: #fde68a; }
@@ -398,8 +402,11 @@
   .badge-blocked   { background: #fffbeb; color: #92400e; border-color: #fde68a; }
   .badge-low,
   .badge-medium,
-  .badge-high { flex-shrink: 0; width: max-content; white-space: nowrap; }
-
+  .badge-high {
+    width: max-content;
+    max-width: none;
+    white-space: nowrap;
+  }
   .input-field--compact {
     min-height: var(--control-height) !important;
     padding-top: .5rem;
@@ -414,12 +421,12 @@
     font-size: .875rem;
   }
   .data-table > thead > tr {
-    border-bottom: 2px solid #e5e7eb;
-    background: rgba(249, 250, 251, .7);
+    border-bottom: 2px solid #cbd5e1;
+    background: #e8edf4;
   }
   .data-table > thead th {
     padding: .75rem 1rem !important;
-    color: #6b7280;
+    color: #334155;
     font-size: .75rem;
     font-weight: 700;
     line-height: 1.25;
@@ -431,16 +438,44 @@
     padding: .75rem 1rem !important;
     vertical-align: top;
   }
+  .data-table > tbody > tr {
+    transition: background-color .15s ease, box-shadow .15s ease;
+  }
+  .data-table > tbody > tr:hover {
+    background: #eaf0f8 !important;
+    box-shadow: inset 3px 0 0 #3463b0;
+  }
 
   /* Keep data tables inside the content column. Long names, addresses, IDs,
      and labels wrap instead of forcing a horizontal page/table scroller. */
   .app-main table { max-width: 100%; }
   .app-main th,
-  .app-main td { min-width: 0; overflow-wrap: anywhere; word-break: normal; }
+  .app-main td { min-width: 0; overflow-wrap: break-word; word-break: normal; }
   /* Table cells may wrap long data, but interactive controls must never split a word
      (for example, Reassign becoming Reassi / gn). */
   .app-main button { overflow-wrap: normal; word-break: normal; }
   .app-main table button { white-space: nowrap; }
+
+  .workflow-next-step {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  .workflow-next-step__icon { background: #fff; color: #1d4ed8; }
+  .workflow-next-step__title { color: #172554; }
+  .workflow-next-step__copy { color: #1e3a8a; }
+
+  .notification-row {
+    background: #fff;
+    transition: background-color .15s ease, box-shadow .15s ease;
+  }
+  .notification-row--unread {
+    background: #eef4ff;
+    box-shadow: inset 3px 0 0 #3463b0;
+  }
+  .notification-row:hover,
+  .notification-row:focus-within { background: #eaf0f8; }
+  .notification-row--unread:hover,
+  .notification-row--unread:focus-within { background: #dfeaff; }
 }
 
 
@@ -951,6 +986,17 @@ html[data-theme='dark'] .bg-blue-100 { background-color: #18263a !important; }
 html[data-theme='dark'] .bg-gray-200 { background-color: #26354b !important; }
 html[data-theme='dark'] [class*="bg-[#f4f7fb]"] { background-color: var(--md-background) !important; }
 
+/* Fractional utility colors need explicit dark equivalents because their
+   generated selectors do not match the non-fractional token rules. */
+html[data-theme='dark'] .bg-red-50\/60 { background-color: rgba(127, 29, 29, .3) !important; }
+html[data-theme='dark'] .bg-green-50\/60 { background-color: rgba(20, 83, 45, .3) !important; }
+html[data-theme='dark'] .bg-blue-50\/50,
+html[data-theme='dark'] .bg-brand-50\/50,
+html[data-theme='dark'] .bg-navy-50\/50 { background-color: rgba(30, 64, 175, .22) !important; }
+html[data-theme='dark'] .bg-gray-50\/80 { background-color: rgba(23, 38, 61, .92) !important; }
+html[data-theme='dark'] .hover\:bg-gray-50\/70:hover,
+html[data-theme='dark'] .hover\:bg-navy-50\/30:hover { background-color: #1b2d47 !important; }
+
 html[data-theme='dark'] .text-gray-900,
 html[data-theme='dark'] .text-gray-800,
 html[data-theme='dark'] .text-navy-950,
@@ -990,14 +1036,40 @@ html[data-theme='dark'] .filter-chip[aria-selected='true'] span {
 
 /* Fractional Tailwind table backgrounds do not share the plain bg-gray-50
    selector, so give every application table header an explicit dark surface. */
-html[data-theme='dark'] .app-main table > thead {
-  border-color: #32435d !important;
-  background: #17263d !important;
-  color: #dbe7f8 !important;
+html[data-theme='dark'] .app-main table > thead,
+html[data-theme='dark'] .data-table > thead > tr {
+  border-color: #526784 !important;
+  background: #22334c !important;
+  color: #f1f5f9 !important;
 }
 html[data-theme='dark'] .app-main table > thead th {
-  color: #dbe7f8 !important;
+  color: #f1f5f9 !important;
 }
+html[data-theme='dark'] .data-table > tbody > tr:hover {
+  background: #1b2d47 !important;
+  box-shadow: inset 3px 0 0 #7da6df;
+}
+
+html[data-theme='dark'] .workflow-next-step {
+  border-color: #3f67a1;
+  background: #142950;
+}
+html[data-theme='dark'] .workflow-next-step__icon {
+  background: #0d1b32;
+  color: #9fc5ff;
+}
+html[data-theme='dark'] .workflow-next-step__title { color: #f1f5f9; }
+html[data-theme='dark'] .workflow-next-step__copy { color: #bfdbfe; }
+
+html[data-theme='dark'] .notification-row { background: #111c2e; }
+html[data-theme='dark'] .notification-row--unread {
+  background: #172b4a;
+  box-shadow: inset 3px 0 0 #7da6df;
+}
+html[data-theme='dark'] .notification-row:hover,
+html[data-theme='dark'] .notification-row:focus-within { background: #1b2d47; }
+html[data-theme='dark'] .notification-row--unread:hover,
+html[data-theme='dark'] .notification-row--unread:focus-within { background: #213b62; }
 
 /* Light gold controls retain dark ink in either theme. Dark mode should not
    turn navy utility text white when the supporting surface remains light. */

@@ -82,13 +82,13 @@ export default function NotificationsPage() {
         <>
           <div className="card rounded-xl overflow-hidden divide-y divide-gray-100">
             {notifications.map(item => (
-              <article key={item.id} className={`p-4 sm:p-5 flex gap-3 transition-colors ${item.read_at ? 'bg-white' : 'bg-brand-50/50'}`}>
-                <button type="button" onClick={() => openNotification(item)} className="min-w-0 flex flex-1 gap-4 text-left hover:opacity-90">
+              <article key={item.id} className={`notification-row flex gap-3 p-4 sm:p-5 ${item.read_at ? '' : 'notification-row--unread'}`}>
+                <button type="button" onClick={() => openNotification(item)} className="min-w-0 flex flex-1 gap-3 text-left sm:gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.read_at ? 'bg-gray-100 text-gray-500' : 'bg-navy-800 text-white'}`}>
                     <AppIcon name={ICONS[item.notification_type] || 'info'} className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3"><p className="font-bold text-gray-900">{item.title}</p><span className="text-xs text-gray-500 whitespace-nowrap">{formatDate(item.created_at)}</span></div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3"><p className="font-bold text-gray-900">{item.title}</p><span className="shrink-0 text-xs text-gray-500 sm:whitespace-nowrap">{formatDate(item.created_at)}</span></div>
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">{item.message}</p>
                     {item.related_complaint_id ? <p className="text-xs font-bold text-brand-700 mt-2">Open complaint →</p> : null}
                   </div>

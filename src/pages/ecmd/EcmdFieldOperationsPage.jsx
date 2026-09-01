@@ -10,6 +10,7 @@ import Dialog from '../../components/ui/Dialog'
 import AppIcon from '../../components/ui/AppIcon'
 import {
   AnalyticsKpi,
+  AnalyticsKpiRail,
   AnalyticsSectionHeading,
   AnalyticsSignal,
   DistributionBar,
@@ -212,14 +213,14 @@ export default function EcmdFieldOperationsPage() {
     {(error || operationalError) && <ErrorBanner message={error || operationalError} onRetry={load}/>} 
     {notice && <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800">{notice}</div>}
 
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6" aria-label="Field operations indicators">
+    <AnalyticsKpiRail ariaLabel="Field operations indicators">
       <AnalyticsKpi label="Ready to assign" value={analytics.ready} detail="Reviewed, not yet assigned" icon="assignment" accent={analytics.ready ? 'amber' : 'green'} />
       <AnalyticsKpi label="Active field work" value={analytics.activeField} detail={`${analytics.assignedTasks} staff assignments`} icon="tool" accent="blue" />
       <AnalyticsKpi label="Blocked" value={analytics.blocked} detail="Needs coordination or support" icon="alert" accent={analytics.blocked ? 'red' : 'green'} />
       <AnalyticsKpi label="For verification" value={analytics.verification} detail="Field work marked complete" icon="clipboard" accent={analytics.verification ? 'amber' : 'green'} />
       <AnalyticsKpi label={`Resolved · ${windowDays}d`} value={analytics.resolved} detail={`${analytics.closureRatio}% of period intake`} icon="check" accent="green" />
       <AnalyticsKpi label="Resolved today" value={completedToday.length} detail={`${formatDuration(analytics.averageResolutionHours)} avg. resolution`} icon="clock" />
-    </section>
+    </AnalyticsKpiRail>
 
     <section className="grid items-start gap-5 xl:grid-cols-2">
       <div className="card rounded-xl p-5">

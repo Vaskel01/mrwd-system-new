@@ -6,6 +6,7 @@ import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
 import {
   AnalyticsKpi,
+  AnalyticsKpiRail,
   AnalyticsSectionHeading,
   AnalyticsSignal,
   AnalyticsTable,
@@ -266,14 +267,14 @@ export default function CommercialReportsPage() {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500"><span>Submission-date basis · Manila time</span><span className="font-bold text-navy-700">{analytics.total} complaint{analytics.total === 1 ? '' : 's'} in scope</span></div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-6" aria-label="Complaint performance indicators">
+      <AnalyticsKpiRail ariaLabel="Complaint performance indicators">
         <AnalyticsKpi label="Complaints" value={analytics.total} detail={`${analytics.pending} awaiting initial review`} icon="clipboard" />
         <AnalyticsKpi label="Resolution rate" value={`${analytics.resolutionRate}%`} detail={`${analytics.resolved} resolved in period`} icon="check" accent="green" />
         <AnalyticsKpi label="Active backlog" value={analytics.active} detail={`${analytics.oldestActiveDays}d oldest active`} icon="assignment" accent={analytics.oldestActiveDays >= 4 ? 'amber' : 'blue'} />
         <AnalyticsKpi label="High priority" value={analytics.highPriority} detail={`${analytics.highPriorityActive} still active`} icon="alert" accent={analytics.highPriorityActive ? 'red' : 'green'} />
         <AnalyticsKpi label="Avg. resolution" value={formatDuration(analytics.averageResolutionHours)} detail="Submission to completion" icon="clock" accent="blue" />
         <AnalyticsKpi label="Customer rating" value={summary.average_rating ? `${summary.average_rating}/5` : '—'} detail={`${summary.feedback_count || 0} responses · ${feedbackCoverage}% coverage`} icon="star" accent="amber" />
-      </section>
+      </AnalyticsKpiRail>
 
       <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <div className="card rounded-xl p-5">

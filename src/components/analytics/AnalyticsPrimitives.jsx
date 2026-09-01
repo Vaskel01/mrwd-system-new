@@ -18,20 +18,24 @@ const SIGNAL_STYLES = {
 export function AnalyticsKpi({ label, value, detail, icon = 'chart', accent = 'navy', footer }) {
   const colors = ACCENTS[accent] || ACCENTS.navy
   return (
-    <article className="card p-4 sm:p-5">
+    <article className="analytics-kpi">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-500">{label}</p>
-          <p className={`mt-2 font-display text-3xl font-black tracking-tight ${colors.value}`}>{value}</p>
+          <p className={`mt-1.5 font-display text-2xl font-black tracking-tight ${colors.value}`}>{value}</p>
         </div>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${colors.icon}`} aria-hidden="true">
-          <AppIcon name={icon} className="h-5 w-5" />
+        <span className={`analytics-kpi__icon flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${colors.icon}`} aria-hidden="true">
+          <AppIcon name={icon} className="h-4 w-4" />
         </span>
       </div>
-      {detail ? <p className="mt-2 text-xs leading-5 text-gray-500">{detail}</p> : null}
+      {detail ? <p className="mt-auto pt-2 text-xs leading-5 text-gray-500">{detail}</p> : null}
       {footer ? <div className="mt-3 border-t border-gray-100 pt-3 text-xs font-bold text-gray-600">{footer}</div> : null}
     </article>
   )
+}
+
+export function AnalyticsKpiRail({ children, ariaLabel }) {
+  return <section className="analytics-kpi-rail grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-6" aria-label={ariaLabel}>{children}</section>
 }
 
 export function AnalyticsSectionHeading({ eyebrow, title, description, aside }) {

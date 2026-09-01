@@ -7,6 +7,7 @@ import PageHeader from '../../components/ui/PageHeader'
 import AppIcon from '../../components/ui/AppIcon'
 import {
   AnalyticsKpi,
+  AnalyticsKpiRail,
   AnalyticsSectionHeading,
   AnalyticsSignal,
   AnalyticsTable,
@@ -187,14 +188,14 @@ export default function SystemDashboardPage() {
 
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
 
-      <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-6" aria-label="System governance indicators">
+      <AnalyticsKpiRail ariaLabel="System governance indicators">
         <AnalyticsKpi label="Active staff" value={analytics.activeStaff} detail={`${analytics.inactiveStaff} inactive account${analytics.inactiveStaff === 1 ? '' : 's'}`} icon="users" />
         <AnalyticsKpi label="Unassigned staff" value={analytics.unassignedStaff} detail="Admin accounts without a department" icon="user" accent={analytics.unassignedStaff ? 'amber' : 'green'} />
         <AnalyticsKpi label="Pending approvals" value={analytics.pendingApprovals} detail={`${analytics.agedApprovals} older than 48h`} icon="clipboard" accent={analytics.agedApprovals ? 'red' : analytics.pendingApprovals ? 'amber' : 'green'} />
         <AnalyticsKpi label="Approval rate" value={`${analytics.approvalRate}%`} detail="Approved among decided requests" icon="check" accent="green" />
         <AnalyticsKpi label="Delivery success" value={`${analytics.deliverySuccessRate}%`} detail={`${analytics.failedDeliveries} failed · ${analytics.pendingDeliveries} pending`} icon="bell" accent={analytics.failedDeliveries ? 'red' : 'blue'} />
         <AnalyticsKpi label="Archives · 30d" value={analytics.archivesLast30} detail="Records archived with oversight" icon="document" accent="blue" />
-      </section>
+      </AnalyticsKpiRail>
 
       <section className="card rounded-xl p-4 sm:p-5">
         <AnalyticsSectionHeading eyebrow="Eight-week trend" title="Governance activity volume" description="Weekly request, delivery, and archive activity from the bounded records currently available to the supervisor." aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Weekly</span>} />

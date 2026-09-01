@@ -11,7 +11,9 @@ import {
   AnalyticsSignal,
   AnalyticsTable,
   DistributionBar,
+  DonutChart,
   RankedBarList,
+  TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
 
 function titleCase(value) {
@@ -24,6 +26,10 @@ function percent(value, total) {
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+}
+
+function shortDate(value) {
+  return new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })
 }
 
 export default function SystemDashboardPage() {
@@ -83,6 +89,24 @@ export default function SystemDashboardPage() {
     const deliveryAttempts = sentDeliveries + failedDeliveries
     const archivesLast30 = archives.filter(item => analysisNow - new Date(item.archived_at).getTime() <= 30 * 864e5).length
     const unstaffedDepartments = departments.filter(item => (departmentCounts.get(item.name || item.code || 'Unknown department') || 0) === 0)
+    const activityBucketCount = 8
+    const activityBucketWidth = 7 * 864e5
+    const activityStart = analysisNow - activityBucketCount * activityBucketWidth
+    const activityTrend = Array.from({ length: activityBucketCount }, (_, index) => ({
+      label: shortDate(activityStart + (index + 0.5) * activityBucketWidth),
+      approvals: 0,
+      deliveries: 0,
+      archives: 0,
+    }))
+    const addActivity = (value, key) => {
+      const timestamp = new Date(value).getTime()
+      if (!Number.isFinite(timestamp) || timestamp < activityStart || timestamp > analysisNow) return
+      const index = Math.min(activityBucketCount - 1, Math.floor((timestamp - activityStart) / activityBucketWidth))
+      activityTrend[index][key] += 1
+    }
+    for (const item of approvals) addActivity(item.created_at, 'approvals')
+    for (const item of deliveries) addActivity(item.created_at, 'deliveries')
+    for (const item of archives) addActivity(item.archived_at, 'archives')
     const recentActivity = [
       ...approvals.map(item => ({
         id: `approval-${item.id}`,
@@ -127,6 +151,7 @@ export default function SystemDashboardPage() {
       recentActivity,
       totalDeliveries: deliveries.length,
       totalApprovals: approvals.length,
+      activityTrend,
     }
   }, [analysisNow, data])
 
@@ -171,6 +196,11 @@ export default function SystemDashboardPage() {
         <AnalyticsKpi label="Archives · 30d" value={analytics.archivesLast30} detail="Records archived with oversight" icon="document" accent="blue" />
       </section>
 
+      <section className="card rounded-xl p-4 sm:p-5">
+        <AnalyticsSectionHeading eyebrow="Eight-week trend" title="Governance activity volume" description="Weekly request, delivery, and archive activity from the bounded records currently available to the supervisor." aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Weekly</span>} />
+        <div className="mt-5"><TimeSeriesChart data={analytics.activityTrend} series={[{ key: 'approvals', label: 'Approval requests', accent: 'amber' }, { key: 'deliveries', label: 'Notifications', accent: 'blue' }, { key: 'archives', label: 'Archives', accent: 'green' }]} ariaLabel="Eight-week governance activity trend" emptyLabel="No governance activity was recorded during the last eight weeks." /></div>
+      </section>
+
       <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="card rounded-xl p-5">
           <AnalyticsSectionHeading eyebrow="Workforce" title="Staff coverage and account health" description="Coverage counts include active staff accounts only; inactive accounts remain visible in the headline for cleanup." />
@@ -200,7 +230,7 @@ export default function SystemDashboardPage() {
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="card rounded-xl p-5">
           <AnalyticsSectionHeading eyebrow="Governance" title="Approval request outcomes" description="The latest 50 requests returned by the system governance feed." />
-          <div className="mt-5"><DistributionBar total={analytics.totalApprovals} items={[
+          <div className="mt-5"><DonutChart total={analytics.totalApprovals} centerLabel="Requests" ariaLabel="Approval request outcome distribution" items={[
             { label: 'Pending', value: analytics.pendingApprovals, accent: 'amber' },
             { label: 'Approved', value: analytics.approvedApprovals, accent: 'green' },
             { label: 'Rejected', value: analytics.rejectedApprovals, accent: 'red' },
@@ -211,7 +241,7 @@ export default function SystemDashboardPage() {
 
         <div className="card rounded-xl p-5">
           <AnalyticsSectionHeading eyebrow="Notifications" title="External delivery status" description="Email and SMS delivery records from the latest system feed." />
-          <div className="mt-5"><DistributionBar total={analytics.totalDeliveries} items={[
+          <div className="mt-5"><DonutChart total={analytics.totalDeliveries} centerLabel="Deliveries" ariaLabel="External notification delivery status distribution" items={[
             { label: 'Sent', value: analytics.sentDeliveries, accent: 'green' },
             { label: 'Pending / processing', value: analytics.pendingDeliveries, accent: 'blue' },
             { label: 'Failed', value: analytics.failedDeliveries, accent: 'red' },

@@ -10,7 +10,9 @@ import {
   AnalyticsSignal,
   AnalyticsTable,
   DistributionBar,
+  DonutChart,
   RankedBarList,
+  TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
 
 const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
@@ -49,6 +51,10 @@ function bucketLocation(item) {
 
 function monthLabel(value) {
   return new Date(`${value}-01T00:00:00`).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })
+}
+
+function shortDate(value) {
+  return new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })
 }
 
 export default function CommercialReportsPage() {
@@ -152,6 +158,30 @@ export default function CommercialReportsPage() {
     completionRate: percent(item.completed, item.filed),
     backlogChange: item.filed - item.completed,
   })).reverse(), [data])
+  const activityTrend = useMemo(() => {
+    const start = new Date(`${fromDate}T00:00:00+08:00`).getTime()
+    const end = new Date(`${toDate}T23:59:59.999+08:00`).getTime()
+    const span = Math.max(864e5, end - start + 1)
+    const spanDays = Math.max(1, Math.ceil(span / 864e5))
+    const bucketCount = Math.min(10, spanDays)
+    const bucketWidth = span / bucketCount
+    const points = Array.from({ length: bucketCount }, (_, index) => ({
+      label: shortDate(start + (index + 0.5) * bucketWidth),
+      filed: 0,
+      completed: 0,
+    }))
+    const addEvent = (value, key) => {
+      const timestamp = new Date(value).getTime()
+      if (!Number.isFinite(timestamp) || timestamp < start || timestamp > end) return
+      const index = Math.min(bucketCount - 1, Math.floor((timestamp - start) / bucketWidth))
+      points[index][key] += 1
+    }
+    for (const item of complaints) {
+      addEvent(item.created_at, 'filed')
+      if (RESOLVED_STATUSES.has(item.status)) addEvent(item.verified_at || item.completed_at || item.updated_at, 'completed')
+    }
+    return { points, intervalDays: Math.max(1, Math.round(spanDays / bucketCount)) }
+  }, [complaints, fromDate, toDate])
 
   const exportCsv = () => {
     const headers = ['Complaint Reference', 'Complaint Type', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Submitted', 'Resolved', 'Description']
@@ -281,13 +311,17 @@ export default function CommercialReportsPage() {
 
       <section className="grid gap-5 lg:grid-cols-3">
         <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Complaint demand" description="Most reported complaint types." /><div className="mt-5"><RankedBarList items={Object.entries(data?.by_category || {}).map(([label, value]) => ({ label, value }))} total={analytics.total} /></div></div>
-        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Priority mix" description="Urgency assigned after complaint review." /><div className="mt-5"><RankedBarList items={Object.entries(data?.by_priority || {}).map(([label, value]) => ({ label: titleCase(label), value, accent: label === 'high' ? 'red' : label === 'medium' ? 'amber' : 'green' }))} total={analytics.total} /></div></div>
+        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Priority mix" description="Urgency assigned after complaint review." /><div className="mt-5"><DonutChart items={Object.entries(data?.by_priority || {}).map(([label, value]) => ({ label: titleCase(label), value, accent: label === 'high' ? 'red' : label === 'medium' ? 'amber' : 'green' }))} total={analytics.total} centerLabel="Complaints" ariaLabel="Complaint priority distribution" /></div></div>
         <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Areas generating demand" description="Locations are grouped from the submitted zone or address." /><div className="mt-5"><RankedBarList items={analytics.locations} total={analytics.total} /></div></div>
       </section>
 
       <section className="card rounded-xl p-4 sm:p-5">
-        <AnalyticsSectionHeading eyebrow="Trend" title="Monthly throughput" description="Submitted and resolved counts use their own event dates. Backlog movement is submitted minus resolved for the month." aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Latest first</span>} />
-        <div className="mt-4"><AnalyticsTable columns={monthlyColumns} rows={monthlyRows} rowKey={row => row.month} emptyLabel="No complaint activity falls within this period." /></div>
+        <AnalyticsSectionHeading eyebrow="Trend" title="Complaint activity" description={`Submitted and resolved events are plotted across the selected range in ${activityTrend.intervalDays}-day intervals.`} aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Oldest to latest</span>} />
+        <div className="mt-5"><TimeSeriesChart data={activityTrend.points} series={[{ key: 'filed', label: 'Submitted', accent: 'blue' }, { key: 'completed', label: 'Resolved', accent: 'green' }]} ariaLabel="Submitted and resolved complaint trend for the selected date range" emptyLabel="No complaint activity falls within this period." /></div>
+        <details className="mt-5 rounded-xl border border-gray-200 bg-gray-50/50 open:bg-transparent">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-black text-navy-900">View monthly figures and backlog movement</summary>
+          <div className="border-t border-gray-200 p-3"><AnalyticsTable columns={monthlyColumns} rows={monthlyRows} rowKey={row => row.month} emptyLabel="No complaint activity falls within this period." /></div>
+        </details>
       </section>
 
       <p className="px-1 text-xs leading-5 text-gray-500">Analytics are decision-support summaries based on the selected complaint submission range. A low-volume period can produce unstable rates; open the complaint review queue before making case-level decisions.</p>

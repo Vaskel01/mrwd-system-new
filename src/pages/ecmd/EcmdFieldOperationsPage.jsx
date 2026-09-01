@@ -13,7 +13,9 @@ import {
   AnalyticsSectionHeading,
   AnalyticsSignal,
   DistributionBar,
+  DonutChart,
   RankedBarList,
+  TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
 
 const ACTIVE = new Set(['forwarded','assigned','en_route','in_progress','blocked','awaiting_verification'])
@@ -33,6 +35,10 @@ function formatDuration(hours) {
   if (hours == null) return '—'
   if (hours < 24) return `${Math.round(hours)}h`
   return `${(hours / 24).toFixed(hours < 240 ? 1 : 0)}d`
+}
+
+function trendDateLabel(value) {
+  return new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' })
 }
 
 export default function EcmdFieldOperationsPage() {
@@ -103,6 +109,24 @@ export default function EcmdFieldOperationsPage() {
     }
     const availableStaff = workload.filter(person => String(person.availability_status || 'available') === 'available').length
     const assignedTasks = workload.reduce((sum, person) => sum + Number(person.active_tasks || 0), 0)
+    const bucketCount = Math.min(windowDays, 10)
+    const bucketWidth = windowDays * 864e5 / bucketCount
+    const trendStart = now - windowDays * 864e5
+    const throughputTrend = Array.from({ length: bucketCount }, (_, index) => ({
+      label: trendDateLabel(trendStart + (index + 0.5) * bucketWidth),
+      intake: 0,
+      resolved: 0,
+    }))
+    const addEvent = (value, key) => {
+      const timestamp = new Date(value).getTime()
+      if (!Number.isFinite(timestamp) || timestamp < trendStart || timestamp > now) return
+      const index = Math.min(bucketCount - 1, Math.floor((timestamp - trendStart) / bucketWidth))
+      throughputTrend[index][key] += 1
+    }
+    for (const item of complaints) {
+      addEvent(item.created_at, 'intake')
+      if (['resolved', 'completed'].includes(item.status)) addEvent(item.verified_at || item.completed_at || item.updated_at, 'resolved')
+    }
     return {
       intake: periodIntake.length,
       resolved: periodResolved.length,
@@ -119,6 +143,8 @@ export default function EcmdFieldOperationsPage() {
       assignedTasks,
       overloadedStaff: workload.filter(person => Number(person.active_tasks || 0) >= 4).length,
       typeCounts: [...typeCounts].map(([label, value]) => ({ label, value })),
+      throughputTrend,
+      trendIntervalDays: Math.max(1, Math.round(windowDays / bucketCount)),
     }
   }, [active, analysisNow, complaints, windowDays, workload])
 
@@ -198,7 +224,7 @@ export default function EcmdFieldOperationsPage() {
     <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
       <div className="card rounded-xl p-5">
         <AnalyticsSectionHeading eyebrow="Queue health" title="Current work pipeline and aging" description="Current backlog is shown regardless of the selected performance window." />
-        <div className="mt-5"><DistributionBar total={active.length} items={[
+        <div className="mt-5"><DonutChart total={active.length} centerLabel="Active queue" ariaLabel="Active field work queue distribution" items={[
           { label: 'Ready', value: analytics.ready, accent: 'amber' },
           { label: 'In field', value: analytics.activeField, accent: 'blue' },
           { label: 'Blocked', value: analytics.blocked, accent: 'red' },
@@ -215,7 +241,8 @@ export default function EcmdFieldOperationsPage() {
       </div>
 
       <div className="card rounded-xl p-5">
-        <AnalyticsSectionHeading eyebrow={`${windowDays}-day performance`} title="Intake and field throughput" description="Closures are compared with new complaint intake for the selected window." />
+        <AnalyticsSectionHeading eyebrow={`${windowDays}-day performance`} title="Intake and field throughput" description={`Closures are compared with new complaint intake in ${analytics.trendIntervalDays}-day intervals.`} />
+        <div className="mt-5"><TimeSeriesChart data={analytics.throughputTrend} series={[{ key: 'intake', label: 'New intake', accent: 'blue' }, { key: 'resolved', label: 'Field closures', accent: 'green' }]} ariaLabel={`${windowDays}-day complaint intake and field closure trend`} emptyLabel="No intake or field closure activity is available for this window." /></div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-gray-50 p-4"><p className="text-xs font-black uppercase tracking-wider text-gray-500">New intake</p><p className="mt-2 text-2xl font-black text-navy-900">{analytics.intake}</p></div>
           <div className="rounded-xl bg-gray-50 p-4"><p className="text-xs font-black uppercase tracking-wider text-gray-500">Field closures</p><p className="mt-2 text-2xl font-black text-green-700">{analytics.resolved}</p></div>

@@ -318,7 +318,7 @@ export default function CommercialReportsPage() {
       <section className="card rounded-xl p-4 sm:p-5">
         <AnalyticsSectionHeading eyebrow="Trend" title="Complaint activity" description={`Submitted and resolved events are plotted across the selected range in ${activityTrend.intervalDays}-day intervals.`} aside={<span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-black text-navy-800">Oldest to latest</span>} />
         <div className="mt-5"><TimeSeriesChart data={activityTrend.points} series={[{ key: 'filed', label: 'Submitted', accent: 'blue' }, { key: 'completed', label: 'Resolved', accent: 'green' }]} ariaLabel="Submitted and resolved complaint trend for the selected date range" emptyLabel="No complaint activity falls within this period." /></div>
-        <details className="mt-5 rounded-xl border border-gray-200 bg-gray-50/50 open:bg-transparent">
+        <details className="analytics-details mt-5 rounded-xl border">
           <summary className="cursor-pointer px-4 py-3 text-sm font-black text-navy-900">View monthly figures and backlog movement</summary>
           <div className="border-t border-gray-200 p-3"><AnalyticsTable columns={monthlyColumns} rows={monthlyRows} rowKey={row => row.month} emptyLabel="No complaint activity falls within this period." /></div>
         </details>

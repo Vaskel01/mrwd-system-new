@@ -1194,6 +1194,36 @@ html[data-theme='dark'] .theme-toggle--menu:hover { background: #17263d; }
 html[data-theme='dark'] .leaflet-tile-pane { filter: brightness(.72) saturate(.78) contrast(1.08); }
 html[data-theme='dark'] .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, .25); }
 
+/* Analytics surfaces use explicit theme colors so translucent Tailwind
+   utilities cannot turn into light gray panels in dark mode. */
+.analytics-chart-surface {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+.analytics-chart-grid { color: #d7dee8; }
+.analytics-chart-axis { color: #526174; }
+.analytics-chart-point { stroke: #ffffff; }
+.analytics-details {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+.analytics-details[open] { background: #ffffff; }
+.analytics-details > summary:hover { background: #f1f5f9; }
+
+html[data-theme='dark'] .analytics-chart-surface {
+  border-color: #31435e;
+  background: #0d1728;
+}
+html[data-theme='dark'] .analytics-chart-grid { color: #31445e; }
+html[data-theme='dark'] .analytics-chart-axis { color: #c6d2e4; }
+html[data-theme='dark'] .analytics-chart-point { stroke: #0d1728; }
+html[data-theme='dark'] .analytics-details {
+  border-color: #31435e;
+  background: #0d1728;
+}
+html[data-theme='dark'] .analytics-details[open] { background: #111c2e; }
+html[data-theme='dark'] .analytics-details > summary:hover { background: #17263d; }
+
 @media (prefers-reduced-motion: reduce) {
   body,
   .app-shell,

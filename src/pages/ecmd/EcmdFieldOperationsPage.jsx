@@ -221,10 +221,10 @@ export default function EcmdFieldOperationsPage() {
       <AnalyticsKpi label="Resolved today" value={completedToday.length} detail={`${formatDuration(analytics.averageResolutionHours)} avg. resolution`} icon="clock" />
     </section>
 
-    <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+    <section className="grid items-start gap-5 xl:grid-cols-2">
       <div className="card rounded-xl p-5">
         <AnalyticsSectionHeading eyebrow="Queue health" title="Current work pipeline and aging" description="Current backlog is shown regardless of the selected performance window." />
-        <div className="mt-5"><DonutChart total={active.length} centerLabel="Active queue" ariaLabel="Active field work queue distribution" items={[
+        <div className="mt-5"><DonutChart total={active.length} centerLabel="Queue" ariaLabel="Active field work queue distribution" items={[
           { label: 'Ready', value: analytics.ready, accent: 'amber' },
           { label: 'In field', value: analytics.activeField, accent: 'blue' },
           { label: 'Blocked', value: analytics.blocked, accent: 'red' },

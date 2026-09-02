@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
 import CustomerInterruptionBanner from '../ui/CustomerInterruptionBanner'
 import { CAPABILITIES, hasCapability } from '../../lib/accessControl'
-import { staffAccessLabel } from '../../config/terminology'
+import { staffAccessLabel, TERMS } from '../../config/terminology'
 import { apiFetch } from '../../lib/api'
 import QuickCommandPalette from '../ui/QuickCommandPalette'
 import ToastViewport from '../ui/ToastViewport'
@@ -16,7 +16,7 @@ const NAV = {
   customer: [
     { to: '/customer/my-complaints', icon: ListIcon,    label: 'My complaints' },
     { to: '/customer/billing',       icon: BillingIcon, label: 'Billing' },
-    { to: '/customer/announcements', icon: BellIcon,    label: 'Announcements' },
+    { to: '/customer/announcements', icon: BellIcon,    label: TERMS.SERVICE_ADVISORIES },
   ],
   admin: [],
   maintenance_personnel: [
@@ -31,16 +31,16 @@ function adminNavigation(user) {
     if (hasCapability(user, capability)) items.push(item)
   }
 
-  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System analytics' })
+  add(CAPABILITIES.SUPERVISOR_DASHBOARD, { section: 'System Administration', to: '/system/dashboard', icon: DashIcon, label: 'System governance analytics' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial overview' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint review' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/reports', icon: ReportIcon, label: 'Complaint analytics' })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/export-center', icon: ExportIcon, label: 'Exports & schedules' })
-  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services · NSCCCD', to: '/commercial/accounts-billing', icon: BillingIcon, label: 'Accounts & billing' })
-  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/service-advisories', icon: BellIcon, label: 'Service advisories' })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/reports', icon: ReportIcon, label: TERMS.COMPLAINT_ANALYTICS })
+  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/export-center', icon: ExportIcon, label: TERMS.EXPORTS_SCHEDULES })
+  add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services · NSCCCD', to: '/commercial/accounts-billing', icon: BillingIcon, label: TERMS.ACCOUNTS_BILLING })
+  add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services · NSCCCD', to: '/commercial/service-advisories', icon: BellIcon, label: TERMS.SERVICE_ADVISORIES })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD · WDLCD', to: '/ecmd/dashboard', icon: DashIcon, label: 'WDLCD overview' })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'ECMD · WDLCD', to: '/ecmd/dispatch', icon: AssignIcon, label: 'Complaint dispatch' })
-  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD · WDLCD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field operations' })
+  add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD · WDLCD', to: '/ecmd/field-operations', icon: WrenchIcon, label: 'Field operations analytics' })
   add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD · WDLCD', to: '/ecmd/crews', icon: UsersIcon, label: 'Crew management' })
   add(CAPABILITIES.ECMD_OPERATIONS, { section: 'ECMD · WDLCD', to: '/ecmd/availability', icon: CalendarIcon, label: 'Availability calendar' })
   add(CAPABILITIES.SYSTEM_DEPARTMENTS, { section: 'System Administration', to: '/system/departments-access', icon: WrenchIcon, label: 'Departments & access' })

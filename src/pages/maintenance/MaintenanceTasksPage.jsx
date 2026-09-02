@@ -12,6 +12,7 @@ import RefreshNotice from '../../components/ui/RefreshNotice'
 import SearchField from '../../components/ui/SearchField'
 import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
+import { PRIORITY_LABELS, STATUS_LABELS } from '../../config/terminology'
 
 function formatAssignedDate(iso) {
   if (!iso) return '—'
@@ -131,7 +132,7 @@ export default function MaintenanceTasksPage() {
         eyebrow="Maintenance Personnel"
         title="My tasks"
         description="Open assigned complaints, update field progress, and send completed work to WDLCD for verification."
-        actions={<div className="text-left sm:text-right"><p className="font-display text-4xl font-black leading-none text-gold-400">{completionRate}%</p><p className="mt-1 text-xs font-bold text-navy-200">Field work completed</p></div>}
+        actions={<div className="text-left sm:text-right"><p className="font-display text-4xl font-black leading-none text-gold-400">{completionRate}%</p><p className="mt-1 text-xs font-bold text-navy-200">Completed field work</p></div>}
       />
 
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
@@ -140,7 +141,7 @@ export default function MaintenanceTasksPage() {
       <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-4">
         {[
           ['active', 'Active tasks', counts.active, 'Work assigned to you that still needs field action.', 'tool', 'text-brand-600'],
-          ['completed', 'Field work complete', counts.completed, 'Work submitted for verification or already resolved.', 'check', 'text-green-700'],
+          ['completed', 'Completed field work', counts.completed, 'Work submitted for verification or already resolved.', 'check', 'text-green-700'],
           ['rejected', 'Rejected', counts.rejected, 'Assigned records that were rejected.', 'alert', 'text-red-700'],
           ['all', 'All tasks', counts.all, 'Every complaint assigned to your account.', 'clipboard', 'text-navy-900'],
         ].map(([value, label, count, detail, icon, accent]) => (
@@ -175,18 +176,13 @@ export default function MaintenanceTasksPage() {
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4 lg:items-end">
             <label className="block text-xs font-bold text-gray-600">Priority<select name="maintenancetaskspage-priority-filter-2" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
               <option value="all">All priorities</option>
-              <option value="high">High priority</option>
-              <option value="medium">Medium priority</option>
-              <option value="low">Low priority</option>
+              {['high', 'medium', 'low'].map(priority => <option key={priority} value={priority}>{PRIORITY_LABELS[priority]}</option>)}
             </select></label>
             <label className="block text-xs font-bold text-gray-600">Status<select name="maintenancetaskspage-status-filter-3" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
               <option value="all">All statuses</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="awaiting_verification">Waiting for WDLCD verification</option>
-              <option value="resolved">Resolved</option>
-              <option value="blocked">Needs Attention</option>
-              <option value="rejected">Rejected</option>
+              {['assigned', 'in_progress', 'awaiting_verification', 'resolved', 'blocked', 'rejected'].map(status => (
+                <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+              ))}
             </select></label>
             <label className="block text-xs font-bold text-gray-600">Sort<select name="maintenancetaskspage-sort-by-4" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
               <option value="priority">Priority</option>
@@ -250,7 +246,7 @@ export default function MaintenanceTasksPage() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <p className="break-words text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-amber-700">Needs attention</p>}
+                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-amber-700">{STATUS_LABELS.blocked}</p>}
                     </td>
                     <td className="px-4 py-3 align-top">{renderAction(task)}</td>
                   </tr>

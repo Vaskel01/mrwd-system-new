@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
+import { TERMS } from '../../config/terminology'
 
 function displayDate(value, includeTime = false) {
   if (!value) return 'Not recorded'
@@ -57,7 +58,7 @@ export default function MaintenanceReportPage() {
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
         <Link to={`/complaints/${id}`} className="btn-secondary rounded-lg">Back to Complaint</Link>
-        <button type="button" onClick={() => window.print()} className="btn-primary rounded-lg">Print Official Report</button>
+        <button type="button" onClick={() => window.print()} className="btn-primary rounded-lg">Print official report</button>
       </div>
 
       <article className="bg-white p-5 text-navy-950 shadow-card print:shadow-none sm:p-8" aria-label="Official maintenance report">
@@ -68,8 +69,8 @@ export default function MaintenanceReportPage() {
         </header>
 
         <section className="mt-5 grid gap-4 border-b border-gray-200 pb-5 sm:grid-cols-3">
-          <Detail label="Report Number" value={report.report_number} />
-          <Detail label="Complaint Reference" value={complaint.reference_number} />
+          <Detail label="Report number" value={report.report_number} />
+          <Detail label={TERMS.REFERENCE_NUMBER} value={complaint.reference_number} />
           <Detail label="Generated" value={displayDate(report.generated_at, true)} />
         </section>
 
@@ -81,9 +82,9 @@ export default function MaintenanceReportPage() {
             <Detail label="Priority" value={titleCase(complaint.priority)} />
             <Detail label="Location" value={complaint.address} />
             <Detail label="Assigned Maintenance Personnel" value={complaint.assigned_name || complaint.assigned_to_name || task.assigned_to_name} />
-            <Detail label="Assigned Crew" value={report.crew?.name || 'No crew assigned'} />
+            <Detail label="Assigned crew" value={report.crew?.name || 'No crew assigned'} />
             <Detail label="Assigned On" value={displayDate(complaint.assigned_at || task.assigned_at, true)} />
-            <Detail label="Field Work Completed" value={displayDate(complaint.completed_at || task.completed_at, true)} />
+            <Detail label="Field work completed" value={displayDate(complaint.completed_at || task.completed_at, true)} />
             <Detail label="Status" value={titleCase(complaint.status)} />
           </div>
           <div className="mt-4 rounded-lg border border-gray-200 p-4">
@@ -124,7 +125,7 @@ export default function MaintenanceReportPage() {
         <section className="mt-12 grid gap-10 text-center sm:grid-cols-3">
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Prepared by</p><p className="text-xs text-gray-500">{report.prepared_by?.name}</p></div>
           <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">Team Leader / Supervisor</p></div>
-          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">System Supervisor Approval</p></div>
+          <div><div className="border-b border-navy-900 pb-8" /><p className="mt-2 text-xs font-bold">System Supervisor approval</p></div>
         </section>
       </article>
     </div>

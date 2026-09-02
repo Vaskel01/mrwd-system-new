@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { MAP_MARKER_FALLBACK, STATUS_VISUAL_TOKENS } from '../../config/uiTokens'
+import { statusLabel } from '../../config/terminology'
 
 export default function ComplaintOperationsMap({ complaints = [], height = 420, onOpen }) {
   const containerRef = useRef(null)
@@ -57,7 +58,7 @@ export default function ComplaintOperationsMap({ complaints = [], height = 420, 
             <strong>${item.reference_number || 'Complaint'}</strong><br/>
             <span>${item.complaint_type || 'Complaint'}</span><br/>
             <small>${item.address || ''}</small><br/>
-            <small>Status: ${String(item.status || '').replaceAll('_',' ')}</small>
+            <small>Status: ${statusLabel(item.status)}</small>
           </div>
         `)
         if (onOpen) marker.on('click', () => onOpen(item))

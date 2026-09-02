@@ -88,6 +88,8 @@ Use a question in confirmation-dialog headings when the action has a meaningful 
 
 Statuses should describe the current state, not an internal event name.
 
+Use `src/config/terminology.js` as the source of truth for complaint statuses, priorities, availability, roles, organization names, and shared module names. UI components and server-generated customer messages should use those exported labels instead of recreating them locally.
+
 Recommended complaint status language:
 - Pending review
 - Sent to WDLCD
@@ -100,6 +102,17 @@ Recommended complaint status language:
 - Cancelled
 
 Reserve **Resolved** for complaints that ECMD has verified.
+
+Use these related terms consistently:
+
+- **Complaint**, not case, ticket, or report, for the service record.
+- **Customer**, not resident, in user-facing text.
+- **Complaint reference number** for the complaint identifier.
+- **Field work** for on-site operational work.
+- **Completion notes** for the notes submitted after field work.
+- **Service advisories** for customer-facing notices; **Announcements** for internal staff notices.
+
+Use **report** only for an actual generated, printed, exported, or scheduled report.
 
 ## 7. Automated priority language
 

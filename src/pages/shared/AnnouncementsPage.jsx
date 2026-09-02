@@ -2,6 +2,8 @@ import { useAnnouncementStore } from '../../store/announcementStore'
 import { useState, useEffect } from 'react'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
+import { useAuthStore } from '../../store/authStore'
+import { TERMS } from '../../config/terminology'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -32,6 +34,7 @@ function CategoryPill({ category }) {
 }
 
 export default function AnnouncementsPage() {
+  const user = useAuthStore(state => state.user)
   const announcements = useAnnouncementStore(s => s.announcements)
   const loading = useAnnouncementStore(s => s.loading)
   const error = useAnnouncementStore(s => s.error)
@@ -45,9 +48,10 @@ export default function AnnouncementsPage() {
     new Date(b.created_at) - new Date(a.created_at))
   const filtered = activeCategory === 'all' ? sorted : sorted.filter(a => a.category === activeCategory)
   const categories = ['all', ...new Set(announcements.map(a => a.category))]
+  const pageTitle = user?.role === 'customer' ? TERMS.SERVICE_ADVISORIES : 'Announcements'
 
   if (loading && announcements.length === 0) {
-    return <PageLoader label="Loading announcements…" />
+    return <PageLoader label={`Loading ${pageTitle.toLowerCase()}…`} />
   }
 
   if (announcements.length === 0) {
@@ -55,11 +59,11 @@ export default function AnnouncementsPage() {
       <div>
         <div className="page-band wave-header page-header mb-5">
           <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">MRWD updates</p>
-          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Announcements</h1>
+          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">{pageTitle}</h1>
         </div>
         {error
           ? <ErrorBanner message={error} onRetry={fetchAnnouncements} />
-          : <EmptyState icon={<AppIcon name="announcement" className="h-10 w-10" />} title="No announcements yet" />
+          : <EmptyState icon={<AppIcon name="announcement" className="h-10 w-10" />} title={`No ${pageTitle.toLowerCase()} yet`} />
         }
       </div>
     )
@@ -75,7 +79,7 @@ export default function AnnouncementsPage() {
         <div className="relative flex items-end justify-between">
           <div>
             <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">MRWD updates</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Announcements</h1>
+            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">{pageTitle}</h1>
           </div>
           <p className="font-display text-5xl font-black leading-none text-gold-400">{announcements.length}</p>
         </div>
@@ -144,7 +148,7 @@ export default function AnnouncementsPage() {
           )
         })}
         {rest.length === 0 && important.length === 0 && (
-          <p className="text-sm text-gray-500 text-center py-8">No announcements match this category.</p>
+          <p className="text-sm text-gray-500 text-center py-8">No updates match this category.</p>
         )}
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { TERMS } from './terminology.js'
+
 export const DEPARTMENT_MODULES = Object.freeze({
   commercial: {
     code: 'COMMERCIAL',
@@ -8,10 +10,10 @@ export const DEPARTMENT_MODULES = Object.freeze({
     description: 'NSCCCD receives and reviews customer complaints under Commercial Services, manages customer accounts and billing records, and routes field-related complaints to WDLCD.',
     links: [
       { to: '/commercial/complaints', label: 'Complaint review', description: 'Check new complaints, confirm the details and priority, then send field-related complaints to WDLCD.', icon: 'clipboard' },
-      { to: '/commercial/accounts-billing', label: 'Accounts & billing', description: 'Manage customer account validation, billing records, and billing imports.', icon: 'billing' },
-      { to: '/commercial/service-advisories', label: 'Service advisories', description: 'Create and manage service notices that customers can see.', icon: 'announcement' },
-      { to: '/commercial/reports', label: 'Complaint analytics', description: 'Review demand, priorities, aging, outcomes, customer feedback, and follow-up exceptions.', icon: 'chart' },
-      { to: '/commercial/export-center', label: 'Exports & scheduled reports', description: 'Export filtered complaint records and create recurring report schedules.', icon: 'download' },
+      { to: '/commercial/accounts-billing', label: TERMS.ACCOUNTS_BILLING, description: 'Manage customer account validation, billing records, and billing imports.', icon: 'billing' },
+      { to: '/commercial/service-advisories', label: TERMS.SERVICE_ADVISORIES, description: 'Create and manage service notices that customers can see.', icon: 'announcement' },
+      { to: '/commercial/reports', label: TERMS.COMPLAINT_ANALYTICS, description: 'Review demand, priorities, aging, outcomes, customer feedback, and follow-up exceptions.', icon: 'chart' },
+      { to: '/commercial/export-center', label: TERMS.EXPORTS_SCHEDULES, description: 'Export filtered complaint records and create recurring report schedules.', icon: 'download' },
     ],
   },
   ecmd: {

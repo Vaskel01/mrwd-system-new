@@ -3,16 +3,16 @@ import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../../lib/api'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
-import { departmentDisplayName, divisionDisplayName } from '../../config/terminology'
+import { availabilityLabel, departmentDisplayName, divisionDisplayName, TERMS } from '../../config/terminology'
 import { useToastStore } from '../../store/toastStore'
 
 const MODULE_CONFIG = {
   commercial: {
     eyebrow: 'Commercial Services Department',
-    title: 'Accounts & billing',
+    title: TERMS.ACCOUNTS_BILLING,
     description: 'Manage customer accounts and billing records, check import files, and request archives for closed complaints.',
     endpoint: '/operations/commercial-bootstrap',
-    tabs: [['billing', 'Accounts & billing'], ['inventory', 'Records & archives']],
+    tabs: [['billing', TERMS.ACCOUNTS_BILLING], ['inventory', 'Records & archives']],
   },
   ecmd: {
     eyebrow: 'Engineering, Construction and Maintenance Department (ECMD)',
@@ -35,12 +35,12 @@ function titleCase(value) {
 }
 
 const STAFF_POSITION_LABELS = Object.freeze({
-  manager: 'System Supervisor (Manager)',
-  supervisor: 'System Supervisor',
+  manager: `${TERMS.SYSTEM_SUPERVISOR} (Manager)`,
+  supervisor: TERMS.SYSTEM_SUPERVISOR,
   team_leader: 'Team leader',
   crew_member: 'Maintenance Crew Member',
-  commercial_staff: 'Commercial Services Staff (NSCCCD)',
-  department_staff: 'ECMD Staff (WDLCD)',
+  commercial_staff: TERMS.COMMERCIAL_STAFF,
+  department_staff: TERMS.ECMD_STAFF,
 })
 
 function staffPositionLabel(value) {
@@ -193,7 +193,7 @@ function OverviewTab({ data, run, complaintMap, staffMap, module }) {
     {module === 'ecmd' && <Section title="Maintenance availability" description="Check who is available and how many active assignments each person has.">
       {maintenancePersonnel.length === 0 ? <p className="text-sm text-gray-500">No Maintenance Personnel are assigned to WDLCD yet.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{maintenancePersonnel.map(person => {
         const activeTasks = complaintRecords.filter(complaint => complaint.assigned_to === person.id && ['assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length
-        return <div key={person.id} className="rounded-xl border border-gray-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-navy-900">{person.full_name}</p><p className="mt-1 text-xs text-gray-500">{activeTasks} active assignment{activeTasks === 1 ? '' : 's'}</p></div><span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${person.availability_status === 'available' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>{titleCase(person.availability_status || 'available')}</span></div></div>
+        return <div key={person.id} className="rounded-xl border border-gray-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-navy-900">{person.full_name}</p><p className="mt-1 text-xs text-gray-500">{activeTasks} active assignment{activeTasks === 1 ? '' : 's'}</p></div><span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${person.availability_status === 'available' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'}`}>{availabilityLabel(person.availability_status || 'available')}</span></div></div>
       })}</div>}
     </Section>}
 
@@ -278,7 +278,7 @@ function SchedulesTab({ data, busy, run, staffMap }) {
         <Field label="Date"><input required type="date" value={schedule.shift_date} onChange={event => setSchedule(value => ({ ...value, shift_date: event.target.value }))} className="input-field rounded-lg" /></Field>
         <Field label="Start"><input required type="time" value={schedule.starts_at} onChange={event => setSchedule(value => ({ ...value, starts_at: event.target.value }))} className="input-field rounded-lg" /></Field>
         <Field label="End"><input required type="time" value={schedule.ends_at} onChange={event => setSchedule(value => ({ ...value, ends_at: event.target.value }))} className="input-field rounded-lg" /></Field>
-        <Field label="Status"><select value={schedule.shift_status} onChange={event => setSchedule(value => ({ ...value, shift_status: event.target.value }))} className="input-field rounded-lg">{['scheduled', 'available', 'busy', 'on_leave', 'off_duty'].map(item => <option key={item} value={item}>{titleCase(item)}</option>)}</select></Field>
+        <Field label="Status"><select value={schedule.shift_status} onChange={event => setSchedule(value => ({ ...value, shift_status: event.target.value }))} className="input-field rounded-lg">{['scheduled', 'available', 'busy', 'on_leave', 'off_duty'].map(item => <option key={item} value={item}>{availabilityLabel(item)}</option>)}</select></Field>
         <button disabled={busy === 'schedule'} className="btn-primary rounded-lg sm:col-span-2 lg:col-span-5">Save shift</button>
       </form>
       <div className="mt-5 space-y-2">{(data?.schedules || []).map(item => <div key={item.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="font-black text-navy-900">{staffMap[item.staff_id]?.full_name || 'Staff'}</span><span>{item.shift_date} · {item.starts_at.slice(0,5)}–{item.ends_at.slice(0,5)} · {titleCase(item.shift_status)}</span></div>)}</div>

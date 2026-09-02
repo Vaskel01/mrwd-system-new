@@ -8,6 +8,7 @@ import { ANNOUNCEMENT_CATEGORIES } from '../../config/staticData'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import AppIcon from '../../components/ui/AppIcon'
+import { TERMS } from '../../config/terminology'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -156,7 +157,7 @@ export default function CommercialAdvisoriesPage() {
       <div className="page-band wave-header page-header">
         <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Commercial Services Department</p>
         <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
-          <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">Service advisories</h1>
+          <h1 className="font-display font-black text-white text-xl sm:text-2xl tracking-tight">{TERMS.SERVICE_ADVISORIES}</h1>
           <button onClick={() => showForm ? closeForm() : openNewForm()}
             className={`w-full min-[420px]:w-auto text-xs font-black px-4 py-2 border transition-colors ${
               showForm ? 'bg-white text-navy border-white' : 'border-white/40 text-white hover:bg-white/10'

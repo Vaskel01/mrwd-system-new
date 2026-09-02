@@ -5,14 +5,10 @@ import { priorityFromScore, scoreComplaint } from '../lib/priorityScoring.js'
 import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRole } from '../lib/shapeComplaint.js'
 import { getDepartmentAdminIds, getDivisionAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 import { writeComplaintEvent } from '../lib/complaintEvents.js'
+import { STATUS_LABELS as STATUS_LABEL } from '../../../src/config/terminology.js'
 
 const router = Router()
 const STATUS_VALUES = ['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification', 'resolved', 'rejected', 'cancelled']
-const STATUS_LABEL = {
-  pending: 'Pending Review', forwarded: 'Sent to WDLCD', assigned: 'Assigned', en_route: 'In Progress', in_progress: 'In Progress',
-  blocked: 'Needs Attention', awaiting_verification: 'Awaiting WDLCD Verification', resolved: 'Resolved', completed: 'Resolved', rejected: 'Rejected', cancelled: 'Cancelled',
-}
-
 async function logTaskUpdate(supabase, taskId, userId, message) {
   if (!taskId || !message) return
   const { error } = await supabase.from('task_updates').insert({ task_id: taskId, updated_by: userId, message })
@@ -436,7 +432,7 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
 router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_COMPLAINTS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
-  if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial review can be sent to WDLCD.' })
+  if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial Services review can be sent to WDLCD.' })
   const note = String(req.body?.note || '').trim()
   const now = new Date().toISOString()
   const { error } = await req.supabase.from('complaints').update({
@@ -445,7 +441,7 @@ router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES
   }).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
   const ecmd = await getDivisionAdminIds(req.supabase, 'WDLCD')
-  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint forwarded by Commercial', message: `${complaint.reference_number} is ready for WDLCD dispatch.`, type: 'assignment', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint ready for WDLCD dispatch', message: `${complaint.reference_number} was reviewed by NSCCCD and is ready for WDLCD dispatch.`, type: 'assignment', complaintId: req.params.id })
   await notifyUsers(req.supabase, req.user, [complaint.resident_id], { title: 'Complaint sent to WDLCD', message: 'NSCCCD completed its review and sent your complaint to WDLCD under ECMD for field handling.', type: 'status', complaintId: req.params.id })
   await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'forwarded_to_ecmd', title: 'Sent to WDLCD', message: note || 'NSCCCD completed complaint review and routed the complaint to WDLCD.', customerVisible: true })
   await writeAudit(req.supabase, req.user, 'complaint.forwarded_to_ecmd', 'complaint', req.params.id, { note: note || null })
@@ -672,7 +668,7 @@ router.patch('/:id/task/plan', requireAuth, requireRole('maintenance_personnel')
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// Maintenance: completion report with resolution notes. No acceptance step or proof photo is required.
+// Maintenance Personnel: submit completed field work with resolution notes. No acceptance step or proof photo is required.
 router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'), async (req, res) => {
   const task = await getTaskForComplaint(req.supabase, req.params.id)
   if (!task) return res.status(400).json({ error: 'This complaint has no current maintenance task.' })
@@ -700,14 +696,14 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task.id, req.user.id, `Task completed. Resolution: ${completionNotes}`)
   const ecmd = await getDivisionAdminIds(req.supabase, 'WDLCD')
-  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Maintenance work ready for verification', message: `${complaint?.reference_number || 'Complaint'} was marked complete by Maintenance Personnel.`, type: 'completed', complaintId: req.params.id })
-  await notifyUsers(req.supabase, req.user, [complaint?.resident_id], { title: 'Field work completed', message: 'Maintenance Personnel completed the field work. ECMD is reviewing the resolution before closure.', type: 'status', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, ecmd, { title: 'Field work ready for WDLCD verification', message: `${complaint?.reference_number || 'Complaint'} was marked complete by Maintenance Personnel.`, type: 'completed', complaintId: req.params.id })
+  await notifyUsers(req.supabase, req.user, [complaint?.resident_id], { title: 'Field work completed', message: 'Maintenance Personnel completed the field work. WDLCD is verifying the work before resolving the complaint.', type: 'status', complaintId: req.params.id })
   await writeComplaintEvent(req.supabase, req.user, req.params.id, { eventType: 'maintenance_completed', title: 'Field work completed', message: completionNotes, customerVisible: true })
   await writeAudit(req.supabase, req.user, 'task.completed', 'complaint', req.params.id, { materials_used: req.body?.materials_used || null })
   return respondWithComplaint(req, res, req.params.id)
 })
 
-// ECMD: verify Maintenance completion before the complaint is resolved/closed.
+// WDLCD: verify completed field work before the complaint is resolved.
 router.patch('/:id/verify', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })

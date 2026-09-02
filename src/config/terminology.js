@@ -6,7 +6,10 @@ export const TERMS = Object.freeze({
   COMMERCIAL_STAFF: 'Commercial Services Staff (NSCCCD)',
   NSCCCD: 'New Service Connection and Customer Care Division (NSCCCD)',
   NSCCCD_SHORT: 'NSCCCD',
-  ACCOUNTS_BILLING: 'Accounts & Billing',
+  ACCOUNTS_BILLING: 'Accounts & billing',
+  SERVICE_ADVISORIES: 'Service advisories',
+  COMPLAINT_ANALYTICS: 'Complaint analytics',
+  EXPORTS_SCHEDULES: 'Exports & schedules',
   ECMD: 'Engineering, Construction and Maintenance Department (ECMD)',
   ECMD_SHORT: 'ECMD',
   ECMD_STAFF: 'ECMD Staff (WDLCD)',
@@ -20,24 +23,58 @@ export const TERMS = Object.freeze({
   CREW_MEMBER: 'Maintenance Crew Member',
   CREW: 'Maintenance Crew',
   COMPLAINT: 'Complaint',
-  REFERENCE_NUMBER: 'Complaint Reference Number',
+  REFERENCE_NUMBER: 'Complaint reference number',
   IMPORTANT_ADVISORY: 'Important Advisory',
   NO_WATER: 'No Water',
 })
 
 export const STATUS_LABELS = Object.freeze({
-  pending: 'Pending Review',
+  pending: 'Pending review',
   forwarded: 'Sent to WDLCD',
   assigned: 'Assigned',
-  en_route: 'In Progress',
-  in_progress: 'In Progress',
-  awaiting_verification: 'Waiting for WDLCD Verification',
+  en_route: 'In progress',
+  in_progress: 'In progress',
+  awaiting_verification: 'Waiting for WDLCD verification',
   resolved: 'Resolved',
   completed: 'Resolved',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
-  blocked: 'Needs Attention',
+  blocked: 'Needs attention',
+  merged: 'Merged',
 })
+
+export const PRIORITY_LABELS = Object.freeze({
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+})
+
+export const AVAILABILITY_LABELS = Object.freeze({
+  scheduled: 'Scheduled',
+  available: 'Available',
+  busy: 'Busy',
+  on_leave: 'On leave',
+  off_duty: 'Off duty',
+})
+
+function fallbackLabel(value, fallback) {
+  const normalized = String(value || '').trim()
+  if (!normalized) return fallback
+  const words = normalized.replaceAll('_', ' ')
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`
+}
+
+export function statusLabel(status) {
+  return STATUS_LABELS[status] || fallbackLabel(status, 'Status not set')
+}
+
+export function priorityLabel(priority) {
+  return PRIORITY_LABELS[priority] || fallbackLabel(priority, 'Not set')
+}
+
+export function availabilityLabel(availability) {
+  return AVAILABILITY_LABELS[availability] || fallbackLabel(availability, 'Not set')
+}
 
 export function departmentDisplayName(department) {
   const code = String(department?.code || department || '').trim().toUpperCase()

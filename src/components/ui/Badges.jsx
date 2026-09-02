@@ -1,4 +1,4 @@
-import { STATUS_LABELS } from '../../config/terminology'
+import { priorityLabel, statusLabel } from '../../config/terminology'
 
 export function PriorityBadge({ priority }) {
   const map = {
@@ -6,7 +6,8 @@ export function PriorityBadge({ priority }) {
     medium: 'badge-medium',
     low:    'badge-low',
   }
-  return <span className={map[priority] || 'badge-low'} aria-label={`Priority: ${priority || 'not set'}`}>{priority}</span>
+  const label = priorityLabel(priority)
+  return <span className={map[priority] || 'badge-low'} aria-label={`Priority: ${label}`}>{label}</span>
 }
 
 export function StatusBadge({ status }) {
@@ -22,7 +23,8 @@ export function StatusBadge({ status }) {
     rejected:    'badge-rejected',
     cancelled:   'badge-cancelled',
     blocked:     'badge-blocked',
+    merged:      'badge-cancelled',
   }
-  const labels = STATUS_LABELS
-  return <span className={map[status] || 'badge-pending'} aria-label={`Status: ${labels[status] || status}`}>{labels[status] || status}</span>
+  const label = statusLabel(status)
+  return <span className={map[status] || 'badge-pending'} aria-label={`Status: ${label}`}>{label}</span>
 }

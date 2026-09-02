@@ -11,6 +11,7 @@ import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import { useProductionStore } from '../../store/productionStore'
 import BulkActionBar from '../../components/ui/BulkActionBar'
+import { PRIORITY_LABELS, STATUS_LABELS } from '../../config/terminology'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -145,25 +146,16 @@ export default function CommercialComplaintReviewPage() {
             <span className="mb-1.5 block text-xs font-bold text-gray-600">Priority</span>
             <select name="allcomplaintspage-filter-priority-2" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">All priorities</option>
-              <option value="high">High priority</option>
-              <option value="medium">Medium priority</option>
-              <option value="low">Low priority</option>
+              {['high', 'medium', 'low'].map(priority => <option key={priority} value={priority}>{PRIORITY_LABELS[priority]}</option>)}
             </select>
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-gray-600">Status</span>
             <select name="allcomplaintspage-filter-status-3" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">All statuses</option>
-              <option value="pending">Pending Review</option>
-              <option value="forwarded">Sent to WDLCD</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="blocked">Needs Attention</option>
-              <option value="awaiting_verification">Waiting for WDLCD verification</option>
-              <option value="resolved">Resolved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="merged">Merged</option>
+              {['pending', 'forwarded', 'assigned', 'in_progress', 'blocked', 'awaiting_verification', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
+                <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+              ))}
             </select>
           </label>
           <label className="block">

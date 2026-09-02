@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ErrorBanner, PageLoader, Spinner } from '../../components/ui/Feedback'
 import { isPasswordValid } from '../../lib/passwordPolicy'
 import { PasswordStrengthMeter } from '../../lib/passwordPolicy.jsx'
-import { staffAccessLabel } from '../../config/terminology'
+import { AVAILABILITY_LABELS, staffAccessLabel, TERMS } from '../../config/terminology'
 
 
 function authenticatorQrSource(value) {
@@ -195,8 +195,8 @@ export default function ProfilePage() {
           </div>
         </div>}
         {effectiveRole === 'maintenance_personnel' && <div className="border-t border-gray-100 pt-5 space-y-4">
-          <div><h2 className="font-display font-bold text-navy-900">Work availability</h2><p className="text-xs text-gray-500 mt-1">ECMD staff can see your availability before assigning field work.</p></div>
-          <div className="grid sm:grid-cols-2 gap-4"><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Status</label><select name="profilepage-availability-4" aria-label="Availability" value={availability} onChange={e => setAvailability(e.target.value)} className="input-field rounded-lg"><option value="available">Available</option><option value="busy">Busy</option><option value="on_leave">On Leave</option><option value="off_duty">Off Duty</option></select></div><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Until (optional)</label><input name="profilepage-until-5" aria-label="Until" type="datetime-local" value={until} onChange={e => setUntil(e.target.value)} className="input-field rounded-lg" /></div></div>
+          <div><h2 className="font-display font-bold text-navy-900">Work availability</h2><p className="text-xs text-gray-500 mt-1">{TERMS.ECMD_STAFF} can see your availability before assigning field work.</p></div>
+          <div className="grid sm:grid-cols-2 gap-4"><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Status</label><select name="profilepage-availability-4" aria-label="Availability" value={availability} onChange={e => setAvailability(e.target.value)} className="input-field rounded-lg">{['available', 'busy', 'on_leave', 'off_duty'].map(status => <option key={status} value={status}>{AVAILABILITY_LABELS[status]}</option>)}</select></div><div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Until (optional)</label><input name="profilepage-until-5" aria-label="Until" type="datetime-local" value={until} onChange={e => setUntil(e.target.value)} className="input-field rounded-lg" /></div></div>
           <div><label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Availability note</label><textarea name="profilepage-example-field-inspection-until-3-pm-6" aria-label="Example: Field inspection until 3 PM" rows={3} value={note} onChange={e => setNote(e.target.value)} className="input-field rounded-lg resize-none" placeholder="Example: Field inspection until 3 PM" /></div>
         </div>}
         <div className="border-t border-gray-100 pt-5 space-y-4">

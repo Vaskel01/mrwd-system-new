@@ -11,7 +11,7 @@ import Dialog from '../../components/ui/Dialog'
 import AppIcon from '../../components/ui/AppIcon'
 import SearchField from '../../components/ui/SearchField'
 import { apiFetch } from '../../lib/api'
-import { staffAccessLabel } from '../../config/terminology'
+import { availabilityLabel, staffAccessLabel, TERMS } from '../../config/terminology'
 
 const ACCOUNT_BADGE = {
   system_supervisor: 'bg-gold-50 text-navy-900 border-gold-200',
@@ -20,11 +20,12 @@ const ACCOUNT_BADGE = {
   maintenance_personnel: 'bg-gold-100 text-navy-900 border-gold-200',
 }
 const ACCOUNT_LABEL = {
-  system_supervisor: 'System Supervisor',
-  commercial_staff: 'Commercial Services Staff (NSCCCD)',
-  ecmd_staff: 'ECMD Staff (WDLCD)',
-  maintenance_personnel: 'Maintenance Personnel',
+  system_supervisor: TERMS.SYSTEM_SUPERVISOR,
+  commercial_staff: TERMS.COMMERCIAL_STAFF,
+  ecmd_staff: TERMS.ECMD_STAFF,
+  maintenance_personnel: TERMS.MAINTENANCE_PERSONNEL,
 }
+const ACCOUNT_OPTIONS = ['commercial_staff', 'ecmd_staff', 'maintenance_personnel', 'system_supervisor']
 
 function accountTypeKey(account) {
   if (account?.role === 'maintenance_personnel') return 'maintenance_personnel'
@@ -326,13 +327,13 @@ export default function SystemStaffAccountsPage() {
 
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 xl:grid-cols-4 gap-3">
         <button onClick={() => setRoleFilter('commercial_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'commercial_staff' ? 'border-brand-300 ring-2 ring-brand-600' : ''}`}>
-          <p className="font-display font-black text-3xl text-brand-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">Commercial Services</p>
+          <p className="font-display font-black text-3xl text-brand-700">{counts.commercial}</p><p className="text-xs font-bold text-gray-500 mt-1">{TERMS.COMMERCIAL_STAFF}</p>
         </button>
         <button onClick={() => setRoleFilter('ecmd_staff')} className={`card rounded-xl p-4 text-left ${roleFilter === 'ecmd_staff' ? 'border-water-300 ring-2 ring-water-500' : ''}`}>
-          <p className="font-display font-black text-3xl text-water-500">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">ECMD Staff (WDLCD)</p>
+          <p className="font-display font-black text-3xl text-water-500">{counts.ecmd}</p><p className="text-xs font-bold text-gray-500 mt-1">{TERMS.ECMD_STAFF}</p>
         </button>
         <button onClick={() => setRoleFilter('maintenance_personnel')} className={`card rounded-xl p-4 text-left ${roleFilter === 'maintenance_personnel' ? 'border-gold-300 ring-2 ring-gold-400' : ''}`}>
-          <p className="font-display font-black text-3xl text-gold-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">Maintenance Personnel</p>
+          <p className="font-display font-black text-3xl text-gold-600">{counts.maintenance}</p><p className="text-xs font-bold text-gray-500 mt-1">{TERMS.MAINTENANCE_PERSONNEL}</p>
         </button>
         <button onClick={() => setRoleFilter('system_supervisor')} className={`card rounded-xl p-4 text-left ${roleFilter === 'system_supervisor' ? 'border-gold-300 ring-2 ring-gold-400' : ''}`}>
           <p className="font-display font-black text-3xl text-navy-900">{counts.system}</p><p className="text-xs font-bold text-gray-500 mt-1">System Supervisors</p>
@@ -358,10 +359,7 @@ export default function SystemStaffAccountsPage() {
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">Account type <span className="text-red-500">*</span></label>
                 <select aria-label="Account type" {...register('account_type')} className={`input-field rounded-lg ${errors.account_type ? 'input-error' : ''}`}>
                   <option value="">Select account type…</option>
-                  <option value="commercial_staff">Commercial Services Staff (NSCCCD)</option>
-                  <option value="ecmd_staff">ECMD Staff (WDLCD)</option>
-                  <option value="maintenance_personnel">Maintenance Personnel</option>
-                  <option value="system_supervisor">System Supervisor</option>
+                  {ACCOUNT_OPTIONS.map(accountType => <option key={accountType} value={accountType}>{ACCOUNT_LABEL[accountType]}</option>)}
                 </select>
                 {errors.account_type && <p className="mt-1 text-xs text-red-600">{errors.account_type.message}</p>}
                 <p className="mt-1 text-xs text-gray-500">Operational accounts are automatically assigned to the correct division: NSCCCD for Commercial Services and WDLCD for ECMD/Maintenance.</p>
@@ -398,7 +396,7 @@ export default function SystemStaffAccountsPage() {
         <div className="qol-filter-bar card rounded-xl p-4 sm:p-5">
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => setSearch(event.target.value)} onClear={() => setSearch('')} placeholder="Name, email, or account type" /></div>
           <div className="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4 lg:items-end">
-            <label className="block text-xs font-bold text-gray-600">Account type<select name="staffaccountspage-role-filter-6" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All account types</option><option value="commercial_staff">Commercial Services Staff (NSCCCD)</option><option value="ecmd_staff">ECMD Staff (WDLCD)</option><option value="maintenance_personnel">Maintenance Personnel</option><option value="system_supervisor">System Supervisor</option></select></label>
+            <label className="block text-xs font-bold text-gray-600">Account type<select name="staffaccountspage-role-filter-6" value={roleFilter} onChange={event => setRoleFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All account types</option>{ACCOUNT_OPTIONS.map(accountType => <option key={accountType} value={accountType}>{ACCOUNT_LABEL[accountType]}</option>)}</select></label>
             <label className="block text-xs font-bold text-gray-600">Status<select name="staffaccountspage-account-filter-7" value={accountFilter} onChange={event => setAccountFilter(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Deactivated</option></select></label>
             <label className="block text-xs font-bold text-gray-600">Sort<select name="staffaccountspage-sort-by-8" value={sortBy} onChange={event => setSortBy(event.target.value)} className="input-field mt-1.5 rounded-lg text-sm"><option value="name">Name A–Z</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
             <button onClick={resetFilters} className="btn-secondary filter-action rounded-lg text-sm min-[420px]:col-span-2 lg:col-span-1">Clear filters</button>
@@ -452,17 +450,17 @@ export default function SystemStaffAccountsPage() {
                       <td className="px-5 py-4 align-top">
                         {account.role === 'maintenance_personnel' ? (
                           <div>
-                            <p className="text-xs font-bold capitalize text-gray-700">{String(account.availability_status || 'available').replace('_', ' ')}</p>
+                            <p className="text-xs font-bold text-gray-700">{availabilityLabel(account.availability_status || 'available')}</p>
                             <p className="mt-1 break-words text-xs text-gray-500">{account.availability_note || 'No availability note'}</p>
                           </div>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-5 py-4 align-top">
                         <p className="text-xs leading-5 break-words text-gray-500">
-                          {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services / NSCCCD workspace only'}
-                          {accountTypeKey(account) === 'ecmd_staff' && 'ECMD / WDLCD workspace only'}
-                          {accountTypeKey(account) === 'maintenance_personnel' && 'WDLCD maintenance task workspace only'}
-                          {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
+                          {accountTypeKey(account) === 'commercial_staff' && `${TERMS.COMMERCIAL_STAFF} workspace only`}
+                          {accountTypeKey(account) === 'ecmd_staff' && `${TERMS.ECMD_STAFF} workspace only`}
+                          {accountTypeKey(account) === 'maintenance_personnel' && `${TERMS.MAINTENANCE_PERSONNEL} task workspace only`}
+                          {accountTypeKey(account) === 'system_supervisor' && `${TERMS.SYSTEM_ADMINISTRATION} workspace only`}
                         </p>
                       </td>
                       <td className="px-5 py-4 align-top">{accountActions(account)}</td>
@@ -488,12 +486,12 @@ export default function SystemStaffAccountsPage() {
                       {ACCOUNT_LABEL[accountTypeKey(account)] || account.role}
                     </span>
                   </div>
-                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-xs font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-xs font-black uppercase">{String(account.availability_status || 'available').replace('_', ' ')}</span>}</div>
+                  <div className="flex gap-2 mt-3 flex-wrap"><span className={`px-2 py-1 rounded border text-xs font-black uppercase ${account.is_active === false ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{account.is_active === false ? 'Inactive' : 'Active'}</span>{account.role === 'maintenance_personnel' && <span className="px-2 py-1 rounded border bg-gray-50 text-gray-600 border-gray-200 text-xs font-black uppercase">{availabilityLabel(account.availability_status || 'available')}</span>}</div>
                   <p className="mt-2 text-xs text-gray-500">
-                    {accountTypeKey(account) === 'commercial_staff' && 'Commercial Services / NSCCCD workspace only'}
-                    {accountTypeKey(account) === 'ecmd_staff' && 'ECMD / WDLCD workspace only'}
-                    {accountTypeKey(account) === 'maintenance_personnel' && 'WDLCD maintenance task workspace only'}
-                    {accountTypeKey(account) === 'system_supervisor' && 'System Administration workspace only'}
+                    {accountTypeKey(account) === 'commercial_staff' && `${TERMS.COMMERCIAL_STAFF} workspace only`}
+                    {accountTypeKey(account) === 'ecmd_staff' && `${TERMS.ECMD_STAFF} workspace only`}
+                    {accountTypeKey(account) === 'maintenance_personnel' && `${TERMS.MAINTENANCE_PERSONNEL} task workspace only`}
+                    {accountTypeKey(account) === 'system_supervisor' && `${TERMS.SYSTEM_ADMINISTRATION} workspace only`}
                   </p>
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
                     <p className="text-xs text-gray-500">Created {timeAgo(account.created_at)}</p>

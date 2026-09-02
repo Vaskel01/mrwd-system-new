@@ -8,6 +8,7 @@ import { COMPLAINT_TYPES } from '../../config/staticData'
 import { ErrorBanner } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
 import { MAP_PIN_DARK_COLOR } from '../../config/uiTokens'
+import { TERMS } from '../../config/terminology'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
@@ -318,7 +319,7 @@ export default function SubmitComplaintPage() {
 
             <div className="text-left rounded-lg border border-gray-100 divide-y divide-gray-100 mb-6 text-sm">
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reference number</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{TERMS.REFERENCE_NUMBER}</span>
                 <span className="font-mono text-xs font-bold text-gray-700">{submitted.reference_number}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3">

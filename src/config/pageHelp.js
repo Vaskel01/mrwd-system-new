@@ -1,3 +1,5 @@
+import { TERMS } from './terminology.js'
+
 const exact = (path, help) => ({ match: pathname => pathname === path, ...help })
 const prefix = (path, help) => ({ match: pathname => pathname.startsWith(path), ...help })
 
@@ -6,7 +8,7 @@ const PAGE_HELP = [
     title: 'Sign in',
     summary: 'Use your MRWD account email and password to open the workspace assigned to your account.',
     tips: [
-      'Customers, Commercial Services Staff, ECMD Staff, Maintenance Personnel, and System Supervisors use the same sign-in page.',
+      `${TERMS.CUSTOMER}s, ${TERMS.COMMERCIAL_STAFF}, ${TERMS.ECMD_STAFF}, ${TERMS.MAINTENANCE_PERSONNEL}, and ${TERMS.SYSTEM_SUPERVISOR}s use the same sign-in page.`,
       'If you forgot your password, use “Forgot password?” instead of creating another account.',
       'System Supervisors may be asked for an authenticator code after signing in.',
     ],
@@ -62,7 +64,7 @@ const PAGE_HELP = [
     summary: 'Report a water-service concern with enough detail for MRWD staff to review and locate the problem.',
     tips: [
       'Choose the complaint type that best matches the problem and describe what is happening in plain words.',
-      'Give a clear service address or pin the location so field personnel can find it.',
+      `Give a clear service address or pin the location so ${TERMS.MAINTENANCE_PERSONNEL} can find it.`,
       'Attach a useful photo when it helps show the problem; avoid photos that contain unnecessary private information.',
       'Review the details before submitting because they become part of the complaint record.',
     ],
@@ -77,12 +79,12 @@ const PAGE_HELP = [
     ],
   }),
   exact('/customer/announcements', {
-    title: 'Announcements',
-    summary: 'Read MRWD service advisories, notices, and customer announcements that may affect you.',
+    title: TERMS.SERVICE_ADVISORIES,
+    summary: 'Read customer-facing MRWD notices about service conditions and important updates.',
     tips: [
       'Important notices are highlighted so urgent service information is easier to spot.',
       'Check the notice date and active period before acting on older information.',
-      'Announcements provide general updates; use a complaint when you need MRWD to handle a specific service problem.',
+      'Service advisories provide general updates; submit a complaint when you need MRWD to handle a specific service problem.',
     ],
   }),
 
@@ -106,16 +108,16 @@ const PAGE_HELP = [
     ],
   }),
   exact('/commercial/reports', {
-    title: 'Complaint analytics',
+    title: TERMS.COMPLAINT_ANALYTICS,
     summary: 'Review complaint demand, aging, outcomes, customer experience, and exceptions for Commercial Services decisions.',
     tips: [
       'Adjust the report filters before using the totals for a specific period or purpose.',
       'Use reports for trends and summaries; open Complaint review when you need to work on an individual complaint.',
-      'Export data from Exports & schedules when you need a file for offline reporting.',
+      `Export data from ${TERMS.EXPORTS_SCHEDULES} when you need a file for offline reporting.`,
     ],
   }),
   exact('/commercial/export-center', {
-    title: 'Exports & schedules',
+    title: TERMS.EXPORTS_SCHEDULES,
     summary: 'Create complaint data exports and manage recurring Commercial Services report schedules.',
     tips: [
       'Check the selected date range and filters before generating an export.',
@@ -124,7 +126,7 @@ const PAGE_HELP = [
     ],
   }),
   exact('/commercial/accounts-billing', {
-    title: 'Accounts & billing',
+    title: TERMS.ACCOUNTS_BILLING,
     summary: 'Manage customer account registry information, billing records, and validated billing imports.',
     tips: [
       'Review file-validation issues before importing customer or billing data.',
@@ -133,7 +135,7 @@ const PAGE_HELP = [
     ],
   }),
   exact('/commercial/service-advisories', {
-    title: 'Service advisories',
+    title: TERMS.SERVICE_ADVISORIES,
     summary: 'Create and manage customer-facing MRWD notices about service conditions and important updates.',
     tips: [
       'Write the title so customers can understand the issue without opening the full notice.',
@@ -144,7 +146,7 @@ const PAGE_HELP = [
 
   exact('/ecmd/dashboard', {
     title: 'WDLCD overview',
-    summary: 'See field-work demand, dispatch status, and operational items that need WDLCD attention.',
+    summary: 'See field work demand, dispatch status, and operational items that need WDLCD attention.',
     tips: [
       'Start with Needs attention to find forwarded complaints, work awaiting verification, and other pending actions.',
       'Use the workload information before assigning more work to Maintenance Personnel.',
@@ -181,7 +183,7 @@ const PAGE_HELP = [
   }),
   exact('/ecmd/availability', {
     title: 'Availability calendar',
-    summary: 'Review and manage Maintenance Personnel schedules and availability for field-work planning.',
+    summary: 'Review and manage Maintenance Personnel schedules and availability for field work planning.',
     tips: [
       'Check this page before dispatching work that depends on a specific person or date.',
       'Use availability status to reflect whether personnel can reasonably receive new assignments.',
@@ -212,7 +214,7 @@ const PAGE_HELP = [
     summary: 'Manage staff account status, department assignment, staff position, and workspace access.',
     tips: [
       'Choose the account type and department carefully because they determine which workspace the person can access.',
-      'Commercial Services Staff belong to NSCCCD; ECMD Staff and Maintenance Personnel belong to WDLCD under ECMD.',
+      `${TERMS.COMMERCIAL_STAFF} belong to NSCCCD; ${TERMS.ECMD_STAFF} and ${TERMS.MAINTENANCE_PERSONNEL} belong to WDLCD under ECMD.`,
       'Reassign active maintenance work before deactivating Maintenance Personnel when required.',
       'New staff should replace their temporary password at first sign-in.',
     ],
@@ -232,7 +234,7 @@ const PAGE_HELP = [
     tips: [
       'Choose the audience that actually needs the message instead of sending every notice to all staff.',
       'Keep internal announcements focused on work information and operational guidance.',
-      'Customer-facing service notices belong in Commercial Services → Service advisories.',
+      `Customer-facing service notices belong in Commercial Services → ${TERMS.SERVICE_ADVISORIES}.`,
     ],
   }),
   exact('/system/health', {
@@ -252,7 +254,7 @@ const PAGE_HELP = [
       'Open the assigned complaint before travelling so you can review the address, problem details, and customer photo.',
       'Keep the task status current so ECMD can see whether work is assigned, en route, in progress, blocked, or complete.',
       'Record useful completion notes, manpower, and materials so ECMD has enough information to verify the work.',
-      'Mark Field work complete only when the work is ready for WDLCD verification.',
+      'Mark field work complete only when the work is ready for WDLCD verification.',
     ],
   }),
   exact('/maintenance/announcements', {
@@ -295,10 +297,10 @@ const PAGE_HELP = [
   }),
   prefix('/maintenance-reports/', {
     title: 'Maintenance report',
-    summary: 'Review the field-work record for a maintenance task, including progress notes, manpower, and materials used.',
+    summary: 'Review the field work record for a maintenance task, including progress notes, manpower, and materials used.',
     tips: [
       'Use the task and complaint references to confirm you are reviewing the correct job.',
-      'Field-work notes should describe what was done clearly enough for WDLCD verification and later reporting.',
+      'Field work notes should describe what was done clearly enough for WDLCD verification and later reporting.',
       'Manpower and material records support operational reporting and should match the actual work performed.',
     ],
   }),

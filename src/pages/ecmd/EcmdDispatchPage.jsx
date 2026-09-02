@@ -13,17 +13,16 @@ import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import BulkActionBar from '../../components/ui/BulkActionBar'
 import Dialog from '../../components/ui/Dialog'
 import { useProductionStore } from '../../store/productionStore'
+import { availabilityLabel, STATUS_LABELS } from '../../config/terminology'
 
 const QUEUE_FILTERS = [
   { key: 'all', label: 'All active', test: () => true },
   { key: 'forwarded', label: 'Ready to assign', test: item => item.status === 'forwarded' && !item.assigned_to },
-  { key: 'assigned', label: 'Assigned', test: item => item.status === 'assigned' },
+  { key: 'assigned', label: STATUS_LABELS.assigned, test: item => item.status === 'assigned' },
   { key: 'field_work', label: 'Field work', test: item => ['en_route', 'in_progress'].includes(item.status) },
-  { key: 'blocked', label: 'Needs attention', test: item => item.status === 'blocked' },
-  { key: 'verification', label: 'Waiting for WDLCD verification', test: item => item.status === 'awaiting_verification' },
+  { key: 'blocked', label: STATUS_LABELS.blocked, test: item => item.status === 'blocked' },
+  { key: 'verification', label: STATUS_LABELS.awaiting_verification, test: item => item.status === 'awaiting_verification' },
 ]
-
-const availabilityLabel = value => ({ available: 'Available', busy: 'Busy', on_leave: 'On leave', off_duty: 'Off duty' }[value] || value || 'Available')
 const activeTaskLabel = count => `${count || 0} active ${(count || 0) === 1 ? 'task' : 'tasks'}`
 const availabilityTone = value => ({
   available: 'bg-green-100 text-green-700',
@@ -297,7 +296,7 @@ export default function EcmdDispatchPage() {
                           <p className="mt-1 break-words text-sm font-black text-navy-900 group-hover:text-brand-700">{item.complaint_type}</p>
                           <p className="mt-1 line-clamp-2 break-words text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
                           <p className="mt-1 break-words text-xs text-gray-500">{item.customer_name || 'Customer'}</p>
-                          {item.similar_count ? <p className="mt-1 text-xs font-bold text-amber-700">{item.similar_count} nearby/related report{item.similar_count === 1 ? '' : 's'}</p> : null}
+                          {item.similar_count ? <p className="mt-1 text-xs font-bold text-amber-700">{item.similar_count} nearby or related complaint{item.similar_count === 1 ? '' : 's'}</p> : null}
                         </button>
                       </td>
                       <td className="px-3 py-4 align-top"><PriorityBadge priority={item.priority}/></td>

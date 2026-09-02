@@ -175,7 +175,7 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   // Bulk status change across several complaints at once (admin only,
-  // e.g. bulk-reject a batch of duplicate/invalid reports)
+  // e.g. bulk-reject a batch of duplicate or invalid complaints)
   bulkStatus: async (complaintIds, status, rejectionReason = '') => {
     const result = await apiFetch('/complaints/bulk-status', {
       method: 'POST',
@@ -224,7 +224,7 @@ export const useComplaintStore = create((set, get) => ({
     return update
   },
 
-  // Fetch the timeline for a complaint — visible to the resident who
+  // Fetch the timeline for a complaint — visible to the customer who
   // filed it, the assigned staff, or an admin
   fetchUpdates: async (complaintId) => {
     const { updates } = await apiFetch(`/complaints/${complaintId}/updates`)

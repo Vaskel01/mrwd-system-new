@@ -2,13 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { addDaysYmd, manilaDateYmd } from '../../lib/date'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
-
-const stateLabel = value => ({
-  available: 'Available',
-  busy: 'Busy',
-  on_leave: 'On leave',
-  off_duty: 'Off duty',
-}[value] || value)
+import { availabilityLabel, AVAILABILITY_LABELS } from '../../config/terminology'
 
 function Field({ label, children }) {
   return (
@@ -105,7 +99,7 @@ export default function EcmdAvailabilityCalendarPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="font-display font-black text-navy-900">{person.full_name}</h2>
-                  <p className="mt-1 text-xs text-gray-500">Current availability: {stateLabel(person.availability_status)}</p>
+                  <p className="mt-1 text-xs text-gray-500">Current availability: {availabilityLabel(person.availability_status)}</p>
                 </div>
                 <span className="rounded-full bg-navy-50 px-2 py-1 text-xs font-black uppercase text-navy-700">
                   {String(person.staff_position || 'Maintenance Personnel').replaceAll('_', ' ')}
@@ -119,7 +113,7 @@ export default function EcmdAvailabilityCalendarPage() {
                     <div key={date} className={`rounded-lg border p-2.5 ${schedule ? 'border-blue-200 bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
                       <p className="text-xs font-black uppercase text-gray-500">{new Date(`${date}T00:00:00`).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                       <p className="mt-1 text-xs font-bold text-gray-700">{schedule ? `${schedule.starts_at.slice(0, 5)}–${schedule.ends_at.slice(0, 5)}` : 'No shift scheduled'}</p>
-                      {schedule && <p className="text-xs text-blue-700">{stateLabel(schedule.shift_status)}</p>}
+                      {schedule && <p className="text-xs text-blue-700">{availabilityLabel(schedule.shift_status)}</p>}
                     </div>
                   )
                 })}
@@ -148,10 +142,9 @@ export default function EcmdAvailabilityCalendarPage() {
             </div>
             <Field label="Shift status">
               <select value={form.shift_status} onChange={event => setForm(value => ({ ...value, shift_status: event.target.value }))} className="input-field rounded-lg">
-                <option value="scheduled">Scheduled</option>
-                <option value="available">Available</option>
-                <option value="on_leave">On leave</option>
-                <option value="off_duty">Off duty</option>
+                {['scheduled', 'available', 'on_leave', 'off_duty'].map(status => (
+                  <option key={status} value={status}>{AVAILABILITY_LABELS[status]}</option>
+                ))}
               </select>
             </Field>
             <Field label="Shift note">

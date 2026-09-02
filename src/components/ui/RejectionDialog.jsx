@@ -53,7 +53,7 @@ export default function RejectionDialog({
             rows={4}
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder={options.length ? 'Add any details the customer should know…' : 'Example: This report duplicates an existing complaint.'}
+            placeholder={options.length ? 'Add any details the customer should know…' : 'Example: This complaint duplicates an existing complaint.'}
             className="input-field mt-2 resize-none rounded-lg"
             maxLength={500}
           />

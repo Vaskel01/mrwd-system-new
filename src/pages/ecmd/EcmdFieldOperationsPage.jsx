@@ -18,6 +18,7 @@ import {
   RankedBarList,
   TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
+import { availabilityLabel, STATUS_LABELS } from '../../config/terminology'
 
 const ACTIVE = new Set(['forwarded','assigned','en_route','in_progress','blocked','awaiting_verification'])
 
@@ -216,8 +217,8 @@ export default function EcmdFieldOperationsPage() {
     <AnalyticsKpiRail ariaLabel="Field operations indicators">
       <AnalyticsKpi label="Ready to assign" value={analytics.ready} detail="Reviewed, not yet assigned" icon="assignment" accent={analytics.ready ? 'amber' : 'green'} />
       <AnalyticsKpi label="Active field work" value={analytics.activeField} detail={`${analytics.assignedTasks} staff assignments`} icon="tool" accent="blue" />
-      <AnalyticsKpi label="Blocked" value={analytics.blocked} detail="Needs coordination or support" icon="alert" accent={analytics.blocked ? 'red' : 'green'} />
-      <AnalyticsKpi label="For verification" value={analytics.verification} detail="Field work marked complete" icon="clipboard" accent={analytics.verification ? 'amber' : 'green'} />
+      <AnalyticsKpi label={STATUS_LABELS.blocked} value={analytics.blocked} detail="Needs coordination or support" icon="alert" accent={analytics.blocked ? 'red' : 'green'} />
+      <AnalyticsKpi label={STATUS_LABELS.awaiting_verification} value={analytics.verification} detail="Field work marked complete" icon="clipboard" accent={analytics.verification ? 'amber' : 'green'} />
       <AnalyticsKpi label={`Resolved · ${windowDays}d`} value={analytics.resolved} detail={`${analytics.closureRatio}% of period intake`} icon="check" accent="green" />
       <AnalyticsKpi label="Resolved today" value={completedToday.length} detail={`${formatDuration(analytics.averageResolutionHours)} avg. resolution`} icon="clock" />
     </AnalyticsKpiRail>
@@ -228,14 +229,14 @@ export default function EcmdFieldOperationsPage() {
         <div className="mt-5"><DonutChart total={active.length} centerLabel="Queue" ariaLabel="Active field work queue distribution" items={[
           { label: 'Ready', value: analytics.ready, accent: 'amber' },
           { label: 'In field', value: analytics.activeField, accent: 'blue' },
-          { label: 'Blocked', value: analytics.blocked, accent: 'red' },
+          { label: STATUS_LABELS.blocked, value: analytics.blocked, accent: 'red' },
           { label: 'Verification', value: analytics.verification, accent: 'green' },
         ]} /></div>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div><p className="mb-3 text-xs font-black uppercase tracking-wider text-gray-500">Age of active complaints</p><RankedBarList items={analytics.aging} total={active.length} maxItems={4} /></div>
           <div className="space-y-2.5">
-            <AnalyticsSignal tone={analytics.highActive ? 'urgent' : 'good'} icon={analytics.highActive ? 'alert' : 'check'} title={analytics.highActive ? `${analytics.highActive} active High-priority case${analytics.highActive === 1 ? '' : 's'}` : 'No High-priority active work'} detail={analytics.highActive ? 'Confirm assignment and remove blockers before lower-priority work.' : 'No unresolved High-priority complaint is currently in the ECMD queue.'} />
-            <AnalyticsSignal tone={analytics.oldestDays >= 4 ? 'watch' : 'good'} icon="clock" title={`Oldest active case: ${analytics.oldestDays} day${analytics.oldestDays === 1 ? '' : 's'}`} detail={analytics.oldestDays >= 4 ? 'Review aging cases for access, material, assignment, or verification delays.' : 'The current active queue is within the four-day review threshold.'} />
+            <AnalyticsSignal tone={analytics.highActive ? 'urgent' : 'good'} icon={analytics.highActive ? 'alert' : 'check'} title={analytics.highActive ? `${analytics.highActive} active high-priority complaint${analytics.highActive === 1 ? '' : 's'}` : 'No high-priority active work'} detail={analytics.highActive ? 'Confirm assignment and remove blockers before lower-priority work.' : 'No unresolved high-priority complaint is currently in the ECMD queue.'} />
+            <AnalyticsSignal tone={analytics.oldestDays >= 4 ? 'watch' : 'good'} icon="clock" title={`Oldest active complaint: ${analytics.oldestDays} day${analytics.oldestDays === 1 ? '' : 's'}`} detail={analytics.oldestDays >= 4 ? 'Review aging complaints for access, material, assignment, or verification delays.' : 'The current active queue is within the four-day review threshold.'} />
             <AnalyticsSignal tone={analytics.overloadedStaff ? 'watch' : 'good'} icon="users" title={analytics.overloadedStaff ? `${analytics.overloadedStaff} heavily loaded staff member${analytics.overloadedStaff === 1 ? '' : 's'}` : 'No staff member has four or more active tasks'} detail="Use workload together with availability and task complexity before reassigning work." />
           </div>
         </div>
@@ -258,7 +259,7 @@ export default function EcmdFieldOperationsPage() {
       <AnalyticsSectionHeading eyebrow="Capacity" title="Workload and availability" description="Active assignments are a capacity signal, not a measure of task difficulty or staff performance." aside={<span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-black text-green-800">{analytics.availableStaff}/{workload.length} available</span>} />
       <div className="mt-5 grid gap-5 lg:grid-cols-[.75fr_1.25fr]">
         <div><RankedBarList items={workload.map(person => ({ label: person.full_name, value: Number(person.active_tasks || 0), accent: Number(person.active_tasks || 0) >= 4 ? 'amber' : 'blue' }))} total={analytics.assignedTasks} emptyLabel="No active staff workload is available." /></div>
-        <div className="grid gap-3 md:grid-cols-2">{workload.map(person => <article key={person.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-gray-900">{person.full_name}</p><p className="mt-1 text-xs capitalize text-gray-500">{String(person.availability_status || 'available').replaceAll('_',' ')}</p></div><span className="shrink-0 rounded-lg bg-navy-50 px-2.5 py-1 text-xs font-black text-navy-800">{person.active_tasks} task{person.active_tasks === 1 ? '' : 's'}</span></div>{person.blocked_tasks > 0 ? <p className="mt-2 text-xs font-bold text-amber-700">{person.blocked_tasks} blocked task{person.blocked_tasks === 1 ? '' : 's'}</p> : null}{person.availability_note ? <p className="mt-2 text-xs leading-5 text-gray-500">{person.availability_note}</p> : null}</article>)}</div>
+        <div className="grid gap-3 md:grid-cols-2">{workload.map(person => <article key={person.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-gray-900">{person.full_name}</p><p className="mt-1 text-xs text-gray-500">{availabilityLabel(person.availability_status || 'available')}</p></div><span className="shrink-0 rounded-lg bg-navy-50 px-2.5 py-1 text-xs font-black text-navy-800">{person.active_tasks} task{person.active_tasks === 1 ? '' : 's'}</span></div>{person.blocked_tasks > 0 ? <p className="mt-2 text-xs font-bold text-amber-700">{person.blocked_tasks} task{person.blocked_tasks === 1 ? ' needs' : 's need'} attention</p> : null}{person.availability_note ? <p className="mt-2 text-xs leading-5 text-gray-500">{person.availability_note}</p> : null}</article>)}</div>
       </div>
     </section>
 

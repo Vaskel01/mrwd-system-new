@@ -15,13 +15,10 @@ import {
   RankedBarList,
   TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
+import { priorityLabel, statusLabel, STATUS_LABELS, TERMS } from '../../config/terminology'
 
 const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
 const RESOLVED_STATUSES = new Set(['resolved', 'completed'])
-
-function titleCase(value) {
-  return String(value || 'Unknown').replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase())
-}
 
 function escapeCsv(value) {
   const text = String(value ?? '')
@@ -149,7 +146,7 @@ export default function CommercialReportsPage() {
   const summary = data?.summary || {}
   const feedbackCoverage = percent(summary.feedback_count || 0, analytics.resolved)
   const csvRows = useMemo(() => scopedComplaints.map(item => [
-    item.reference_number, item.complaint_type, item.customer_name, item.status, item.priority,
+    item.reference_number, item.complaint_type, item.customer_name, statusLabel(item.status), priorityLabel(item.priority),
     item.assigned_name || '', item.address, item.created_at, item.completed_at || '', item.description,
   ]), [scopedComplaints])
 
@@ -185,7 +182,7 @@ export default function CommercialReportsPage() {
   }, [complaints, fromDate, toDate])
 
   const exportCsv = () => {
-    const headers = ['Complaint Reference', 'Complaint Type', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Submitted', 'Resolved', 'Description']
+    const headers = [TERMS.REFERENCE_NUMBER, 'Complaint type', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Submitted', 'Resolved', 'Description']
     const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -217,8 +214,8 @@ export default function CommercialReportsPage() {
 
   const signals = [
     analytics.highPriorityActive > 0
-      ? { title: `${analytics.highPriorityActive} active High-priority complaint${analytics.highPriorityActive === 1 ? '' : 's'}`, detail: 'Review routing and customer follow-up before lower-priority work.', tone: 'urgent', icon: 'alert' }
-      : { title: 'No active High-priority backlog', detail: 'The selected period has no unresolved High-priority complaints.', tone: 'good', icon: 'check' },
+      ? { title: `${analytics.highPriorityActive} active high-priority complaint${analytics.highPriorityActive === 1 ? '' : 's'}`, detail: 'Review routing and customer follow-up before lower-priority work.', tone: 'urgent', icon: 'alert' }
+      : { title: 'No active high-priority backlog', detail: 'The selected period has no unresolved high-priority complaints.', tone: 'good', icon: 'check' },
     analytics.oldestActiveDays >= 4
       ? { title: `Oldest active complaint is ${analytics.oldestActiveDays} days old`, detail: 'Check for blocked work, missing customer information, or delayed verification.', tone: 'watch', icon: 'clock' }
       : { title: 'Active complaints are recent', detail: 'No active complaint in this period is older than four days.', tone: 'good', icon: 'clock' },
@@ -241,7 +238,7 @@ export default function CommercialReportsPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services · NSCCCD</p>
-            <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Complaint analytics</h1>
+            <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{TERMS.COMPLAINT_ANALYTICS}</h1>
             <p className="mt-1 max-w-3xl text-sm text-navy-300">Understand demand, customer impact, workflow outcomes, and the exceptions that need follow-up.</p>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
@@ -251,7 +248,7 @@ export default function CommercialReportsPage() {
         </div>
       </header>
 
-      <div className="hidden print:block"><h1 className="font-display text-2xl font-black">Metro Roxas Water District Complaint Analytics</h1><p className="text-sm text-gray-500">{fromDate} to {toDate} · Generated {new Date().toLocaleString('en-PH')}</p></div>
+      <div className="hidden print:block"><h1 className="font-display text-2xl font-black">Metro Roxas Water District {TERMS.COMPLAINT_ANALYTICS}</h1><p className="text-sm text-gray-500">{fromDate} to {toDate} · Generated {new Date().toLocaleString('en-PH')}</p></div>
       {error ? <ErrorBanner message={error} onRetry={load} /> : null}
 
       <section className="card rounded-xl p-4 no-print" aria-label="Analytics date range">
@@ -282,7 +279,7 @@ export default function CommercialReportsPage() {
           <div className="mt-5"><DistributionBar total={analytics.total} items={[
             { label: 'Resolved', value: analytics.resolved, accent: 'green' },
             { label: 'Active', value: analytics.active, accent: 'blue' },
-            { label: 'Pending review', value: analytics.pending, accent: 'amber' },
+            { label: STATUS_LABELS.pending, value: analytics.pending, accent: 'amber' },
             { label: 'Rejected / cancelled', value: analytics.rejected + analytics.cancelled, accent: 'red' },
           ]} /></div>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -312,7 +309,7 @@ export default function CommercialReportsPage() {
 
       <section className="grid gap-5 lg:grid-cols-3">
         <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Complaint demand" description="Most reported complaint types." /><div className="mt-5"><RankedBarList items={Object.entries(data?.by_category || {}).map(([label, value]) => ({ label, value }))} total={analytics.total} /></div></div>
-        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Priority mix" description="Urgency assigned after complaint review." /><div className="mt-5"><DonutChart items={Object.entries(data?.by_priority || {}).map(([label, value]) => ({ label: titleCase(label), value, accent: label === 'high' ? 'red' : label === 'medium' ? 'amber' : 'green' }))} total={analytics.total} centerLabel="Complaints" ariaLabel="Complaint priority distribution" /></div></div>
+        <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Priority mix" description="Urgency assigned after complaint review." /><div className="mt-5"><DonutChart items={Object.entries(data?.by_priority || {}).map(([label, value]) => ({ label: priorityLabel(label), value, accent: label === 'high' ? 'red' : label === 'medium' ? 'amber' : 'green' }))} total={analytics.total} centerLabel="Complaints" ariaLabel="Complaint priority distribution" /></div></div>
         <div className="card rounded-xl p-5"><AnalyticsSectionHeading title="Areas generating demand" description="Locations are grouped from the submitted zone or address." /><div className="mt-5"><RankedBarList items={analytics.locations} total={analytics.total} /></div></div>
       </section>
 
@@ -325,7 +322,7 @@ export default function CommercialReportsPage() {
         </details>
       </section>
 
-      <p className="px-1 text-xs leading-5 text-gray-500">Analytics are decision-support summaries based on the selected complaint submission range. A low-volume period can produce unstable rates; open the complaint review queue before making case-level decisions.</p>
+      <p className="px-1 text-xs leading-5 text-gray-500">Analytics are decision-support summaries based on the selected complaint submission range. A low-volume period can produce unstable rates; open the complaint review queue before making decisions about individual complaints.</p>
     </div>
   )
 }

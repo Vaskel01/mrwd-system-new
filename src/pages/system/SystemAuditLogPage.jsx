@@ -4,6 +4,7 @@ import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import Pagination from '../../components/ui/Pagination'
 import SearchField from '../../components/ui/SearchField'
 import ScheduledReportsPanel from '../../components/ui/ScheduledReportsPanel'
+import { availabilityLabel, securityRoleLabel, statusLabel } from '../../config/terminology'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -95,10 +96,6 @@ function shortId(value) {
   return `${text.slice(0, 8)}…${text.slice(-4)}`
 }
 
-function readableStatus(value) {
-  return label(String(value || '').replaceAll('-', '_'))
-}
-
 function ProfileValue({ profileId, profileDirectory }) {
   const profile = profileDirectory[profileId]
 
@@ -178,8 +175,16 @@ function DetailValue({ detailKey, value, profileDirectory }) {
     return <span className="font-bold text-gold-600">{'★'.repeat(Number(value))} {value}/5</span>
   }
 
-  if (detailKey.includes('status') || detailKey === 'role') {
-    return <span className="font-semibold text-gray-700">{readableStatus(value)}</span>
+  if (detailKey === 'availability_status') {
+    return <span className="font-semibold text-gray-700">{availabilityLabel(value)}</span>
+  }
+
+  if (detailKey === 'role') {
+    return <span className="font-semibold text-gray-700">{securityRoleLabel(value)}</span>
+  }
+
+  if (detailKey.includes('status')) {
+    return <span className="font-semibold text-gray-700">{statusLabel(value)}</span>
   }
 
   if (typeof value === 'string' && UUID_PATTERN.test(value)) {

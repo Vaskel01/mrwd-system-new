@@ -8,6 +8,7 @@ import { EmptyState, ErrorBanner, PageLoader } from '../../components/ui/Feedbac
 import PageHeader from '../../components/ui/PageHeader'
 import MetricCard from '../../components/ui/MetricCard'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
+import { STATUS_LABELS } from '../../config/terminology'
 
 const CLOSED_STATUSES = new Set(['resolved', 'completed', 'cancelled', 'rejected', 'merged'])
 
@@ -48,8 +49,8 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
       return {
         cards: [
-          ['Pending Review', pendingReview.length, 'New complaints waiting for NSCCCD review and routing.', 'clipboard', '/commercial/complaints?status=pending'],
-          ['Sent to WDLCD', forwarded.length, 'Complaints already handed off and waiting for WDLCD assignment.', 'assignment', '/commercial/complaints?status=forwarded'],
+          [STATUS_LABELS.pending, pendingReview.length, 'New complaints waiting for NSCCCD review and routing.', 'clipboard', '/commercial/complaints?status=pending'],
+          [STATUS_LABELS.forwarded, forwarded.length, 'Complaints already handed off and waiting for WDLCD assignment.', 'assignment', '/commercial/complaints?status=forwarded'],
           ['Billing-related', withBillingConcern.length, 'Complaints involving billing, account, or payment concerns.', 'billing', '/commercial/complaints?q=billing'],
           ['Resolved today', resolvedToday.length, 'Complaints verified and resolved today.', 'check', '/commercial/complaints?status=resolved'],
         ],
@@ -66,7 +67,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
           })
           .slice(0, 6),
         attentionTitle: 'Needs NSCCCD attention',
-        attentionDescription: 'New, reopened, or High-priority complaints needing NSCCCD review or customer follow-up.',
+        attentionDescription: 'New, reopened, or high-priority complaints needing NSCCCD review or customer follow-up.',
       }
     }
 
@@ -79,7 +80,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
       cards: [
         ['Ready to assign', readyForDispatch.length, 'NSCCCD-reviewed complaints ready for WDLCD assignment.', 'assignment', '/ecmd/dispatch?queue=forwarded'],
         ['Active field work', activeFieldWork.length, 'Complaints currently assigned or being handled in the field.', 'tool', '/ecmd/dispatch?queue=field_work'],
-        ['Waiting for WDLCD verification', awaitingVerification.length, 'Complaints with completed field work awaiting WDLCD verification.', 'alert', '/ecmd/dispatch?queue=verification'],
+        [STATUS_LABELS.awaiting_verification, awaitingVerification.length, 'Complaints with completed field work awaiting WDLCD verification.', 'alert', '/ecmd/dispatch?queue=verification'],
         ['Resolved today', resolvedToday.length, 'Complaints verified and resolved by WDLCD today.', 'check', '/ecmd/dispatch?queue=resolved'],
       ],
       attention: [...complaints]
@@ -97,7 +98,7 @@ export default function DepartmentDashboardPage({ moduleKey }) {
         })
         .slice(0, 6),
       attentionTitle: 'Needs WDLCD attention',
-      attentionDescription: 'Complaints that are waiting for verification, blocked, ready to assign, or high priority.',
+      attentionDescription: 'Complaints waiting for WDLCD verification, needing attention, ready to assign, or marked high priority.',
     }
   }, [complaints, moduleKey])
 

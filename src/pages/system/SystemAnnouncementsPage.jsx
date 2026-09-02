@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
+import { TERMS } from '../../config/terminology'
 
 const audienceLabel = value => ({
-  commercial: 'Commercial Services',
-  ecmd: 'ECMD',
-  maintenance: 'Maintenance Personnel',
+  commercial: TERMS.COMMERCIAL_STAFF,
+  ecmd: TERMS.ECMD_STAFF,
+  maintenance: TERMS.MAINTENANCE_PERSONNEL,
   all_staff: 'All staff',
   customer: 'Customers',
   all: 'Everyone',
@@ -107,7 +108,7 @@ export default function SystemAnnouncementsPage() {
       <div className="page-band wave-header page-header">
         <p className="text-xs font-bold uppercase tracking-widest text-gold-400">System Administration</p>
         <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Staff announcements</h1>
-        <p className="mt-1 text-sm text-navy-300">Publish notices for staff groups or customers. Customer service advisories are still managed by Commercial Services.</p>
+        <p className="mt-1 text-sm text-navy-300">Publish notices for staff groups or customers. Customer-facing {TERMS.SERVICE_ADVISORIES} are managed by Commercial Services.</p>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -122,12 +123,9 @@ export default function SystemAnnouncementsPage() {
             </Field>
             <Field label="Audience">
               <select value={form.audience} onChange={event => setForm(value => ({ ...value, audience: event.target.value }))} className="input-field rounded-lg">
-                <option value="commercial">Commercial Services</option>
-                <option value="ecmd">ECMD</option>
-                <option value="maintenance">Maintenance Personnel</option>
-                <option value="all_staff">All staff</option>
-                <option value="customer">Customers</option>
-                <option value="all">Everyone</option>
+                {['commercial', 'ecmd', 'maintenance', 'all_staff', 'customer', 'all'].map(audience => (
+                  <option key={audience} value={audience}>{audienceLabel(audience)}</option>
+                ))}
               </select>
             </Field>
             <Field label="Category">

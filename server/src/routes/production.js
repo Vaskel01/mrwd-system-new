@@ -190,7 +190,7 @@ router.post('/complaints/:id/merge', requireAuth, requireCapability(CAPABILITIES
   if (recordError) return res.status(400).json({ error: recordError.message })
   await writeComplaintEvent(req.supabase, req.user, mergedId, { eventType: 'merged', title: 'Complaint merged', message: `Merged into ${primary.reference_number}. ${reason}`, customerVisible: true, metadata: { primary_complaint_id: primaryId } })
   await writeComplaintEvent(req.supabase, req.user, primaryId, { eventType: 'merge_received', title: 'Duplicate complaint consolidated', message: `${merged.reference_number} was merged into this complaint.`, customerVisible: false, metadata: { merged_complaint_id: mergedId } })
-  await notifyUsers(req.supabase, req.user, [merged.customer_id || merged.resident_id], { title: 'Complaint consolidated', message: `Your report was linked to ${primary.reference_number} so MRWD can manage the same issue as one active complaint.`, type: 'status', complaintId: mergedId })
+  await notifyUsers(req.supabase, req.user, [merged.customer_id || merged.resident_id], { title: 'Complaint consolidated', message: `Your complaint was linked to ${primary.reference_number} so MRWD can manage the same issue as one active complaint.`, type: 'status', complaintId: mergedId })
   await writeAudit(req.supabase, req.user, 'complaint.merged', 'complaint', mergedId, { primary_complaint_id: primaryId, reason })
   res.json({ merge: record })
 })

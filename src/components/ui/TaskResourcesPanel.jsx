@@ -50,7 +50,7 @@ export default function TaskResourcesPanel({ complaintId }) {
     <section className="card rounded-xl p-5 no-print" aria-labelledby="resources-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 id="resources-title" className="font-display font-bold text-navy-900">Crew, hours, and materials</h2><p className="mt-1 text-xs text-gray-500">Record the people, work hours, and materials used for this assignment.</p></div>
-        <Link to={`/maintenance-reports/${complaintId}`} className="btn-secondary rounded-lg text-xs">Official Report</Link>
+        <Link to={`/maintenance-reports/${complaintId}`} className="btn-secondary rounded-lg text-xs">Official report</Link>
       </div>
       {error && <div className="mt-3"><ErrorBanner message={error} onRetry={fetchResources} /></div>}
       {!resources ? <div className="flex justify-center py-6"><Spinner className="h-5 w-5 border-2 border-navy-700" /></div> : <>

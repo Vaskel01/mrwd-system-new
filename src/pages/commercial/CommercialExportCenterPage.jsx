@@ -4,6 +4,7 @@ import { useProductionStore } from '../../store/productionStore'
 import { apiFetch } from '../../lib/api'
 import { manilaDateYmd } from '../../lib/date'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
+import { priorityLabel, statusLabel, STATUS_LABELS, TERMS } from '../../config/terminology'
 
 const esc = value => `"${String(value ?? '').replaceAll('"', '""')}"`
 const today = () => manilaDateYmd()
@@ -59,13 +60,13 @@ export default function CommercialExportCenterPage() {
         body: JSON.stringify({ export_type: 'complaint_export', format: 'csv', row_count: scoped.length, filters }),
       })
 
-      const headers = ['Complaint Reference', 'Complaint Type', 'Customer', 'Priority', 'Status', 'Address', 'Barangay/Zone', 'Assigned Maintenance Personnel', 'Submitted', 'Resolved']
+      const headers = [TERMS.REFERENCE_NUMBER, 'Complaint type', 'Customer', 'Priority', 'Status', 'Address', 'Barangay/Zone', 'Assigned Maintenance Personnel', 'Submitted', 'Resolved']
       const rows = scoped.map(complaint => [
         complaint.reference_number,
         complaint.complaint_type,
         complaint.customer_name,
-        complaint.priority,
-        complaint.status,
+        priorityLabel(complaint.priority),
+        statusLabel(complaint.status),
         complaint.address,
         complaint.zone,
         complaint.assigned_name,
@@ -102,7 +103,7 @@ export default function CommercialExportCenterPage() {
     <div className="space-y-5">
       <div className="page-band wave-header page-header">
         <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services Department</p>
-        <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">Exports & Scheduled Reports</h1>
+        <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{TERMS.EXPORTS_SCHEDULES}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-navy-300">Filter complaint records, export the results, or save the same filters as a recurring report.</p>
       </div>
 
@@ -127,15 +128,9 @@ export default function CommercialExportCenterPage() {
             <span className="mb-1.5 block text-xs font-bold text-gray-600">Status</span>
             <select value={filters.status} onChange={event => setFilters(value => ({ ...value, status: event.target.value }))} className="input-field rounded-lg">
               <option value="all">All statuses</option>
-              <option value="pending">Pending Review</option>
-              <option value="forwarded">Sent to WDLCD</option>
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="awaiting_verification">Waiting for WDLCD verification</option>
-              <option value="resolved">Resolved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="merged">Merged</option>
+              {['pending', 'forwarded', 'assigned', 'in_progress', 'awaiting_verification', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
+                <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+              ))}
             </select>
           </label>
           <label className="block">

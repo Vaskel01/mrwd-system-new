@@ -10,6 +10,7 @@ import RefreshNotice from '../../components/ui/RefreshNotice'
 import SearchField from '../../components/ui/SearchField'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 import { STATUS_VISUAL_TOKENS } from '../../config/uiTokens'
+import { STATUS_LABELS } from '../../config/terminology'
 
 function timeAgo(iso) {
   const difference = Date.now() - new Date(iso).getTime()
@@ -22,17 +23,17 @@ function timeAgo(iso) {
 }
 
 const STATUS_CONFIG = {
-  pending: { bar: 10, color: STATUS_VISUAL_TOKENS.pending, icon: 'clock', label: 'Pending review', message: 'Your complaint is waiting for Commercial Services review.' },
-  forwarded: { bar: 25, color: STATUS_VISUAL_TOKENS.forwarded, icon: 'assignment', label: 'Sent to WDLCD', message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
-  assigned: { bar: 35, color: STATUS_VISUAL_TOKENS.assigned, icon: 'assignment', label: 'Assigned', message: 'Maintenance Personnel has been assigned to your complaint.' },
-  en_route: { bar: 75, color: STATUS_VISUAL_TOKENS.en_route, icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  in_progress: { bar: 75, color: STATUS_VISUAL_TOKENS.in_progress, icon: 'tool', label: 'In progress', message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: STATUS_VISUAL_TOKENS.awaiting_verification, icon: 'check', label: 'Waiting for WDLCD verification', message: 'Field work is complete and WDLCD is verifying the resolution.' },
-  resolved: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: 'Resolved', message: 'WDLCD verified the completed field work and resolved the complaint.' },
-  completed: { bar: 100, color: STATUS_VISUAL_TOKENS.completed, icon: 'check', label: 'Resolved', message: 'The complaint has been resolved.' },
-  rejected: { bar: 100, color: STATUS_VISUAL_TOKENS.rejected, icon: 'alert', label: 'Rejected', message: 'This complaint was rejected by the Commercial Services Department.' },
-  cancelled: { bar: 100, color: STATUS_VISUAL_TOKENS.cancelled, icon: 'document', label: 'Cancelled', message: 'You cancelled this complaint before assignment.' },
-  blocked: { bar: 75, color: STATUS_VISUAL_TOKENS.blocked, icon: 'alert', label: 'Needs attention', message: 'Maintenance Personnel asked WDLCD for help.' },
+  pending: { bar: 10, color: STATUS_VISUAL_TOKENS.pending, icon: 'clock', label: STATUS_LABELS.pending, message: 'Your complaint is waiting for Commercial Services review.' },
+  forwarded: { bar: 25, color: STATUS_VISUAL_TOKENS.forwarded, icon: 'assignment', label: STATUS_LABELS.forwarded, message: 'NSCCCD reviewed your complaint and sent it to WDLCD under ECMD for field work.' },
+  assigned: { bar: 35, color: STATUS_VISUAL_TOKENS.assigned, icon: 'assignment', label: STATUS_LABELS.assigned, message: 'Maintenance Personnel has been assigned to your complaint.' },
+  en_route: { bar: 75, color: STATUS_VISUAL_TOKENS.en_route, icon: 'tool', label: STATUS_LABELS.en_route, message: 'Maintenance Personnel is working on this complaint.' },
+  in_progress: { bar: 75, color: STATUS_VISUAL_TOKENS.in_progress, icon: 'tool', label: STATUS_LABELS.in_progress, message: 'Maintenance Personnel is working on this complaint.' },
+  awaiting_verification: { bar: 90, color: STATUS_VISUAL_TOKENS.awaiting_verification, icon: 'check', label: STATUS_LABELS.awaiting_verification, message: 'Field work is complete and WDLCD is verifying the resolution.' },
+  resolved: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: STATUS_LABELS.resolved, message: 'WDLCD verified the completed field work and resolved the complaint.' },
+  completed: { bar: 100, color: STATUS_VISUAL_TOKENS.completed, icon: 'check', label: STATUS_LABELS.completed, message: 'The complaint has been resolved.' },
+  rejected: { bar: 100, color: STATUS_VISUAL_TOKENS.rejected, icon: 'alert', label: STATUS_LABELS.rejected, message: 'This complaint was rejected by the Commercial Services Department.' },
+  cancelled: { bar: 100, color: STATUS_VISUAL_TOKENS.cancelled, icon: 'document', label: STATUS_LABELS.cancelled, message: 'You cancelled this complaint before assignment.' },
+  blocked: { bar: 75, color: STATUS_VISUAL_TOKENS.blocked, icon: 'alert', label: STATUS_LABELS.blocked, message: 'Maintenance Personnel asked WDLCD for help.' },
 }
 
 function ComplaintCard({ complaint, onView }) {
@@ -156,7 +157,7 @@ export default function MyComplaintsPage() {
         <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, complaint type, description, address, or status" /></div>
           <div className="flex gap-2 flex-wrap">
-            {[['all', 'All'], ['pending', 'Pending review'], ['active', 'Active'], ['resolved', 'Resolved'], ['rejected', 'Rejected'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+            {[['all', 'All'], ['pending', STATUS_LABELS.pending], ['active', 'Active'], ['resolved', STATUS_LABELS.resolved], ['rejected', STATUS_LABELS.rejected], ['cancelled', STATUS_LABELS.cancelled]].map(([value, label]) => (
               <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className={`filter-chip rounded-full px-4 py-2 text-sm font-semibold ${filter === value ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>
               </button>

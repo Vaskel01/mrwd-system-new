@@ -76,6 +76,27 @@ for (const file of uiFiles) {
   }
 }
 
+const terminologyFiles = files.filter(file => /^(src|server\/src)\//.test(rel(file)) && /\.(jsx?|mjs)$/.test(file))
+const terminologyDriftRules = [
+  { pattern: /\bPending Review\b/, preferred: 'Pending review' },
+  { pattern: /\bIn Progress\b/, preferred: 'In progress' },
+  { pattern: /\bNeeds Attention\b/, preferred: 'Needs attention' },
+  { pattern: /\b(?:Awaiting|Waiting for) WDLCD Verification\b/, preferred: 'Waiting for WDLCD verification' },
+  { pattern: /\bAccounts & Billing\b/, preferred: 'Accounts & billing' },
+  { pattern: /\bService Advisories\b/, preferred: 'Service advisories' },
+  { pattern: /\bComplaint Analytics\b/, preferred: 'Complaint analytics' },
+  { pattern: /\bExports & (?:Scheduled Reports|Schedules)\b/, preferred: 'Exports & schedules' },
+  { pattern: /\b(?:On Leave|Off Duty)\b/, preferred: 'On leave / Off duty' },
+  { pattern: /\bfield-work\b/i, preferred: 'field work' },
+  { pattern: /\bCommercial review\b/, preferred: 'Commercial Services review' },
+]
+
+for (const file of terminologyFiles) {
+  const content = fs.readFileSync(file, 'utf8')
+  const drift = terminologyDriftRules.find(rule => rule.pattern.test(content))
+  if (drift) failures.push(`Terminology drift found in ${rel(file)}; use “${drift.preferred}”.`)
+}
+
 const secretPatterns = [
   { label: 'Supabase secret key', regex: /sb_secret_[A-Za-z0-9_-]{16,}/g },
   { label: 'JWT-like secret', regex: /eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{12,}/g },

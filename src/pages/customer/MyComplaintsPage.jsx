@@ -11,7 +11,6 @@ import SearchField from '../../components/ui/SearchField'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 import { STATUS_VISUAL_TOKENS } from '../../config/uiTokens'
 import { STATUS_LABELS } from '../../config/terminology'
-import ComplaintFocusPanel from '../../components/ui/ComplaintFocusPanel'
 import { readWorkspacePreferences, writeWorkspacePreferences } from '../../lib/workspacePreferences'
 
 function timeAgo(iso) {
@@ -51,7 +50,6 @@ export default function MyComplaintsPage() {
   const [filter, setFilter] = useState(() => searchParams.get('status') || initialPreferences.status || 'all')
   const [search, setSearch] = useState(() => searchParams.get('q') || initialPreferences.q || '')
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
-  const [focusedId, setFocusedId] = useState(() => searchParams.get('focus') || '')
   const pageSize = 8
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
@@ -60,9 +58,8 @@ export default function MyComplaintsPage() {
     if (filter !== 'all') next.status = filter
     if (search.trim()) next.q = search.trim()
     if (page > 1) next.page = String(page)
-    if (focusedId) next.focus = focusedId
     setSearchParams(next, { replace: true })
-  }, [filter, search, page, focusedId, setSearchParams])
+  }, [filter, search, page, setSearchParams])
 
   useEffect(() => {
     writeWorkspacePreferences('customer_complaints', { status: filter, q: search })
@@ -93,8 +90,6 @@ export default function MyComplaintsPage() {
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
-  const focusedComplaint = paged.find(complaint => complaint.id === focusedId) || paged[0] || null
-  const focusedConfig = focusedComplaint ? STATUS_CONFIG[focusedComplaint.status] || STATUS_CONFIG.pending : null
   if (loading && complaints.length === 0) return <PageLoader label="Loading your complaints…" />
 
   return (
@@ -121,7 +116,7 @@ export default function MyComplaintsPage() {
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, complaint type, description, address, or status" /></div>
           <div className="flex gap-2 flex-wrap">
             {[['all', 'All'], ['pending', STATUS_LABELS.pending], ['active', 'Active'], ['resolved', STATUS_LABELS.resolved], ['rejected', STATUS_LABELS.rejected], ['cancelled', STATUS_LABELS.cancelled]].map(([value, label]) => (
-              <button key={value} onClick={() => { setFilter(value); setPage(1); setFocusedId('') }} aria-pressed={filter === value} className={`filter-chip rounded-full px-4 py-2 text-sm font-semibold ${filter === value ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              <button key={value} onClick={() => { setFilter(value); setPage(1) }} aria-pressed={filter === value} className={`filter-chip rounded-full px-4 py-2 text-sm font-semibold ${filter === value ? 'bg-navy-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {label} <span className="ml-1 font-bold">{counts[value]}</span>
               </button>
             ))}
@@ -139,43 +134,43 @@ export default function MyComplaintsPage() {
       ) : filtered.length === 0 ? (
         <div className="card rounded-xl p-10 text-center text-gray-500">No complaints match your search or selected status.</div>
       ) : (
-        <section className="card overflow-hidden rounded-xl" aria-label="Customer complaint tracker">
-          <div className="grid min-w-0 xl:grid-cols-[minmax(340px,0.86fr)_minmax(430px,1.14fr)]">
-            <div className="min-w-0 border-b border-gray-100 xl:border-b-0 xl:border-r">
-              <div className="border-b border-gray-100 px-4 py-4 sm:px-5"><h2 className="font-display font-black text-navy-900">Complaint tracker</h2><p className="mt-0.5 text-xs text-gray-500">Select a complaint to see what is happening and what comes next.</p></div>
-              <div className="focus-queue-list divide-y divide-gray-100">
-                {paged.map(complaint => {
-                  const config = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
-                  return (
-                    <article key={complaint.id} className="focus-queue-row" data-active={focusedComplaint?.id === complaint.id}>
-                      <button type="button" onClick={() => setFocusedId(complaint.id)} className="w-full min-w-0 p-4 text-left" aria-current={focusedComplaint?.id === complaint.id ? 'true' : undefined}>
-                        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-sm font-black text-gray-900">{complaint.complaint_type}</p><p className="mt-1 font-mono text-xs font-bold text-gray-500">{complaint.reference_number}</p></div><span className="shrink-0 text-xs font-bold text-gray-500">{timeAgo(complaint.updated_at || complaint.created_at)}</span></div>
-                        <p className="mt-2 flex min-w-0 items-start gap-1 text-xs text-gray-500"><AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2 break-words">{complaint.address || 'No address recorded'}</span></p>
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><StatusBadge status={complaint.status} /><span className="text-xs font-bold text-gray-500">{config.bar}% complete</span></div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-label={`${config.label} progress`} aria-valuenow={config.bar} aria-valuemin="0" aria-valuemax="100"><div className="h-full" style={{ width: `${config.bar}%`, background: config.color }} /></div>
-                      </button>
-                    </article>
-                  )
-                })}
-              </div>
-              <div className="border-t border-gray-100 p-4"><Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" embedded /></div>
-            </div>
-
-            <ComplaintFocusPanel
-              complaint={focusedComplaint}
-              mode="customer"
-              onOpen={complaint => navigate(`/complaints/${complaint.id}`)}
-              openLabel={focusedComplaint && ['resolved', 'completed'].includes(focusedComplaint.status) ? 'Review resolution and feedback' : 'View full timeline'}
-              recommendation={focusedConfig ? (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-wider text-gray-500">Overall progress</p><p className="text-sm font-black text-navy-900">{focusedConfig.bar}%</p></div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200" role="progressbar" aria-label="Complaint workflow progress" aria-valuenow={focusedConfig.bar} aria-valuemin="0" aria-valuemax="100"><div className="h-full" style={{ width: `${focusedConfig.bar}%`, background: focusedConfig.color }} /></div>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">{focusedConfig.message}</p>
-                  {focusedComplaint?.status === 'rejected' ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-800"><span className="font-black">Recorded reason: </span>{focusedComplaint.rejection_reason || 'No reason was recorded.'}</p> : null}
-                </div>
-              ) : null}
-            />
+        <section aria-label="Customer complaint tracker" className="space-y-3">
+          <div className="card rounded-xl px-4 py-4 sm:px-5">
+            <h2 className="font-display font-black text-navy-900">Complaint tracker</h2>
+            <p className="mt-0.5 text-xs text-gray-500">Each complaint shows its current progress and next update in one row.</p>
           </div>
+
+          {paged.map(complaint => {
+            const config = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
+            const isResolved = ['resolved', 'completed'].includes(complaint.status)
+            return (
+              <article key={complaint.id} className="qol-clickable-row card overflow-hidden rounded-xl border-l-4 border-l-navy-700">
+                <div className="grid min-w-0 gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)_auto] lg:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-2 lg:block">
+                      <div><h3 className="break-words font-display text-base font-black text-navy-900">{complaint.complaint_type}</h3><p className="mt-1 font-mono text-xs font-bold text-gray-500">{complaint.reference_number}</p></div>
+                      <span className="shrink-0 text-xs font-bold text-gray-500 lg:mt-2 lg:inline-block">Updated {timeAgo(complaint.updated_at || complaint.created_at)}</span>
+                    </div>
+                    <p className="mt-3 line-clamp-2 break-words text-sm leading-6 text-gray-600">{complaint.description}</p>
+                    <p className="mt-2 flex min-w-0 items-start gap-1.5 text-xs text-gray-500"><AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="break-words">{complaint.address || 'No address recorded'}</span></p>
+                  </div>
+
+                  <div className="min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2"><StatusBadge status={complaint.status} /><span className="text-xs font-black text-gray-600">{config.bar}%</span></div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200" role="progressbar" aria-label={`${config.label} progress`} aria-valuenow={config.bar} aria-valuemin="0" aria-valuemax="100"><div className="h-full" style={{ width: `${config.bar}%`, background: config.color }} /></div>
+                    <p className="mt-2 text-xs leading-5 text-gray-600">{config.message}</p>
+                    {complaint.status === 'rejected' ? <p className="mt-2 text-xs leading-5 text-red-700"><span className="font-black">Reason: </span>{complaint.rejection_reason || 'No reason was recorded.'}</p> : null}
+                  </div>
+
+                  <button type="button" onClick={() => navigate(`/complaints/${complaint.id}`)} className="btn-primary w-full rounded-lg whitespace-nowrap lg:w-auto">
+                    {isResolved ? 'Review resolution' : 'View timeline'}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+
+          <div className="card rounded-xl p-4"><Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" embedded /></div>
         </section>
       )}
     </div>

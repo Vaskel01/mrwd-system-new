@@ -19,7 +19,7 @@ import { deriveCategoryInsights } from './priorityScoring.js'
 // Statuses still considered "active work" for duplicate-detection
 // purposes — no point flagging two reports as duplicates of each
 // other if one's already closed out.
-const ACTIVE_STATUSES = new Set(['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
+const ACTIVE_STATUSES = new Set(['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'])
 const DUPLICATE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
@@ -198,6 +198,7 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     task_updated_at: task ? task.updated_at : null,
     task_is_active: task ? task.is_active !== false : false,
     completion_notes: task ? task.completion_notes : null,
+    completion_photo_url: task ? task.completion_photo_url : null,
     materials_used: task ? task.materials_used : null,
     unable_reason: task ? task.unable_reason : null,
     reassignment_requested_at: task ? task.reassignment_requested_at : null,

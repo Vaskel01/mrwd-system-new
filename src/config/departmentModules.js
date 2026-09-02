@@ -22,7 +22,7 @@ export const DEPARTMENT_MODULES = Object.freeze({
     shortName: 'WDLCD',
     divisionCode: 'WDLCD',
     divisionName: 'Water Distribution and Leakage Control Division (WDLCD)',
-    description: 'WDLCD receives field-related complaints under ECMD, assigns Maintenance Crews or Maintenance Personnel, monitors field work, and verifies completion.',
+    description: 'WDLCD receives field-related complaints under ECMD, assigns Maintenance Crews or Maintenance Personnel, and monitors field work through completion.',
     links: [
       { to: '/ecmd/dispatch', label: 'Complaint dispatch', description: 'Review complaints that are ready for field work and assign Maintenance Personnel or crews.', icon: 'assignment' },
       { to: '/ecmd/field-operations', label: 'Field operations analytics', description: 'Monitor queue aging, throughput, staff capacity, recurring problem areas, incidents, and completed repairs.', icon: 'tool' },

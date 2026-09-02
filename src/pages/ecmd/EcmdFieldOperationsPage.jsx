@@ -20,7 +20,7 @@ import {
 } from '../../components/analytics/AnalyticsPrimitives'
 import { availabilityLabel, STATUS_LABELS } from '../../config/terminology'
 
-const ACTIVE = new Set(['forwarded','assigned','en_route','in_progress','blocked','awaiting_verification'])
+const ACTIVE = new Set(['forwarded','assigned','en_route','in_progress','blocked'])
 
 function bucketLocation(item) {
   const raw = String(item.zone || item.address || '').trim()
@@ -78,7 +78,7 @@ export default function EcmdFieldOperationsPage() {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
   const completedToday = useMemo(() => complaints.filter(item => {
     if (!['resolved','completed'].includes(item.status)) return false
-    const value = item.verified_at || item.completed_at || item.updated_at
+    const value = item.completed_at || item.verified_at || item.updated_at
     return value && new Date(value).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }) === today
   }), [complaints, today])
 
@@ -88,12 +88,12 @@ export default function EcmdFieldOperationsPage() {
     const periodIntake = complaints.filter(item => new Date(item.created_at).getTime() >= cutoff)
     const periodResolved = complaints.filter(item => {
       if (!['resolved', 'completed'].includes(item.status)) return false
-      const completedAt = item.verified_at || item.completed_at || item.updated_at
+      const completedAt = item.completed_at || item.verified_at || item.updated_at
       return completedAt && new Date(completedAt).getTime() >= cutoff
     })
     const durations = periodResolved.map(item => {
       const start = new Date(item.created_at).getTime()
-      const end = new Date(item.verified_at || item.completed_at || item.updated_at).getTime()
+      const end = new Date(item.completed_at || item.verified_at || item.updated_at).getTime()
       return Number.isFinite(start) && Number.isFinite(end) && end >= start ? (end - start) / 36e5 : null
     }).filter(value => value != null)
     const aging = { '0–1 day': 0, '2–3 days': 0, '4–7 days': 0, '8+ days': 0 }
@@ -127,7 +127,7 @@ export default function EcmdFieldOperationsPage() {
     }
     for (const item of complaints) {
       addEvent(item.created_at, 'intake')
-      if (['resolved', 'completed'].includes(item.status)) addEvent(item.verified_at || item.completed_at || item.updated_at, 'resolved')
+      if (['resolved', 'completed'].includes(item.status)) addEvent(item.completed_at || item.verified_at || item.updated_at, 'resolved')
     }
     return {
       intake: periodIntake.length,
@@ -137,7 +137,7 @@ export default function EcmdFieldOperationsPage() {
       ready: complaints.filter(item => item.status === 'forwarded' && !item.assigned_to).length,
       activeField: complaints.filter(item => ['assigned', 'en_route', 'in_progress'].includes(item.status)).length,
       blocked: complaints.filter(item => item.status === 'blocked').length,
-      verification: complaints.filter(item => item.status === 'awaiting_verification').length,
+      completionProofs: periodResolved.filter(item => item.completion_photo_url).length,
       highActive: active.filter(item => item.priority === 'high').length,
       oldestDays: active.reduce((oldest, item) => Math.max(oldest, Math.floor(Math.max(0, now - new Date(item.created_at).getTime()) / 864e5)), 0),
       aging,
@@ -218,7 +218,7 @@ export default function EcmdFieldOperationsPage() {
       <AnalyticsKpi label="Ready to assign" value={analytics.ready} detail="Reviewed, not yet assigned" icon="assignment" accent={analytics.ready ? 'amber' : 'green'} />
       <AnalyticsKpi label="Active field work" value={analytics.activeField} detail={`${analytics.assignedTasks} staff assignments`} icon="tool" accent="blue" />
       <AnalyticsKpi label={STATUS_LABELS.blocked} value={analytics.blocked} detail="Needs coordination or support" icon="alert" accent={analytics.blocked ? 'red' : 'green'} />
-      <AnalyticsKpi label={STATUS_LABELS.awaiting_verification} value={analytics.verification} detail="Field work marked complete" icon="clipboard" accent={analytics.verification ? 'amber' : 'green'} />
+      <AnalyticsKpi label={`Completion photos · ${windowDays}d`} value={analytics.completionProofs} detail="Resolved work with photo proof" icon="camera" accent="green" />
       <AnalyticsKpi label={`Resolved · ${windowDays}d`} value={analytics.resolved} detail={`${analytics.closureRatio}% of period intake`} icon="check" accent="green" />
       <AnalyticsKpi label="Resolved today" value={completedToday.length} detail={`${formatDuration(analytics.averageResolutionHours)} avg. resolution`} icon="clock" />
     </AnalyticsKpiRail>
@@ -230,13 +230,12 @@ export default function EcmdFieldOperationsPage() {
           { label: 'Ready', value: analytics.ready, accent: 'amber' },
           { label: 'In field', value: analytics.activeField, accent: 'blue' },
           { label: STATUS_LABELS.blocked, value: analytics.blocked, accent: 'red' },
-          { label: 'Verification', value: analytics.verification, accent: 'green' },
         ]} /></div>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div><p className="mb-3 text-xs font-black uppercase tracking-wider text-gray-500">Age of active complaints</p><RankedBarList items={analytics.aging} total={active.length} maxItems={4} /></div>
           <div className="space-y-2.5">
             <AnalyticsSignal tone={analytics.highActive ? 'urgent' : 'good'} icon={analytics.highActive ? 'alert' : 'check'} title={analytics.highActive ? `${analytics.highActive} active high-priority complaint${analytics.highActive === 1 ? '' : 's'}` : 'No high-priority active work'} detail={analytics.highActive ? 'Confirm assignment and remove blockers before lower-priority work.' : 'No unresolved high-priority complaint is currently in the ECMD queue.'} />
-            <AnalyticsSignal tone={analytics.oldestDays >= 4 ? 'watch' : 'good'} icon="clock" title={`Oldest active complaint: ${analytics.oldestDays} day${analytics.oldestDays === 1 ? '' : 's'}`} detail={analytics.oldestDays >= 4 ? 'Review aging complaints for access, material, assignment, or verification delays.' : 'The current active queue is within the four-day review threshold.'} />
+            <AnalyticsSignal tone={analytics.oldestDays >= 4 ? 'watch' : 'good'} icon="clock" title={`Oldest active complaint: ${analytics.oldestDays} day${analytics.oldestDays === 1 ? '' : 's'}`} detail={analytics.oldestDays >= 4 ? 'Review aging complaints for access, material, assignment, or field work delays.' : 'The current active queue is within the four-day review threshold.'} />
             <AnalyticsSignal tone={analytics.overloadedStaff ? 'watch' : 'good'} icon="users" title={analytics.overloadedStaff ? `${analytics.overloadedStaff} heavily loaded staff member${analytics.overloadedStaff === 1 ? '' : 's'}` : 'No staff member has four or more active tasks'} detail="Use workload together with availability and task complexity before reassigning work." />
           </div>
         </div>

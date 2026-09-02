@@ -49,7 +49,7 @@ if (fs.existsSync(setupPath)) {
   const obsolete = [
     'service_targets', 'complaint_escalations', 'customer_acknowledged_at',
     'customer_acknowledgment_note', 'service_target_due_at', 'escalated_at',
-    'acknowledged_at', 'estimated_completion_at', 'completion_photo_url',
+    'acknowledged_at', 'estimated_completion_at',
     'service_target_change',
   ]
   const found = obsolete.filter(term => sql.includes(term))
@@ -81,7 +81,7 @@ const terminologyDriftRules = [
   { pattern: /\bPending Review\b/, preferred: 'Pending review' },
   { pattern: /\bIn Progress\b/, preferred: 'In progress' },
   { pattern: /\bNeeds Attention\b/, preferred: 'Needs attention' },
-  { pattern: /\b(?:Awaiting|Waiting for) WDLCD Verification\b/, preferred: 'Waiting for WDLCD verification' },
+  { pattern: /\b(?:Awaiting|Waiting for) WDLCD Verification\b/i, preferred: 'Resolved' },
   { pattern: /\bAccounts & Billing\b/, preferred: 'Accounts & billing' },
   { pattern: /\bService Advisories\b/, preferred: 'Service advisories' },
   { pattern: /\bComplaint Analytics\b/, preferred: 'Complaint analytics' },

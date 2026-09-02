@@ -177,7 +177,7 @@ function MaintenanceTaskActions({
   return (
     <section className="card rounded-xl p-5 no-print" aria-labelledby="task-actions-title">
       <h2 id="task-actions-title" className="font-display font-bold text-navy-900">Field work actions</h2>
-      <p className="mt-1 text-xs text-gray-500">Update field progress and record what was done so WDLCD can review the work.</p>
+      <p className="mt-1 text-xs text-gray-500">Update field progress, then resolve the complaint with completion notes and a clear photo.</p>
       <div className="mt-4 space-y-3">
         {nextTaskStatus ? (
           <button onClick={() => onNextStatus(nextTaskStatus.value)} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-navy-800 px-4 py-3.5 text-sm font-black text-white shadow-sm hover:bg-navy-900 disabled:opacity-50">
@@ -187,8 +187,6 @@ function MaintenanceTaskActions({
           <button onClick={onComplete} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-black text-white shadow-sm hover:bg-green-700 disabled:opacity-50">
             <AppIcon name="check" className="h-5 w-5" />Mark field work complete
           </button>
-        ) : complaint.status === 'awaiting_verification' ? (
-          <div className="rounded-lg border border-water-200 bg-water-50 px-4 py-3 text-sm font-bold text-navy-800">Field work is complete and waiting for WDLCD verification.</div>
         ) : ['resolved','completed'].includes(complaint.status) ? (
           <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><AppIcon name="check" className="h-4 w-4" />Complaint resolved.</div>
         ) : null}
@@ -222,6 +220,7 @@ export default function ComplaintDetailsPage() {
   const [message, setMessage] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [photoError, setPhotoError] = useState(false)
+  const [completionPhotoError, setCompletionPhotoError] = useState(false)
   const [busy, setBusy] = useState(false)
   const [comment, setComment] = useState('')
   const [posting, setPosting] = useState(false)
@@ -243,6 +242,7 @@ export default function ComplaintDetailsPage() {
   const [reopenReason, setReopenReason] = useState('')
   const [planOpen, setPlanOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
+  const [completionPhoto, setCompletionPhoto] = useState(null)
   const [maintenanceDrafts, setMaintenanceDrafts] = useState(() => readMaintenanceDrafts(user?.id))
   const [issueOpen, setIssueOpen] = useState(false)
   const [issue, setIssue] = useState({ kind: 'assistance', reason: '' })
@@ -250,8 +250,6 @@ export default function ComplaintDetailsPage() {
   const [priorityForm, setPriorityForm] = useState({ score: 0, priority: 'medium', reason: '' })
   const [forwardOpen, setForwardOpen] = useState(false)
   const [forwardNote, setForwardNote] = useState('')
-  const [verifyOpen, setVerifyOpen] = useState(false)
-  const [verifyForm, setVerifyForm] = useState({ resolution_code: 'resolved', resolution_notes: '', return_to_field: false })
   const [opsContext, setOpsContext] = useState({ notes: [], contacts: [], relations: [], related: [], incidents: [] })
   const [internalNote, setInternalNote] = useState('')
   const [contactForm, setContactForm] = useState({ channel: 'phone', contact_type: 'follow_up', summary: '' })
@@ -367,7 +365,17 @@ export default function ComplaintDetailsPage() {
   const handleReopen = async () => { if (await run(() => store.reopenComplaint(id, reopenReason), 'Complaint reopened and returned for Commercial Services Department review.')) setReopenOpen(false) }
   const handleTaskStatus = status => run(() => store.updateStatus(id, status), 'Task status updated.')
   const handlePlan = async event => { event.preventDefault(); if (await run(() => store.updateTaskPlan(id, { materials_used: plan.materials_used }), 'Work plan updated.')) { clearMaintenanceDraftSection('plan'); setPlanOpen(false) } }
-  const handleComplete = async event => { event.preventDefault(); if (await run(() => store.completeTask(id, completion, user.id), 'Completion notes submitted for WDLCD verification.')) { clearMaintenanceDraft(); setCompleteOpen(false) } }
+  const openCompletion = () => { setCompletionPhoto(null); setCompleteOpen(true) }
+  const closeCompletion = () => { setCompletionPhoto(null); setCompleteOpen(false) }
+  const handleComplete = async event => {
+    event.preventDefault()
+    if (!completionPhoto) { setError('Add a completion photo before resolving this complaint.'); return }
+    if (await run(() => store.completeTask(id, { ...completion, photo: completionPhoto }, user.id), 'Field work completed and the complaint was resolved.')) {
+      clearMaintenanceDraft()
+      setCompletionPhoto(null)
+      setCompleteOpen(false)
+    }
+  }
   const handleIssue = async event => { event.preventDefault(); if (await run(() => store.reportTaskIssue(id, issue.kind, issue.reason), 'Request sent to WDLCD.')) setIssueOpen(false) }
   const handlePriorityOverride = async event => { event.preventDefault(); const payload = canCommercialReview ? { score: Number(priorityForm.score), reason: priorityForm.reason } : { priority: priorityForm.priority, reason: priorityForm.reason }; if (await run(() => store.overridePriority(id, payload), 'Priority changed and recorded in the activity log.')) setPriorityOpen(false) }
   const handlePriorityReset = async () => { if (await run(() => store.overridePriority(id, { reason: priorityForm.reason, resetToAlgorithm: true }), 'Priority restored to the system suggestion.')) setPriorityOpen(false) }
@@ -380,7 +388,6 @@ export default function ComplaintDetailsPage() {
     }
   }
   const handleForward = async () => { if (await run(async () => { const { complaint: updated } = await apiFetch(`/complaints/${id}/forward-to-ecmd`, { method: 'PATCH', body: JSON.stringify({ note: forwardNote || undefined }) }); return updated }, 'Complaint sent to WDLCD.')) { setForwardOpen(false); setForwardNote('') } }
-  const handleVerify = async event => { event.preventDefault(); if (await run(async () => { const { complaint: updated } = await apiFetch(`/complaints/${id}/verify`, { method: 'PATCH', body: JSON.stringify(verifyForm) }); return updated }, verifyForm.return_to_field ? 'Complaint returned for additional field work.' : 'WDLCD verified and resolved the complaint.')) setVerifyOpen(false) }
   const handleInternalNote = async () => { if (!internalNote.trim()) return; setPosting(true); try { await operational.addInternalNote(id, internalNote.trim()); setInternalNote(''); await reloadContext(); setRefreshKey(k => k + 1); setMessage('Internal note saved.') } catch (err) { setError(err.message) } finally { setPosting(false) } }
   const handleContactLog = async event => { event.preventDefault(); if (!contactForm.summary.trim()) return; setPosting(true); try { await operational.logCustomerContact(id, contactForm); setContactForm({ channel: 'phone', contact_type: 'follow_up', summary: '' }); await reloadContext(); setMessage('Customer communication recorded.') } catch (err) { setError(err.message) } finally { setPosting(false) } }
   const linkCandidate = async relatedId => { try { await operational.linkComplaint(id, { related_complaint_id: relatedId, relation_type: 'possible_duplicate', reason: 'Linked from duplicate/nearby complaint detection.' }); await reloadContext(); setMessage('Related complaint linked.') } catch (err) { setError(err.message) } }
@@ -461,7 +468,7 @@ export default function ComplaintDetailsPage() {
 
         <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Attached photo</h2>{photo && !photoError ? <a href={photo} target="_blank" rel="noreferrer"><img src={photo} alt="Complaint attachment" onError={() => setPhotoError(true)} className="w-full max-h-[480px] object-contain rounded-lg bg-gray-50 border" /><p className="text-xs text-brand-700 font-bold mt-2">Open full-size photo ↗</p></a> : <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-10 text-center"><AppIcon name="camera" className="mx-auto mb-2 h-10 w-10 text-gray-500" /><p className="font-bold text-gray-700">No photo was attached.</p><p className="text-sm text-gray-500 mt-1">{photoError ? 'The attached photo could not be loaded.' : 'This complaint was submitted without a photo.'}</p></div>}</div>
 
-        {(complaint.completion_notes || complaint.materials_used || complaint.resolution_notes) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Resolution details</h2><DetailRow label="Completion notes">{complaint.completion_notes || 'No completion notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials used">{complaint.materials_used}</DetailRow>}<DetailRow label="Field work completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.verified_at && <DetailRow label="Verified by WDLCD">{formatDate(complaint.verified_at)}</DetailRow>}{complaint.resolution_notes && <DetailRow label="WDLCD verification notes">{complaint.resolution_notes}</DetailRow>}</div>}
+        {(complaint.completion_notes || complaint.materials_used || complaint.completion_photo_url) && <div className="card rounded-xl p-5"><h2 className="font-display font-bold text-navy-900 mb-3">Completion report</h2><DetailRow label="Completion notes">{complaint.completion_notes || 'No completion notes recorded.'}</DetailRow>{complaint.materials_used && <DetailRow label="Materials used">{complaint.materials_used}</DetailRow>}<DetailRow label="Field work completed">{formatDate(complaint.completed_at)}</DetailRow>{complaint.completion_photo_url && !completionPhotoError ? <a href={complaint.completion_photo_url} target="_blank" rel="noreferrer"><img src={complaint.completion_photo_url} alt="Completed field work" onError={() => setCompletionPhotoError(true)} className="mt-4 max-h-[420px] w-full rounded-lg border border-gray-200 bg-gray-50 object-contain" /><p className="mt-2 text-xs font-bold text-brand-700">Open full-size completion photo ↗</p></a> : complaint.completion_photo_url ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">The completion photo could not be loaded.</p> : null}</div>}
 
         {(canEcmdOperate || isMaintenance) && complaint.assigned_to && <TaskResourcesPanel complaintId={complaint.id} />}
       </div>
@@ -480,12 +487,11 @@ export default function ComplaintDetailsPage() {
         </section>}
 
         {canEcmdOperate && <section className="card rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-wider text-navy-600">ECMD · WDLCD</p><h2 className="mt-1 font-display font-bold text-navy-900">Dispatch and verification</h2><p className="mt-1 text-xs text-gray-500">Assign field work and verify completed work before resolving the complaint.</p></div><StatusBadge status={complaint.status} /></div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="text-xs font-black uppercase tracking-wider text-navy-600">ECMD · WDLCD</p><h2 className="mt-1 font-display font-bold text-navy-900">Field dispatch</h2><p className="mt-1 text-xs leading-5 text-gray-500">Assign and manage field work for this complaint.</p></div><div className="self-start"><StatusBadge status={complaint.status} /></div></div>
           <div className="mt-4 space-y-2">
-            {complaint.status === 'awaiting_verification' && <button onClick={() => { setVerifyForm({ resolution_code: 'resolved', resolution_notes: '', return_to_field: false }); setVerifyOpen(true) }} className="btn-primary w-full">Verify completed work</button>}
             {['forwarded','assigned','en_route','in_progress','blocked'].includes(complaint.status) && <button onClick={() => { setAssignStaff(complaint.assigned_to || ''); setAssignCrew(complaint.assigned_crew_id || ''); setAssignNotes(complaint.task_notes || ''); setAssignReason(''); setAssignOpen(true) }} className="btn-primary w-full rounded-lg">{complaint.assigned_to ? 'Manage / Reassign Maintenance Personnel' : 'Assign Maintenance Personnel'}</button>}
-            {['forwarded','assigned','en_route','in_progress','blocked','awaiting_verification'].includes(complaint.status) && <details className="rounded-lg border border-gray-200 bg-gray-50"><summary className="cursor-pointer px-3 py-2.5 text-xs font-black text-navy-800">More options</summary><div className="border-t border-gray-200 p-2"><button onClick={() => { setPriorityForm({ score: 0, priority: complaint.priority || 'medium', reason: '' }); setPriorityOpen(true) }} className="btn-secondary w-full rounded-lg text-xs">Change priority</button></div></details>}
-            {!['forwarded','assigned','en_route','in_progress','blocked','awaiting_verification'].includes(complaint.status) && <p className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">This complaint is not ready for WDLCD assignment right now.</p>}
+            {['forwarded','assigned','en_route','in_progress','blocked'].includes(complaint.status) && <details className="rounded-lg border border-gray-200 bg-gray-50"><summary className="cursor-pointer px-3 py-2.5 text-xs font-black text-navy-800">More options</summary><div className="border-t border-gray-200 p-2"><button onClick={() => { setPriorityForm({ score: 0, priority: complaint.priority || 'medium', reason: '' }); setPriorityOpen(true) }} className="btn-secondary w-full rounded-lg text-xs">Change priority</button></div></details>}
+            {!['forwarded','assigned','en_route','in_progress','blocked'].includes(complaint.status) && <p className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">This complaint is not ready for WDLCD assignment right now.</p>}
           </div>
           {complaint.assigned_name && <div className="mt-4 border-t border-gray-100 pt-4"><p className="text-xs font-black uppercase tracking-wider text-gray-500">Current assignment</p><p className="mt-1 text-sm font-bold text-gray-800">{complaint.assigned_name}</p><p className="mt-0.5 text-xs text-gray-500">Assigned {formatDate(complaint.assigned_at)}</p></div>}
         </section>}
@@ -495,7 +501,7 @@ export default function ComplaintDetailsPage() {
           nextTaskStatus={nextTaskStatus}
           busy={busy}
           onNextStatus={handleTaskStatus}
-          onComplete={() => { setCompletion({ completion_notes: '', materials_used: complaint.materials_used || '' }); setCompleteOpen(true) }}
+          onComplete={openCompletion}
           onPlan={() => { setPlan({ materials_used: complaint.materials_used || '' }); setPlanOpen(true) }}
           onIssue={() => setIssueOpen(true)}
           onCopyAddress={copyAddress}
@@ -538,7 +544,7 @@ export default function ComplaintDetailsPage() {
             {complaint.status === 'assigned' ? (
               <button type="button" onClick={() => handleTaskStatus('in_progress')} disabled={busy} className="btn-primary w-full rounded-xl">Start work</button>
             ) : (
-              <button type="button" onClick={() => setCompleteOpen(true)} disabled={busy} className="w-full min-h-11 rounded-xl bg-green-600 px-5 py-3 text-sm font-black text-white hover:bg-green-700 disabled:opacity-50">Mark field work complete</button>
+              <button type="button" onClick={openCompletion} disabled={busy} className="w-full min-h-11 rounded-xl bg-green-600 px-5 py-3 text-sm font-black text-white hover:bg-green-700 disabled:opacity-50">Mark field work complete</button>
             )}
           </div>
         </div>
@@ -577,24 +583,23 @@ export default function ComplaintDetailsPage() {
       </form>
     </Modal>
 
-    <Modal open={completeOpen} title="Mark field work complete" subtitle="Describe the work performed. WDLCD will verify the resolution before the complaint is closed." onClose={() => !busy && setCompleteOpen(false)}>
+    <Modal open={completeOpen} title="Complete and resolve complaint" subtitle="Add completion notes and a photo of the completed field work. Submitting resolves the complaint immediately." onClose={() => !busy && closeCompletion()}>
       <form onSubmit={handleComplete} className="space-y-4">
         {templates.length > 0 && <div><p className="mb-2 text-xs font-black uppercase text-gray-500">Note templates</p><div className="flex flex-wrap gap-2">{templates.map(t => <button key={t.id} type="button" onClick={() => setCompletion(value => ({ ...value, completion_notes: t.content }))} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-bold text-gray-700 hover:border-navy-300">{t.label}</button>)}</div></div>}
         <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Work completed *</label><textarea rows={5} required minLength={5} value={completion.completion_notes} onChange={event => setCompletion(value => ({ ...value, completion_notes: event.target.value }))} className="input-field rounded-lg resize-none" placeholder="Describe what was inspected, repaired, replaced, or restored." /></div>
         <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials used</label><textarea rows={3} value={completion.materials_used} onChange={event => setCompletion(value => ({ ...value, materials_used: event.target.value }))} className="input-field rounded-lg resize-none" /></div>
+        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Completion photo *</label><input type="file" accept="image/*" capture="environment" required onChange={event => setCompletionPhoto(event.target.files?.[0] || null)} className="input-field rounded-lg" /><p className="mt-1.5 text-xs text-gray-500">Take or attach a clear photo showing the completed work.</p>{completionPhoto ? <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-green-700"><AppIcon name="camera" className="h-3.5 w-3.5" />{completionPhoto.name}</p> : null}</div>
         {(completion.completion_notes.trim() || completion.materials_used.trim()) && (
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="inline-flex items-center gap-1.5 font-semibold text-green-700"><AppIcon name="check" className="h-3.5 w-3.5" />Draft saved on this device</span>
             <button type="button" onClick={() => clearMaintenanceDraftSection('completion')} className="font-bold text-gray-500 hover:text-red-700">Discard draft</button>
           </div>
         )}
-        <div className="flex justify-end gap-2"><button type="button" onClick={() => setCompleteOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || completion.completion_notes.trim().length < 5} className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Submitting…' : 'Send for WDLCD verification'}</button></div>
+        <div className="flex justify-end gap-2"><button type="button" onClick={closeCompletion} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || completion.completion_notes.trim().length < 5 || !completionPhoto} className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Completing…' : 'Complete and resolve'}</button></div>
       </form>
     </Modal>
 
     <Modal open={forwardOpen} title="Send complaint to WDLCD" subtitle="NSCCCD has reviewed this complaint. Sending it places the complaint in the WDLCD dispatch queue under ECMD." onClose={() => !busy && setForwardOpen(false)}><div className="space-y-4"><div><label className="block text-xs font-black uppercase text-gray-500 mb-1.5">Handoff note</label><textarea rows={4} value={forwardNote} onChange={e => setForwardNote(e.target.value)} className="input-field resize-none rounded-lg" placeholder="Optional note for WDLCD"/></div><div className="flex justify-end gap-2"><button onClick={() => setForwardOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button onClick={handleForward} disabled={busy} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white">{busy ? 'Sending…' : 'Send to WDLCD'}</button></div></div></Modal>
-
-    <Modal open={verifyOpen} title="Verify completed work" subtitle="Review the completion notes. Resolve the complaint or send it back for more field work." onClose={() => !busy && setVerifyOpen(false)}><form onSubmit={handleVerify} className="space-y-4"><div className="rounded-lg border border-gray-200 bg-gray-50 p-3"><p className="text-xs font-black uppercase text-gray-500">Completion notes</p><p className="mt-1 text-sm text-gray-700">{complaint.completion_notes || 'No completion notes recorded.'}</p></div><label className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800"><input type="checkbox" checked={verifyForm.return_to_field} onChange={e => setVerifyForm(v => ({...v,return_to_field:e.target.checked}))}/>Send back for more field work</label>{!verifyForm.return_to_field && <div><label className="block text-xs font-black uppercase text-gray-500 mb-1.5">Resolution outcome</label><select value={verifyForm.resolution_code} onChange={e => setVerifyForm(v => ({...v,resolution_code:e.target.value}))} className="input-field rounded-lg">{operational.reasonCodes.filter(r => r.action_type === 'resolution').map(r => <option key={r.code} value={r.code}>{r.label}</option>)}{!operational.reasonCodes.some(r => r.action_type === 'resolution' && r.code === 'resolved') && <option value="resolved">Resolved</option>}</select></div>}<div><label className="block text-xs font-black uppercase text-gray-500 mb-1.5">Verification notes</label><textarea rows={4} value={verifyForm.resolution_notes} onChange={e => setVerifyForm(v => ({...v,resolution_notes:e.target.value}))} className="input-field resize-none rounded-lg" placeholder={verifyForm.return_to_field ? 'Explain what work is still needed.' : 'Add an optional verification note.'}/></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setVerifyOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy} className={`rounded-lg px-5 py-2.5 text-sm font-bold ${verifyForm.return_to_field ? 'bg-amber-400 text-navy-950' : 'bg-green-600 text-white'}`}>{busy ? 'Saving…' : verifyForm.return_to_field ? 'Send back to field work' : 'Verify and resolve'}</button></div></form></Modal>
 
     <Modal open={issueOpen} title="Request help" onClose={() => !busy && setIssueOpen(false)}><form onSubmit={handleIssue} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Request type</label><select name="complaintdetailspage-kind-14" aria-label="Kind" value={issue.kind} onChange={event => setIssue(value => ({...value, kind:event.target.value}))} className="input-field rounded-lg"><option value="assistance">Additional help or crew</option><option value="reassignment">Request reassignment</option><option value="cannot_complete">Cannot complete work</option></select></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Reason *</label><textarea name="complaintdetailspage-explain-the-access-problem-missing-equipment-safety-issue-or-reason-for-reassignment-15" aria-label="Explain the access problem, missing equipment, safety concern, or reason you need reassignment." rows={5} required minLength={5} value={issue.reason} onChange={event => setIssue(value => ({...value, reason:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="Explain the access problem, missing equipment, safety concern, or reason you need reassignment." /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setIssueOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || issue.reason.trim().length < 5} className="btn-primary rounded-lg disabled:opacity-50">Send request</button></div></form></Modal>
   </div>

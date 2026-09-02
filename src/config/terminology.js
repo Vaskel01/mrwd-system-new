@@ -34,7 +34,7 @@ export const STATUS_LABELS = Object.freeze({
   assigned: 'Assigned',
   en_route: 'In progress',
   in_progress: 'In progress',
-  awaiting_verification: 'Waiting for WDLCD verification',
+  awaiting_verification: 'Resolved',
   resolved: 'Resolved',
   completed: 'Resolved',
   rejected: 'Rejected',

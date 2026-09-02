@@ -199,7 +199,7 @@ export default function CommercialComplaintReviewPage() {
             <span className="mb-1.5 block text-xs font-bold text-gray-600">Status</span>
             <select name="allcomplaintspage-filter-status-3" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className="input-field rounded-lg text-sm">
               <option value="all">All statuses</option>
-              {['pending', 'forwarded', 'assigned', 'in_progress', 'blocked', 'awaiting_verification', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
+              {['pending', 'forwarded', 'assigned', 'in_progress', 'blocked', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
                 <option key={status} value={status}>{STATUS_LABELS[status]}</option>
               ))}
             </select>

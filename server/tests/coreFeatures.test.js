@@ -9,6 +9,37 @@ import { customerProfileMatches, normalizeCustomerProfileInput } from '../src/li
 import { CAPABILITIES, capabilitiesForUser, hasCapability } from '../src/lib/accessControl.js'
 import { homeForUser } from '../../src/lib/accessControl.js'
 import { staffAccessLabel, TERMS } from '../../src/config/terminology.js'
+import { buildDirectCompletion } from '../src/lib/completionWorkflow.js'
+
+test('maintenance completion resolves the complaint immediately with required photo evidence', () => {
+  const now = '2026-09-03T02:00:00.000Z'
+  const result = buildDirectCompletion({
+    body: {
+      completion_notes: 'Replaced the damaged service line.',
+      completion_photo_url: 'https://example.supabase.co/storage/v1/object/public/complaint-photos/completion/proof.jpg',
+      materials_used: '1 service-line coupling',
+    },
+    task: { status: 'in_progress', materials_used: null },
+    now,
+  })
+
+  assert.equal(result.taskUpdate.status, 'completed')
+  assert.equal(result.taskUpdate.completion_photo_url.includes('/completion/'), true)
+  assert.equal(result.complaintUpdate.status, 'resolved')
+  assert.equal(result.complaintUpdate.updated_at, now)
+})
+
+test('maintenance completion rejects missing photo evidence and closed tasks', () => {
+  assert.throws(() => buildDirectCompletion({
+    body: { completion_notes: 'Work completed.' },
+    task: { status: 'in_progress' },
+  }), /completion proof photo is required/i)
+
+  assert.throws(() => buildDirectCompletion({
+    body: { completion_notes: 'Work completed.', completion_photo_url: 'https://example.com/proof.jpg' },
+    task: { status: 'completed' },
+  }), /only active field work/i)
+})
 
 test('classifier detects a severe water leak and assigns high priority', () => {
   const result = scoreComplaint({

@@ -10,7 +10,7 @@
 --   * Run this only on a fresh/empty MRWD Supabase project.
 --   * Do NOT run it over an existing MRWD production database.
 --   * The application intentionally has no SLA/response-time workflow,
---     Maintenance Personnel accept/reject step, or required completion photos.
+--     or Maintenance Personnel accept/reject step.
 --   * Public SECURITY DEFINER RPCs are hardened at the end of this file.
 -- ============================================================================
 
@@ -19,7 +19,7 @@ create schema if not exists app_private;
 
 -- ---------------------------------------------------------------------------
 -- Final-state schema bootstrap. The file creates only features used by this release.
--- Historical SLA, acknowledgement, and completion-photo artifacts are intentionally absent.
+-- Historical SLA and acknowledgement artifacts are intentionally absent.
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.profiles (
@@ -68,6 +68,7 @@ create table if not exists public.maintenance_tasks (
   notes text,
   scheduled_at timestamptz,
   completed_at timestamptz,
+  completion_photo_url text,
   created_at timestamptz not null default now()
 );
 
@@ -644,6 +645,7 @@ create policy "complaints_update_admin_assignee_or_owner" on public.complaints
 alter table public.maintenance_tasks
   add column if not exists is_active boolean not null default true,
   add column if not exists completion_notes text,
+  add column if not exists completion_photo_url text,
   add column if not exists materials_used text,
   add column if not exists unable_reason text,
   add column if not exists reassignment_requested_at timestamptz,
@@ -1764,7 +1766,7 @@ create index if not exists maintenance_crews_department_idx on public.maintenanc
 create index if not exists maintenance_crews_leader_idx on public.maintenance_crews (team_leader_id) where team_leader_id is not null;
 create index if not exists crew_members_staff_idx on public.crew_members (staff_id);
 create index if not exists complaints_active_priority_idx on public.complaints (priority, updated_at desc)
-  where archived_at is null and status in ('pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification');
+  where archived_at is null and status in ('pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked');
 create index if not exists complaints_archived_by_idx on public.complaints (archived_by) where archived_by is not null;
 create index if not exists maintenance_tasks_crew_idx on public.maintenance_tasks (assigned_crew_id) where assigned_crew_id is not null;
 create index if not exists approval_requests_pending_idx on public.approval_requests (created_at desc) where status = 'pending';
@@ -2337,7 +2339,7 @@ grant execute on function public.active_admin_ids() to authenticated;
 notify pgrst, 'reload schema';
 commit;
 
--- ===== Complaint timeline, dispatch, verification, and incident operations =====
+-- ===== Complaint timeline, dispatch, resolution, and incident operations =====
 begin;
 
 alter table public.complaints
@@ -2352,12 +2354,13 @@ alter table public.complaints drop constraint if exists complaints_status_check;
 alter table public.complaints
   add constraint complaints_status_check check (status in (
     'pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked',
-    'awaiting_verification', 'resolved', 'completed', 'rejected', 'cancelled'
+    'resolved', 'completed', 'rejected', 'cancelled'
   ));
 
 update public.complaints
 set status = 'resolved',
-    verified_at = coalesce(verified_at, updated_at),
+    verified_at = null,
+    verified_by = null,
     resolution_code = coalesce(resolution_code, 'resolved')
 where status = 'completed';
 
@@ -2656,7 +2659,7 @@ begin
       'status','updated_at','verified_at','verified_by','resolution_code','resolution_notes',
       'priority','priority_score','priority_override_reason','priority_overridden_by','priority_overridden_at'
     ]) then
-      raise exception 'ECMD may update only field-workflow, operational priority, and verification information';
+      raise exception 'ECMD may update only field-workflow, operational priority, and resolution information';
     end if;
     return new;
   end if;
@@ -2959,7 +2962,7 @@ alter table public.complaints drop constraint if exists complaints_status_check;
 alter table public.complaints
   add constraint complaints_status_check check (status in (
     'pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'completed', 'blocked',
-    'awaiting_verification', 'resolved', 'rejected', 'cancelled', 'merged'
+    'resolved', 'rejected', 'cancelled', 'merged'
   ));
 
 create table if not exists public.complaint_merge_records (
@@ -3387,7 +3390,7 @@ begin
       'status','updated_at','verified_at','verified_by','resolution_code','resolution_notes',
       'priority','priority_score','priority_override_reason','priority_overridden_by','priority_overridden_at'
     ]) then
-      raise exception 'ECMD may update only field-workflow, operational priority, and verification information';
+      raise exception 'ECMD may update only field-workflow, operational priority, and resolution information';
     end if;
     return new;
   end if;
@@ -4337,7 +4340,7 @@ on conflict (code) do update set
 
 insert into public.divisions (department_id, code, name, responsibilities, is_active)
 select d.id, 'WDLCD', 'Water Distribution and Leakage Control Division',
-       'Receives field-related complaints under ECMD, assigns Maintenance Crews or Maintenance Personnel, coordinates field work, and verifies completion.', true
+       'Receives field-related complaints under ECMD, assigns Maintenance Crews or Maintenance Personnel, and coordinates field work through completion.', true
 from public.departments d where d.code = 'ECMD'
 on conflict (code) do update set
   department_id = excluded.department_id,
@@ -4385,7 +4388,7 @@ where v.code = 'WDLCD'
   and c.routed_division_id is null
   and (
     c.forwarded_to_ecmd_at is not null
-    or c.status in ('forwarded','assigned','en_route','in_progress','blocked','awaiting_verification','resolved','completed')
+    or c.status in ('forwarded','assigned','en_route','in_progress','blocked','resolved','completed')
     or exists (select 1 from public.maintenance_tasks mt where mt.complaint_id = c.id)
   );
 
@@ -4606,7 +4609,7 @@ begin
       'status','updated_at','verified_at','verified_by','resolution_code','resolution_notes',
       'priority','priority_score','priority_override_reason','priority_overridden_by','priority_overridden_at'
     ]) then
-      raise exception 'WDLCD may update only field-workflow, operational priority, and verification information';
+      raise exception 'WDLCD may update only field-workflow, operational priority, and resolution information';
     end if;
     return new;
   end if;

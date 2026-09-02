@@ -3,7 +3,6 @@ const STEPS = [
   { key: 'review', label: 'Commercial Services review' },
   { key: 'ecmd', label: 'Sent to WDLCD' },
   { key: 'field', label: 'Field work' },
-  { key: 'verification', label: 'WDLCD verification' },
   { key: 'resolved', label: 'Resolved' },
 ]
 
@@ -15,8 +14,8 @@ const STATUS_STEP = {
   in_progress: 3,
   blocked: 3,
   awaiting_verification: 4,
-  resolved: 5,
-  completed: 5,
+  resolved: 4,
+  completed: 4,
 }
 
 export default function ComplaintProgress({ complaint }) {
@@ -34,7 +33,7 @@ export default function ComplaintProgress({ complaint }) {
             </div>
             <span className="text-sm font-bold text-gray-600">Step {Math.min(currentStep + 1, STEPS.length)} of {STEPS.length}</span>
           </div>
-          <ol className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 xl:grid-cols-6">
+          <ol className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 xl:grid-cols-5">
             {STEPS.map((step, index) => {
               const done = index < currentStep || currentStep === STEPS.length - 1
               const active = index === currentStep && currentStep !== STEPS.length - 1

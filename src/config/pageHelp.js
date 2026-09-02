@@ -148,7 +148,7 @@ const PAGE_HELP = [
     title: 'WDLCD overview',
     summary: 'See field work demand, dispatch status, and operational items that need WDLCD attention.',
     tips: [
-      'Start with Needs attention to find forwarded complaints, work awaiting verification, and other pending actions.',
+      'Start with Needs attention to find forwarded complaints, blocked work, and other pending actions.',
       'Use the workload information before assigning more work to Maintenance Personnel.',
       'Open Complaint dispatch when you need to assign or reassign field work.',
     ],
@@ -253,8 +253,8 @@ const PAGE_HELP = [
     tips: [
       'Open the assigned complaint before travelling so you can review the address, problem details, and customer photo.',
       'Keep the task status current so ECMD can see whether work is assigned, en route, in progress, blocked, or complete.',
-      'Record useful completion notes, manpower, and materials so ECMD has enough information to verify the work.',
-      'Mark field work complete only when the work is ready for WDLCD verification.',
+      'Record useful completion notes, manpower, materials, and a clear completion photo before resolving the work.',
+      'Mark field work complete only after the notes and completion photo accurately show the finished work.',
     ],
   }),
   exact('/maintenance/announcements', {
@@ -299,7 +299,7 @@ const PAGE_HELP = [
     summary: 'Review the field work record for a maintenance task, including progress notes, manpower, and materials used.',
     tips: [
       'Use the task and complaint references to confirm you are reviewing the correct job.',
-      'Field work notes should describe what was done clearly enough for WDLCD verification and later reporting.',
+      'Field work notes and the completion photo should clearly document what was done for later reporting and audit.',
       'Manpower and material records support operational reporting and should match the actual work performed.',
     ],
   }),

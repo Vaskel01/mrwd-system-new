@@ -71,7 +71,7 @@ export default function CommercialExportCenterPage() {
         complaint.zone,
         complaint.assigned_name,
         complaint.created_at,
-        complaint.verified_at || complaint.completed_at || '',
+        complaint.completed_at || complaint.verified_at || '',
       ])
       const blob = new Blob([[headers, ...rows].map(row => row.map(esc).join(',')).join('\n')], { type: 'text/csv' })
       const anchor = document.createElement('a')
@@ -128,7 +128,7 @@ export default function CommercialExportCenterPage() {
             <span className="mb-1.5 block text-xs font-bold text-gray-600">Status</span>
             <select value={filters.status} onChange={event => setFilters(value => ({ ...value, status: event.target.value }))} className="input-field rounded-lg">
               <option value="all">All statuses</option>
-              {['pending', 'forwarded', 'assigned', 'in_progress', 'awaiting_verification', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
+              {['pending', 'forwarded', 'assigned', 'in_progress', 'resolved', 'rejected', 'cancelled', 'merged'].map(status => (
                 <option key={status} value={status}>{STATUS_LABELS[status]}</option>
               ))}
             </select>

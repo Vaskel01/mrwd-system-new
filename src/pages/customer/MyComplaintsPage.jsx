@@ -29,8 +29,8 @@ const STATUS_CONFIG = {
   assigned: { bar: 35, color: STATUS_VISUAL_TOKENS.assigned, icon: 'assignment', label: STATUS_LABELS.assigned, message: 'Maintenance Personnel has been assigned to your complaint.' },
   en_route: { bar: 75, color: STATUS_VISUAL_TOKENS.en_route, icon: 'tool', label: STATUS_LABELS.en_route, message: 'Maintenance Personnel is working on this complaint.' },
   in_progress: { bar: 75, color: STATUS_VISUAL_TOKENS.in_progress, icon: 'tool', label: STATUS_LABELS.in_progress, message: 'Maintenance Personnel is working on this complaint.' },
-  awaiting_verification: { bar: 90, color: STATUS_VISUAL_TOKENS.awaiting_verification, icon: 'check', label: STATUS_LABELS.awaiting_verification, message: 'Field work is complete and WDLCD is verifying the resolution.' },
-  resolved: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: STATUS_LABELS.resolved, message: 'WDLCD verified the completed field work and resolved the complaint.' },
+  awaiting_verification: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: STATUS_LABELS.resolved, message: 'Maintenance Personnel completed the field work and resolved the complaint.' },
+  resolved: { bar: 100, color: STATUS_VISUAL_TOKENS.resolved, icon: 'check', label: STATUS_LABELS.resolved, message: 'Maintenance Personnel completed the field work and resolved the complaint.' },
   completed: { bar: 100, color: STATUS_VISUAL_TOKENS.completed, icon: 'check', label: STATUS_LABELS.completed, message: 'The complaint has been resolved.' },
   rejected: { bar: 100, color: STATUS_VISUAL_TOKENS.rejected, icon: 'alert', label: STATUS_LABELS.rejected, message: 'This complaint was rejected by the Commercial Services Department.' },
   cancelled: { bar: 100, color: STATUS_VISUAL_TOKENS.cancelled, icon: 'document', label: STATUS_LABELS.cancelled, message: 'You cancelled this complaint before assignment.' },
@@ -69,8 +69,8 @@ export default function MyComplaintsPage() {
   const counts = {
     all: complaints.length,
     pending: complaints.filter(complaint => complaint.status === 'pending').length,
-    active: complaints.filter(complaint => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(complaint.status)).length,
-    resolved: complaints.filter(complaint => ['resolved', 'completed'].includes(complaint.status)).length,
+    active: complaints.filter(complaint => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)).length,
+    resolved: complaints.filter(complaint => ['awaiting_verification', 'resolved', 'completed'].includes(complaint.status)).length,
     rejected: complaints.filter(complaint => complaint.status === 'rejected').length,
     cancelled: complaints.filter(complaint => complaint.status === 'cancelled').length,
   }
@@ -79,8 +79,8 @@ export default function MyComplaintsPage() {
     const query = search.trim().toLowerCase()
     return complaints.filter(complaint => {
       const matchesStatus = filter === 'all'
-        || (filter === 'active' ? ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(complaint.status)
-          : filter === 'resolved' ? ['resolved', 'completed'].includes(complaint.status)
+        || (filter === 'active' ? ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)
+          : filter === 'resolved' ? ['awaiting_verification', 'resolved', 'completed'].includes(complaint.status)
           : complaint.status === filter)
       const matchesSearch = !query || [complaint.reference_number, complaint.complaint_type, complaint.description, complaint.address, complaint.status, complaint.assigned_name, complaint.rejection_reason]
         .some(value => String(value || '').toLowerCase().includes(query))

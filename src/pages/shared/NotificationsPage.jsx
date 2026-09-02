@@ -26,7 +26,7 @@ const ACTION_TYPES = new Set(['assignment', 'warning', 'feedback'])
 function needsAction(item) {
   if (!item.related_complaint_id) return false
   if (ACTION_TYPES.has(item.notification_type)) return true
-  return /action|assigned|blocked|feedback|information|review|verify|verification|reply|request/i.test(`${item.title || ''} ${item.message || ''}`)
+  return /action|assigned|blocked|feedback|information|review|reply|request/i.test(`${item.title || ''} ${item.message || ''}`)
 }
 
 function actionLabel(item) {

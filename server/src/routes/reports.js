@@ -70,7 +70,7 @@ router.get('/summary', requireAuth, requireCapability(CAPABILITIES.COMMERCIAL_RE
       summary: {
         total: complaints.length,
         pending: complaints.filter(item => item.status === 'pending').length,
-        active: complaints.filter(item => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'].includes(item.status)).length,
+        active: complaints.filter(item => ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status)).length,
         resolved: completed.length,
         completed: completed.length,
         rejected: complaints.filter(item => item.status === 'rejected').length,

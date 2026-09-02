@@ -17,7 +17,7 @@ import {
 } from '../../components/analytics/AnalyticsPrimitives'
 import { priorityLabel, statusLabel, STATUS_LABELS, TERMS } from '../../config/terminology'
 
-const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'awaiting_verification'])
+const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'])
 const RESOLVED_STATUSES = new Set(['resolved', 'completed'])
 
 function escapeCsv(value) {
@@ -103,7 +103,7 @@ export default function CommercialReportsPage() {
     const resolved = scopedComplaints.filter(item => RESOLVED_STATUSES.has(item.status))
     const active = scopedComplaints.filter(item => ACTIVE_STATUSES.has(item.status))
     const resolutionHours = resolved
-      .map(item => hoursBetween(item.created_at, item.verified_at || item.completed_at || item.updated_at))
+      .map(item => hoursBetween(item.created_at, item.completed_at || item.verified_at || item.updated_at))
       .filter(value => value != null)
     const averageResolutionHours = resolutionHours.length
       ? resolutionHours.reduce((sum, value) => sum + value, 0) / resolutionHours.length
@@ -176,7 +176,7 @@ export default function CommercialReportsPage() {
     }
     for (const item of complaints) {
       addEvent(item.created_at, 'filed')
-      if (RESOLVED_STATUSES.has(item.status)) addEvent(item.verified_at || item.completed_at || item.updated_at, 'completed')
+      if (RESOLVED_STATUSES.has(item.status)) addEvent(item.completed_at || item.verified_at || item.updated_at, 'completed')
     }
     return { points, intervalDays: Math.max(1, Math.round(spanDays / bucketCount)) }
   }, [complaints, fromDate, toDate])
@@ -217,7 +217,7 @@ export default function CommercialReportsPage() {
       ? { title: `${analytics.highPriorityActive} active high-priority complaint${analytics.highPriorityActive === 1 ? '' : 's'}`, detail: 'Review routing and customer follow-up before lower-priority work.', tone: 'urgent', icon: 'alert' }
       : { title: 'No active high-priority backlog', detail: 'The selected period has no unresolved high-priority complaints.', tone: 'good', icon: 'check' },
     analytics.oldestActiveDays >= 4
-      ? { title: `Oldest active complaint is ${analytics.oldestActiveDays} days old`, detail: 'Check for blocked work, missing customer information, or delayed verification.', tone: 'watch', icon: 'clock' }
+      ? { title: `Oldest active complaint is ${analytics.oldestActiveDays} days old`, detail: 'Check for blocked work, missing customer information, or delayed field activity.', tone: 'watch', icon: 'clock' }
       : { title: 'Active complaints are recent', detail: 'No active complaint in this period is older than four days.', tone: 'good', icon: 'clock' },
     analytics.classifierReview > 0
       ? { title: `${analytics.classifierReview} categorization review${analytics.classifierReview === 1 ? '' : 's'}`, detail: 'These complaints contain a type mismatch or multiple supported issues.', tone: 'info', icon: 'clipboard' }
@@ -296,7 +296,7 @@ export default function CommercialReportsPage() {
           </div>
           <div className="mt-4">
             {feedbackCoverage < 30 && analytics.resolved > 0
-              ? <AnalyticsSignal tone="watch" icon="feedback" title="Feedback coverage is limited" detail="Use the rating cautiously and encourage feedback after verified resolution." />
+              ? <AnalyticsSignal tone="watch" icon="feedback" title="Feedback coverage is limited" detail="Use the rating cautiously and encourage feedback after resolution." />
               : <AnalyticsSignal tone="good" icon="feedback" title="Customer feedback is represented" detail={analytics.resolved ? 'Coverage is sufficient for a directional customer-service signal.' : 'Feedback will appear after complaints are resolved.'} />}
           </div>
           <dl className="mt-4 divide-y divide-gray-100 text-sm">

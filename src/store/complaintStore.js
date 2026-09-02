@@ -194,12 +194,16 @@ export const useComplaintStore = create((set, get) => ({
     return complaint
   },
 
-  completeTask: async (complaintId, data) => {
+  completeTask: async (complaintId, data, userId) => {
+    const completion_photo_url = data.photo
+      ? await uploadComplaintPhoto(data.photo, userId, 'completion')
+      : null
     const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
       method: 'PATCH',
       body: JSON.stringify({
         completion_notes: data.completion_notes,
         materials_used: data.materials_used || undefined,
+        completion_photo_url: completion_photo_url || undefined,
       }),
     })
     set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))

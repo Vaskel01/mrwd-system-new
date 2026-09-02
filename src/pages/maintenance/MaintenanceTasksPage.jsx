@@ -122,7 +122,7 @@ export default function MaintenanceTasksPage() {
       <PageHeader
         eyebrow="Maintenance Personnel"
         title="My tasks"
-        description="Open assigned complaints, update field progress, and send completed work to WDLCD for verification."
+        description="Open assigned complaints, update field progress, and resolve completed work with notes and photo evidence."
         actions={<div className="text-left sm:text-right"><p className="font-display text-4xl font-black leading-none text-gold-400">{completionRate}%</p><p className="mt-1 text-xs font-bold text-navy-200">Completed field work</p></div>}
       />
 
@@ -163,7 +163,7 @@ export default function MaintenanceTasksPage() {
             </select></label>
             <label className="block text-xs font-bold text-gray-600">Status<select name="maintenancetaskspage-status-filter-3" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1) }} className="input-field mt-1.5 rounded-lg text-sm">
               <option value="all">All statuses</option>
-              {['assigned', 'in_progress', 'awaiting_verification', 'resolved', 'blocked', 'rejected'].map(status => (
+              {['assigned', 'in_progress', 'resolved', 'blocked', 'rejected'].map(status => (
                 <option key={status} value={status}>{STATUS_LABELS[status]}</option>
               ))}
             </select></label>

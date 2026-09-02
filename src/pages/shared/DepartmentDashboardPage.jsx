@@ -45,14 +45,14 @@ export default function DepartmentDashboardPage({ moduleKey }) {
         const type = String(item.complaint_type || '').toLowerCase()
         return type.includes('bill') || type.includes('account') || type.includes('payment')
       })
-      const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.verified_at || item.updated_at))
+      const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.completed_at || item.verified_at || item.updated_at))
 
       return {
         cards: [
           [STATUS_LABELS.pending, pendingReview.length, 'New complaints waiting for NSCCCD review and routing.', 'clipboard', '/commercial/complaints?status=pending'],
           [STATUS_LABELS.forwarded, forwarded.length, 'Complaints already handed off and waiting for WDLCD assignment.', 'assignment', '/commercial/complaints?status=forwarded'],
           ['Billing-related', withBillingConcern.length, 'Complaints involving billing, account, or payment concerns.', 'billing', '/commercial/complaints?q=billing'],
-          ['Resolved today', resolvedToday.length, 'Complaints verified and resolved today.', 'check', '/commercial/complaints?status=resolved'],
+          ['Resolved today', resolvedToday.length, 'Complaints completed and resolved today.', 'check', '/commercial/complaints?status=resolved'],
         ],
         attention: [...complaints]
           .filter(item => item.status === 'pending' || reopened.includes(item) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
@@ -73,32 +73,30 @@ export default function DepartmentDashboardPage({ moduleKey }) {
 
     const readyForDispatch = complaints.filter(item => item.status === 'forwarded' && !item.assigned_to)
     const activeFieldWork = complaints.filter(item => ['assigned', 'en_route', 'in_progress', 'blocked'].includes(item.status))
-    const awaitingVerification = complaints.filter(item => item.status === 'awaiting_verification')
-    const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.verified_at || item.updated_at))
+    const needsAttention = complaints.filter(item => item.status === 'blocked')
+    const resolvedToday = complaints.filter(item => ['resolved', 'completed'].includes(item.status) && isToday(item.completed_at || item.verified_at || item.updated_at))
 
     return {
       cards: [
         ['Ready to assign', readyForDispatch.length, 'NSCCCD-reviewed complaints ready for WDLCD assignment.', 'assignment', '/ecmd/dispatch?queue=forwarded'],
         ['Active field work', activeFieldWork.length, 'Complaints currently assigned or being handled in the field.', 'tool', '/ecmd/dispatch?queue=field_work'],
-        [STATUS_LABELS.awaiting_verification, awaitingVerification.length, 'Complaints with completed field work awaiting WDLCD verification.', 'alert', '/ecmd/dispatch?queue=verification'],
-        ['Resolved today', resolvedToday.length, 'Complaints verified and resolved by WDLCD today.', 'check', '/ecmd/dispatch?queue=resolved'],
+        [STATUS_LABELS.blocked, needsAttention.length, 'Field work needing WDLCD coordination or support.', 'alert', '/ecmd/dispatch?queue=blocked'],
+        ['Resolved today', resolvedToday.length, 'Complaints completed by Maintenance Personnel today.', 'check', '/ecmd/dispatch?queue=resolved'],
       ],
       attention: [...complaints]
-        .filter(item => item.status === 'blocked' || item.status === 'awaiting_verification' || (item.status === 'forwarded' && !item.assigned_to) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
+        .filter(item => item.status === 'blocked' || (item.status === 'forwarded' && !item.assigned_to) || (item.priority === 'high' && !CLOSED_STATUSES.has(item.status)))
         .sort((a, b) => {
-          const verifyRank = item => item.status === 'awaiting_verification' ? 0 : 1
           const blockedRank = item => item.status === 'blocked' ? 0 : 1
           const unassignedRank = item => item.status === 'forwarded' && !item.assigned_to ? 0 : 1
           const highRank = item => item.priority === 'high' ? 0 : 1
-          return verifyRank(a) - verifyRank(b)
-            || blockedRank(a) - blockedRank(b)
+          return blockedRank(a) - blockedRank(b)
             || unassignedRank(a) - unassignedRank(b)
             || highRank(a) - highRank(b)
             || new Date(a.created_at) - new Date(b.created_at)
         })
         .slice(0, 6),
       attentionTitle: 'Needs WDLCD attention',
-      attentionDescription: 'Complaints waiting for WDLCD verification, needing attention, ready to assign, or marked high priority.',
+      attentionDescription: 'Complaints needing coordination, ready to assign, or marked high priority.',
     }
   }, [complaints, moduleKey])
 

@@ -24,7 +24,6 @@ const QUEUE_FILTERS = [
   { key: 'assigned', label: STATUS_LABELS.assigned, test: item => item.status === 'assigned' },
   { key: 'field_work', label: 'Field work', test: item => ['en_route', 'in_progress'].includes(item.status) },
   { key: 'blocked', label: STATUS_LABELS.blocked, test: item => item.status === 'blocked' },
-  { key: 'verification', label: STATUS_LABELS.awaiting_verification, test: item => item.status === 'awaiting_verification' },
 ]
 const activeTaskLabel = count => `${count || 0} active ${(count || 0) === 1 ? 'task' : 'tasks'}`
 const availabilityTone = value => ({
@@ -234,7 +233,7 @@ export default function EcmdDispatchPage() {
         <div className="mt-1 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-display text-2xl font-black text-white sm:text-3xl">Complaint dispatch</h1>
-            <p className="mt-1 max-w-3xl text-sm text-navy-300">Assign field work, follow active repairs, and verify completed work before resolving a complaint.</p>
+            <p className="mt-1 max-w-3xl text-sm text-navy-300">Assign field work and follow active repairs through completion.</p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setView('queue')} className={`rounded-lg px-4 py-2 text-xs font-black ${view === 'queue' ? 'bg-gold-400 text-navy-950' : 'border border-white/30 text-white'}`}>Queue</button>
@@ -356,8 +355,8 @@ export default function EcmdDispatchPage() {
               mode="ecmd"
               onOpen={complaint => navigate(`/complaints/${complaint.id}`)}
               primaryAction={focusedComplaint ? {
-                label: focusedComplaint.status === 'awaiting_verification' ? 'Verify completion' : focusedComplaint.assigned_to ? 'Reassign field work' : 'Assign field work',
-                onClick: () => focusedComplaint.status === 'awaiting_verification' ? navigate(`/complaints/${focusedComplaint.id}`) : openAssign(focusedComplaint),
+                label: focusedComplaint.assigned_to ? 'Reassign field work' : 'Assign field work',
+                onClick: () => openAssign(focusedComplaint),
               } : null}
               recommendation={rankedStaff.length ? (
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">

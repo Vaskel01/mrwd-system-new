@@ -99,6 +99,20 @@ export default function MaintenanceReportPage() {
           </div>
         </section>
 
+        <section className="mt-6 break-inside-avoid">
+          <h2 className="font-display text-base font-black">Completion photo</h2>
+          {task.completion_photo_url || complaint.completion_photo_url
+            ? <a href={task.completion_photo_url || complaint.completion_photo_url} target="_blank" rel="noreferrer" className="mt-3 block">
+                <img
+                  src={task.completion_photo_url || complaint.completion_photo_url}
+                  alt="Completed maintenance work"
+                  className="max-h-[520px] w-full rounded-lg border border-gray-200 bg-gray-50 object-contain"
+                />
+                <p className="mt-2 text-xs font-bold text-brand-700 no-print">Open full-size completion photo ↗</p>
+              </a>
+            : <p className="mt-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">No completion photo was recorded for this task.</p>}
+        </section>
+
         <section className="mt-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="font-display text-base font-black">Crew and work hours</h2>

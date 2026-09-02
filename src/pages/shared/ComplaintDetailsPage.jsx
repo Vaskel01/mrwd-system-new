@@ -24,6 +24,35 @@ import { useToastStore } from '../../store/toastStore'
 import { useProductionStore } from '../../store/productionStore'
 import { availabilityLabel, statusLabel, STATUS_LABELS } from '../../config/terminology'
 
+const EMPTY_MAINTENANCE_DRAFT = Object.freeze({
+  plan: Object.freeze({ materials_used: '' }),
+  completion: Object.freeze({ completion_notes: '', materials_used: '' }),
+})
+
+function maintenanceDraftKey(userId) {
+  return userId ? `mrwd:maintenance-task-drafts:${userId}` : null
+}
+
+function readMaintenanceDrafts(userId) {
+  const key = maintenanceDraftKey(userId)
+  if (!key) return {}
+  try {
+    return JSON.parse(window.localStorage.getItem(key) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function writeMaintenanceDrafts(userId, drafts) {
+  const key = maintenanceDraftKey(userId)
+  if (!key) return
+  try {
+    window.localStorage.setItem(key, JSON.stringify(drafts))
+  } catch {
+    // Draft persistence is a convenience and must never block field updates.
+  }
+}
+
 const NEXT_TASK_STATUS = {
   assigned: { value: 'in_progress', label: 'Start work', icon: 'tool' },
 }
@@ -213,9 +242,8 @@ export default function ComplaintDetailsPage() {
   const [reopenOpen, setReopenOpen] = useState(false)
   const [reopenReason, setReopenReason] = useState('')
   const [planOpen, setPlanOpen] = useState(false)
-  const [plan, setPlan] = useState({ materials_used: '' })
   const [completeOpen, setCompleteOpen] = useState(false)
-  const [completion, setCompletion] = useState({ completion_notes: '', materials_used: '' })
+  const [maintenanceDrafts, setMaintenanceDrafts] = useState(() => readMaintenanceDrafts(user?.id))
   const [issueOpen, setIssueOpen] = useState(false)
   const [issue, setIssue] = useState({ kind: 'assistance', reason: '' })
   const [priorityOpen, setPriorityOpen] = useState(false)
@@ -237,6 +265,48 @@ export default function ComplaintDetailsPage() {
   const [mergeForm, setMergeForm] = useState({ primary_complaint_id: '', reason: '' })
   const [assignmentHistory, setAssignmentHistory] = useState([])
   const [templates, setTemplates] = useState([])
+
+  const taskDraft = maintenanceDrafts[id] || EMPTY_MAINTENANCE_DRAFT
+  const plan = taskDraft.plan || EMPTY_MAINTENANCE_DRAFT.plan
+  const completion = taskDraft.completion || EMPTY_MAINTENANCE_DRAFT.completion
+  const updateMaintenanceDraft = (section, updater) => {
+    setMaintenanceDrafts(current => {
+      const currentTask = current[id] || EMPTY_MAINTENANCE_DRAFT
+      const currentSection = currentTask[section] || EMPTY_MAINTENANCE_DRAFT[section]
+      const nextSection = typeof updater === 'function' ? updater(currentSection) : updater
+      return {
+        ...current,
+        [id]: {
+          ...currentTask,
+          [section]: nextSection,
+          saved_at: new Date().toISOString(),
+        },
+      }
+    })
+  }
+  const setPlan = updater => updateMaintenanceDraft('plan', updater)
+  const setCompletion = updater => updateMaintenanceDraft('completion', updater)
+  const clearMaintenanceDraftSection = section => {
+    setMaintenanceDrafts(current => {
+      const next = { ...current }
+      const currentTask = current[id]
+      if (!currentTask) return current
+      const nextTask = { ...currentTask, [section]: { ...EMPTY_MAINTENANCE_DRAFT[section] } }
+      const hasPlan = Boolean(nextTask.plan?.materials_used?.trim())
+      const hasCompletion = Boolean(nextTask.completion?.completion_notes?.trim() || nextTask.completion?.materials_used?.trim())
+      if (hasPlan || hasCompletion) next[id] = nextTask
+      else delete next[id]
+      return next
+    })
+  }
+  const clearMaintenanceDraft = () => {
+    setMaintenanceDrafts(current => {
+      if (!current[id]) return current
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+  }
 
   useEffect(() => {
     let active = true
@@ -281,6 +351,9 @@ export default function ComplaintDetailsPage() {
       operationalState.fetchOperationalReference().catch(() => {})
     }
   }, [id, canCommercialReview, canEcmdOperate])
+  useEffect(() => {
+    if (user?.role === 'maintenance_personnel') writeMaintenanceDrafts(user.id, maintenanceDrafts)
+  }, [maintenanceDrafts, user?.id, user?.role])
 
   const apply = (updated, success) => { const text = success || 'Changes saved.'; setComplaint(updated); setMessage(text); pushToast(text, 'success'); setError(''); setRefreshKey(key => key + 1); window.setTimeout(() => setMessage(''), 3500) }
   const run = async (action, success) => { setBusy(true); setError(''); setMessage(''); try { apply(await action(), success); return true } catch (err) { setError(err.message); pushToast(err.message, 'error'); return false } finally { setBusy(false) } }
@@ -293,8 +366,8 @@ export default function ComplaintDetailsPage() {
   const handleCancel = async () => { if (await run(() => store.cancelComplaint(id, cancelReason), 'Complaint was cancelled.')) setCancelOpen(false) }
   const handleReopen = async () => { if (await run(() => store.reopenComplaint(id, reopenReason), 'Complaint reopened and returned for Commercial Services Department review.')) setReopenOpen(false) }
   const handleTaskStatus = status => run(() => store.updateStatus(id, status), 'Task status updated.')
-  const handlePlan = async event => { event.preventDefault(); if (await run(() => store.updateTaskPlan(id, { materials_used: plan.materials_used }), 'Work plan updated.')) setPlanOpen(false) }
-  const handleComplete = async event => { event.preventDefault(); if (await run(() => store.completeTask(id, completion, user.id), 'Completion notes submitted for WDLCD verification.')) setCompleteOpen(false) }
+  const handlePlan = async event => { event.preventDefault(); if (await run(() => store.updateTaskPlan(id, { materials_used: plan.materials_used }), 'Work plan updated.')) { clearMaintenanceDraftSection('plan'); setPlanOpen(false) } }
+  const handleComplete = async event => { event.preventDefault(); if (await run(() => store.completeTask(id, completion, user.id), 'Completion notes submitted for WDLCD verification.')) { clearMaintenanceDraft(); setCompleteOpen(false) } }
   const handleIssue = async event => { event.preventDefault(); if (await run(() => store.reportTaskIssue(id, issue.kind, issue.reason), 'Request sent to WDLCD.')) setIssueOpen(false) }
   const handlePriorityOverride = async event => { event.preventDefault(); const payload = canCommercialReview ? { score: Number(priorityForm.score), reason: priorityForm.reason } : { priority: priorityForm.priority, reason: priorityForm.reason }; if (await run(() => store.overridePriority(id, payload), 'Priority changed and recorded in the activity log.')) setPriorityOpen(false) }
   const handlePriorityReset = async () => { if (await run(() => store.overridePriority(id, { reason: priorityForm.reason, resetToAlgorithm: true }), 'Priority restored to the system suggestion.')) setPriorityOpen(false) }
@@ -488,9 +561,36 @@ export default function ComplaintDetailsPage() {
 
     <Modal open={reopenOpen} title="Reopen complaint" subtitle="Explain what remains unresolved." onClose={() => !busy && setReopenOpen(false)}><div className="space-y-4"><textarea name="complaintdetailspage-the-issue-returned-was-not-fully-resolved-because-8" aria-label="Explain what is still wrong or what happened again" rows={5} value={reopenReason} onChange={event => setReopenReason(event.target.value)} className="input-field rounded-lg resize-none" placeholder="Explain what is still wrong or what happened again" /><div className="flex justify-end gap-2"><button onClick={() => setReopenOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button onClick={handleReopen} disabled={busy || reopenReason.trim().length < 5} className="btn-primary rounded-lg disabled:opacity-50">Reopen complaint</button></div></div></Modal>
 
-    <Modal open={planOpen} title="Update work plan" subtitle="Record materials, equipment, or work notes for the assigned repair." onClose={() => !busy && setPlanOpen(false)}><form onSubmit={handlePlan} className="space-y-4"><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials, equipment, and work notes</label><textarea rows={5} value={plan.materials_used} onChange={event => setPlan(value => ({...value, materials_used:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="List materials, equipment, or work details" /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setPlanOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy} className="btn-primary rounded-lg">Save work plan</button></div></form></Modal>
+    <Modal open={planOpen} title="Update work plan" subtitle="Record materials, equipment, or work notes for the assigned repair." onClose={() => !busy && setPlanOpen(false)}>
+      <form onSubmit={handlePlan} className="space-y-4">
+        <div>
+          <label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials, equipment, and work notes</label>
+          <textarea rows={5} value={plan.materials_used} onChange={event => setPlan(value => ({ ...value, materials_used: event.target.value }))} className="input-field rounded-lg resize-none" placeholder="List materials, equipment, or work details" />
+          {plan.materials_used.trim() && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-green-700"><AppIcon name="check" className="h-3.5 w-3.5" />Draft saved on this device</span>
+              <button type="button" onClick={() => clearMaintenanceDraftSection('plan')} className="font-bold text-gray-500 hover:text-red-700">Discard draft</button>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2"><button type="button" onClick={() => setPlanOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy} className="btn-primary rounded-lg">Save work plan</button></div>
+      </form>
+    </Modal>
 
-    <Modal open={completeOpen} title="Mark field work complete" subtitle="Describe the work performed. WDLCD will verify the resolution before the complaint is closed." onClose={() => !busy && setCompleteOpen(false)}><form onSubmit={handleComplete} className="space-y-4">{templates.length > 0 && <div><p className="mb-2 text-xs font-black uppercase text-gray-500">Note templates</p><div className="flex flex-wrap gap-2">{templates.map(t => <button key={t.id} type="button" onClick={() => setCompletion(v => ({...v, completion_notes:t.content}))} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-bold text-gray-700 hover:border-navy-300">{t.label}</button>)}</div></div>}<div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Work completed *</label><textarea rows={5} required minLength={5} value={completion.completion_notes} onChange={event => setCompletion(value => ({...value, completion_notes:event.target.value}))} className="input-field rounded-lg resize-none" placeholder="Describe what was inspected, repaired, replaced, or restored." /></div><div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials used</label><textarea rows={3} value={completion.materials_used} onChange={event => setCompletion(value => ({...value, materials_used:event.target.value}))} className="input-field rounded-lg resize-none" /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => setCompleteOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || completion.completion_notes.trim().length < 5} className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Submitting…' : 'Send for WDLCD verification'}</button></div></form></Modal>
+    <Modal open={completeOpen} title="Mark field work complete" subtitle="Describe the work performed. WDLCD will verify the resolution before the complaint is closed." onClose={() => !busy && setCompleteOpen(false)}>
+      <form onSubmit={handleComplete} className="space-y-4">
+        {templates.length > 0 && <div><p className="mb-2 text-xs font-black uppercase text-gray-500">Note templates</p><div className="flex flex-wrap gap-2">{templates.map(t => <button key={t.id} type="button" onClick={() => setCompletion(value => ({ ...value, completion_notes: t.content }))} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-bold text-gray-700 hover:border-navy-300">{t.label}</button>)}</div></div>}
+        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Work completed *</label><textarea rows={5} required minLength={5} value={completion.completion_notes} onChange={event => setCompletion(value => ({ ...value, completion_notes: event.target.value }))} className="input-field rounded-lg resize-none" placeholder="Describe what was inspected, repaired, replaced, or restored." /></div>
+        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Materials used</label><textarea rows={3} value={completion.materials_used} onChange={event => setCompletion(value => ({ ...value, materials_used: event.target.value }))} className="input-field rounded-lg resize-none" /></div>
+        {(completion.completion_notes.trim() || completion.materials_used.trim()) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-green-700"><AppIcon name="check" className="h-3.5 w-3.5" />Draft saved on this device</span>
+            <button type="button" onClick={() => clearMaintenanceDraftSection('completion')} className="font-bold text-gray-500 hover:text-red-700">Discard draft</button>
+          </div>
+        )}
+        <div className="flex justify-end gap-2"><button type="button" onClick={() => setCompleteOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || completion.completion_notes.trim().length < 5} className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Submitting…' : 'Send for WDLCD verification'}</button></div>
+      </form>
+    </Modal>
 
     <Modal open={forwardOpen} title="Send complaint to WDLCD" subtitle="NSCCCD has reviewed this complaint. Sending it places the complaint in the WDLCD dispatch queue under ECMD." onClose={() => !busy && setForwardOpen(false)}><div className="space-y-4"><div><label className="block text-xs font-black uppercase text-gray-500 mb-1.5">Handoff note</label><textarea rows={4} value={forwardNote} onChange={e => setForwardNote(e.target.value)} className="input-field resize-none rounded-lg" placeholder="Optional note for WDLCD"/></div><div className="flex justify-end gap-2"><button onClick={() => setForwardOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button onClick={handleForward} disabled={busy} className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white">{busy ? 'Sending…' : 'Send to WDLCD'}</button></div></div></Modal>
 

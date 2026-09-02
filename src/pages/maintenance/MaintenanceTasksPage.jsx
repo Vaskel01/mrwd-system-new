@@ -5,7 +5,6 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { PriorityBadge, StatusBadge } from '../../components/ui/Badges'
 import { EmptyState, PageLoader, ErrorBanner } from '../../components/ui/Feedback'
 import PageHeader from '../../components/ui/PageHeader'
-import MetricCard from '../../components/ui/MetricCard'
 import Pagination from '../../components/ui/Pagination'
 import AppIcon from '../../components/ui/AppIcon'
 import RefreshNotice from '../../components/ui/RefreshNotice'
@@ -13,6 +12,8 @@ import SearchField from '../../components/ui/SearchField'
 import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import { useComplaintListRefresh } from '../../hooks/useComplaintRefresh'
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../config/terminology'
+import ComplaintFocusPanel from '../../components/ui/ComplaintFocusPanel'
+import { readWorkspacePreferences, writeWorkspacePreferences } from '../../lib/workspacePreferences'
 
 function formatAssignedDate(iso) {
   if (!iso) return '—'
@@ -26,7 +27,6 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900'
 function matchesSearch(task, query) {
   if (!query) return true
   return [
@@ -38,18 +38,20 @@ function matchesSearch(task, query) {
 export default function MaintenanceTasksPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const initialPreferences = useMemo(() => readWorkspacePreferences('maintenance_tasks'), [])
   const user = useAuthStore(s => s.user)
   const complaints = useComplaintStore(s => s.complaints)
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
   const fetchComplaints = useComplaintStore(s => s.fetchComplaints)
 
-  const [view, setView] = useState(() => searchParams.get('view') || 'active')
-  const [search, setSearch] = useState(() => searchParams.get('q') || '')
-  const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get('priority') || 'all')
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all')
-  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority')
+  const [view, setView] = useState(() => searchParams.get('view') || initialPreferences.view || 'active')
+  const [search, setSearch] = useState(() => searchParams.get('q') || initialPreferences.q || '')
+  const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get('priority') || initialPreferences.priority || 'all')
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || initialPreferences.status || 'all')
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || initialPreferences.sort || 'priority')
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
+  const [focusedId, setFocusedId] = useState(() => searchParams.get('focus') || '')
   const pageSize = 10
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
@@ -61,8 +63,13 @@ export default function MaintenanceTasksPage() {
     if (statusFilter !== 'all') next.status = statusFilter
     if (sortBy !== 'priority') next.sort = sortBy
     if (page > 1) next.page = String(page)
+    if (focusedId) next.focus = focusedId
     setSearchParams(next, { replace: true })
-  }, [view, search, priorityFilter, statusFilter, sortBy, page, setSearchParams])
+  }, [view, search, priorityFilter, statusFilter, sortBy, page, focusedId, setSearchParams])
+
+  useEffect(() => {
+    writeWorkspacePreferences('maintenance_tasks', { view, q: search, priority: priorityFilter, status: statusFilter, sort: sortBy })
+  }, [view, search, priorityFilter, statusFilter, sortBy])
 
   const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
 
@@ -97,6 +104,7 @@ export default function MaintenanceTasksPage() {
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
+  const focusedTask = paged.find(task => task.id === focusedId) || paged[0] || null
 
   const resetFilters = () => {
     setSearch('')
@@ -106,19 +114,6 @@ export default function MaintenanceTasksPage() {
     setPage(1)
   }
 
-
-  const renderAction = task => (
-    <button
-      type="button"
-      onClick={event => {
-        event.stopPropagation()
-        navigate(`/complaints/${task.id}`)
-      }}
-      className={TABLE_ACTION_CLASS}
-    >
-      Open
-    </button>
-  )
 
   const completionRate = counts.active + counts.completed > 0
     ? Math.round(counts.completed / (counts.active + counts.completed) * 100)
@@ -138,31 +133,23 @@ export default function MaintenanceTasksPage() {
       {error && <ErrorBanner message={error} onRetry={fetchComplaints} />}
       <RefreshNotice visible={updatesAvailable} onRefresh={refreshNow} label="Your assigned tasks have changed." />
 
-      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:grid-cols-4">
-        {[
-          ['active', 'Active tasks', counts.active, 'Work assigned to you that still needs field action.', 'tool', 'text-brand-600'],
-          ['completed', 'Completed field work', counts.completed, 'Work submitted for verification or already resolved.', 'check', 'text-green-700'],
-          ['rejected', 'Rejected', counts.rejected, 'Assigned records that were rejected.', 'alert', 'text-red-700'],
-          ['all', 'All tasks', counts.all, 'Every complaint assigned to your account.', 'clipboard', 'text-navy-900'],
-        ].map(([value, label, count, detail, icon, accent]) => (
-          <MetricCard
-            key={value}
-            label={label}
-            value={count}
-            detail={detail}
-            icon={icon}
-            accent={accent}
-            selected={view === value}
-            onClick={() => { setView(value); setPage(1) }}
-          />
-        ))}
-      </div>
-
       {myTasks.length > 0 && (
         <div className="qol-filter-bar card rounded-xl p-4 space-y-3">
+          <div className="flex flex-wrap gap-2" aria-label="Task views">
+            {[
+              ['active', 'Active tasks', counts.active],
+              ['completed', 'Completed field work', counts.completed],
+              ['rejected', STATUS_LABELS.rejected, counts.rejected],
+              ['all', 'All tasks', counts.all],
+            ].map(([value, label, count]) => (
+              <button key={value} type="button" aria-pressed={view === value} onClick={() => { setView(value); setPage(1); setFocusedId('') }} className={`filter-chip inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold ${view === value ? 'border-navy-800 bg-navy-800 text-white' : 'border-gray-200 bg-white text-gray-600'}`}>
+                {label}<span className={`rounded-full px-2 py-0.5 text-xs font-black ${view === value ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-600'}`}>{count}</span>
+              </button>
+            ))}
+          </div>
           <SavedViewsBar
             moduleKey="maintenance_tasks"
-            currentFilters={{ view, q: search, priority: priorityFilter, status: statusFilter, sort: sortBy }}
+            filters={{ view, q: search, priority: priorityFilter, status: statusFilter, sort: sortBy }}
             onApply={filters => {
               setView(filters.view || 'active')
               setSearch(filters.q || '')
@@ -170,6 +157,7 @@ export default function MaintenanceTasksPage() {
               setStatusFilter(filters.status || 'all')
               setSortBy(filters.sort || 'priority')
               setPage(1)
+              setFocusedId('')
             }}
           />
           <div><p className="mb-1.5 text-xs font-bold text-gray-600">Search</p><SearchField value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} onClear={() => { setSearch(''); setPage(1) }} placeholder="Reference, customer, address, notes, or status" /></div>
@@ -199,86 +187,35 @@ export default function MaintenanceTasksPage() {
       {myTasks.length === 0 ? (
         <EmptyState icon={<AppIcon name="tool" className="h-10 w-10" />} title="No tasks assigned" description="New field assignments will appear here when WDLCD assigns work to you." />
       ) : (
-        <>
-          <div className="hidden xl:block card min-w-0 overflow-hidden rounded-xl p-2">
-            <table className="data-table">
-              <colgroup>
-                <col className="w-[31%]" />
-                <col className="w-[24%]" />
-                <col className="w-[17%]" />
-                <col className="w-[14%]" />
-                <col className="w-[14%]" />
-              </colgroup>
-              <thead>
-                <tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Customer & location</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Progress</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Assignment</th>
-                  <th className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="p-12 text-center text-gray-500">No tasks match the current search or filters.</td></tr>
-                ) : paged.map(task => (
-                  <tr key={task.id}
-                    onClick={() => navigate(`/complaints/${task.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${task.id}`) }}
-                    className={`qol-clickable-row hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
-                    <td className="px-4 py-3 align-top">
-                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                      <p className="mt-1 font-mono text-xs font-bold text-gray-500">{task.reference_number}</p>
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{task.description}</p>
-                      {task.task_notes && <p className="mt-2 line-clamp-2 text-xs text-amber-700"><b>Instructions:</b> {task.task_notes}</p>}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <p className="break-words text-sm font-semibold text-gray-700">{task.customer_name}</p>
-                      <p className="mt-1 flex min-w-0 items-start gap-1 text-xs text-gray-500">
-                        <AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="line-clamp-2">{task.address}</span>
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="flex flex-col items-start gap-2">
-                        <PriorityBadge priority={task.priority} />
-                        <StatusBadge status={task.status} />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <p className="break-words text-xs font-semibold text-gray-600">{formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      {task.status === 'blocked' && <p className="mt-2 text-xs font-bold text-amber-700">{STATUS_LABELS.blocked}</p>}
-                    </td>
-                    <td className="px-4 py-3 align-top">{renderAction(task)}</td>
-                  </tr>
+        <section className="card overflow-hidden rounded-xl" aria-label="Maintenance task workspace">
+          <div className="grid min-w-0 xl:grid-cols-[minmax(340px,0.86fr)_minmax(430px,1.14fr)]">
+            <div className="min-w-0 border-b border-gray-100 xl:border-b-0 xl:border-r">
+              <div className="border-b border-gray-100 px-4 py-4 sm:px-5"><h2 className="font-display font-black text-navy-900">My work queue</h2><p className="mt-0.5 text-xs text-gray-500">Select one task to review its location, instructions, and next step.</p></div>
+              <div className="focus-queue-list divide-y divide-gray-100">
+                {paged.map(task => (
+                  <article key={task.id} className={`focus-queue-row border-l-4 ${PRIORITY_STRIPE[task.priority]}`} data-active={focusedTask?.id === task.id}>
+                    <button type="button" onClick={() => setFocusedId(task.id)} className="w-full min-w-0 p-4 text-left" aria-current={focusedTask?.id === task.id ? 'true' : undefined}>
+                      <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-sm font-black text-gray-900">{task.complaint_type}</p><p className="mt-1 font-mono text-xs font-bold text-gray-500">{task.reference_number}</p></div><PriorityBadge priority={task.priority} /></div>
+                      <p className="mt-2 line-clamp-1 break-words text-xs font-bold text-gray-700">{task.customer_name || 'Customer'}</p>
+                      <p className="mt-1 flex min-w-0 items-start gap-1 text-xs text-gray-500"><AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2 break-words">{task.address || 'No address recorded'}</span></p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={task.status} /><span className="text-xs font-bold text-gray-500">Assigned {formatAssignedDate(task.assigned_at || task.task_created_at)}</span></div>
+                    </button>
+                  </article>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="xl:hidden space-y-3">
-            {filtered.length === 0 ? (
-              <div className="card rounded-xl p-10 text-center text-gray-500">No tasks match the current search or filters.</div>
-            ) : paged.map(task => (
-              <div key={task.id} className={`card rounded-xl overflow-hidden border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-900">{task.complaint_type}</p>
-                      <p className="text-xs text-gray-500 font-mono font-bold mt-1">{task.reference_number}</p>
-                      <p className="text-xs text-gray-500 mt-1">{task.customer_name} · Assigned {formatAssignedDate(task.assigned_at || task.task_created_at)}</p>
-                      <p className="mt-1 inline-flex max-w-full items-center gap-1 text-xs text-gray-500"><AppIcon name="location" className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{task.address}</span></p>
-                    </div>
-                    <StatusBadge status={task.status} />
-                  </div>
-                  <div className="flex items-center gap-2 mt-3 flex-wrap"><PriorityBadge priority={task.priority} /></div>
-                  {task.task_notes && <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900"><b>Instructions:</b> {task.task_notes}</div>}
-                  <div className="mt-3 pt-3 border-t border-gray-100">{renderAction(task)}</div>
-                </div>
+                {!paged.length ? <div className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-600">No tasks match this view.</p><p className="mt-1 text-xs text-gray-500">Clear the filters or choose another saved view.</p></div> : null}
               </div>
-            ))}
+              <div className="border-t border-gray-100 p-4"><Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="tasks" embedded /></div>
+            </div>
+
+            <ComplaintFocusPanel
+              complaint={focusedTask}
+              mode="maintenance"
+              onOpen={task => navigate(`/complaints/${task.id}`)}
+              openLabel={focusedTask && ['resolved', 'completed', 'awaiting_verification'].includes(focusedTask.status) ? 'Review task record' : 'Open task workspace'}
+              recommendation={focusedTask?.task_notes ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="text-xs font-black uppercase tracking-wider text-amber-800">Field instructions</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-amber-900">{focusedTask.task_notes}</p></div> : null}
+            />
           </div>
-          <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="tasks" />
-        </>
+        </section>
       )}
     </div>
   )

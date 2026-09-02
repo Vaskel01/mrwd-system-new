@@ -8,6 +8,28 @@ function formatDate(value) {
 
 function nextStepFor(complaint, mode) {
   if (!complaint) return null
+  if (mode === 'customer') {
+    if (complaint.status === 'pending') return ['Commercial Services review', 'Your complaint is being checked. No action is needed unless staff asks for more information.']
+    if (complaint.status === 'forwarded') return ['Field planning', 'Commercial Services sent the complaint to WDLCD for field assignment and planning.']
+    if (complaint.status === 'assigned') return ['Maintenance assignment', 'Maintenance Personnel has been assigned and will review the location and field instructions.']
+    if (['en_route', 'in_progress'].includes(complaint.status)) return ['Field work in progress', 'Maintenance Personnel is handling the reported issue. Updates will appear in the complaint history.']
+    if (complaint.status === 'blocked') return ['Coordination in progress', 'The field team requested assistance. WDLCD is coordinating the support needed to continue.']
+    if (complaint.status === 'awaiting_verification') return ['Completion review', 'Field work is complete and WDLCD is checking the result before resolving the complaint.']
+    if (['resolved', 'completed'].includes(complaint.status)) return ['Resolution complete', 'The completed field work was verified. You can open the complaint to review the outcome and leave feedback.']
+    if (complaint.status === 'rejected') return ['Review the decision', 'Open the complaint to see the recorded rejection reason and available next steps.']
+    if (complaint.status === 'cancelled') return ['Complaint cancelled', 'This complaint remains in your history, but no further field action is scheduled.']
+    return ['Review the latest update', 'Open the complaint to see its complete history and current status.']
+  }
+
+  if (mode === 'maintenance') {
+    if (complaint.status === 'assigned') return ['Review and begin', 'Check the address, field instructions, and required resources before starting the task.']
+    if (['en_route', 'in_progress'].includes(complaint.status)) return ['Continue field work', 'Keep progress current, record materials used, and report a blocker as soon as support is needed.']
+    if (complaint.status === 'blocked') return ['Follow up on requested help', 'Review the blocker and continue only when access, equipment, material, or crew support is ready.']
+    if (complaint.status === 'awaiting_verification') return ['Waiting for WDLCD verification', 'Your completion report has been submitted. No field action is needed unless WDLCD returns the task.']
+    if (['resolved', 'completed'].includes(complaint.status)) return ['Task complete', 'WDLCD verified the completed work and resolved the complaint.']
+    return ['Review the task', 'Open the task to check its instructions, history, and available actions.']
+  }
+
   if (mode === 'commercial') {
     if (complaint.status === 'pending') return ['Review and route', 'Confirm the complaint details and priority, then send valid field work to WDLCD.']
     if (complaint.status === 'forwarded') return ['Handoff complete', 'WDLCD can now assign Maintenance Personnel and plan the field response.']
@@ -32,6 +54,7 @@ export default function ComplaintFocusPanel({
   primaryAction,
   secondaryActions = [],
   recommendation,
+  openLabel = 'Open full record',
 }) {
   if (!complaint) {
     return (
@@ -60,7 +83,7 @@ export default function ComplaintFocusPanel({
             <p className="font-mono text-xs font-bold text-gray-500">{complaint.reference_number}</p>
             <h2 className="mt-1 break-words font-display text-xl font-black text-navy-900">{complaint.complaint_type}</h2>
           </div>
-          <div className="flex flex-wrap gap-2"><PriorityBadge priority={complaint.priority} /><StatusBadge status={complaint.status} /></div>
+          <div className="flex flex-wrap gap-2">{mode !== 'customer' ? <PriorityBadge priority={complaint.priority} /> : null}<StatusBadge status={complaint.status} /></div>
         </div>
 
         <div className="mt-5 rounded-xl border border-brand-200 bg-brand-50 p-4">
@@ -81,7 +104,7 @@ export default function ComplaintFocusPanel({
           <div><dt className="text-xs font-black uppercase tracking-wider text-gray-500">Submitted</dt><dd className="mt-1 text-sm font-bold text-gray-900">{formatDate(complaint.submitted_at || complaint.created_at)}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs font-black uppercase tracking-wider text-gray-500">Address</dt><dd className="mt-1 break-words text-sm font-bold text-gray-900">{complaint.address || 'No address recorded'}</dd></div>
           <div><dt className="text-xs font-black uppercase tracking-wider text-gray-500">Assignment</dt><dd className="mt-1 break-words text-sm font-bold text-gray-900">{complaint.assigned_name || 'Unassigned'}</dd></div>
-          <div><dt className="text-xs font-black uppercase tracking-wider text-gray-500">Priority score</dt><dd className="mt-1 text-sm font-bold text-gray-900">{complaint.priority_score ?? 'Not available'}{complaint.priority_score != null ? '/100' : ''}</dd></div>
+          {mode !== 'customer' ? <div><dt className="text-xs font-black uppercase tracking-wider text-gray-500">Priority score</dt><dd className="mt-1 text-sm font-bold text-gray-900">{complaint.priority_score ?? 'Not available'}{complaint.priority_score != null ? '/100' : ''}</dd></div> : null}
         </dl>
 
         <div>
@@ -101,7 +124,7 @@ export default function ComplaintFocusPanel({
         <div className="flex flex-col gap-2 border-t border-gray-100 pt-5 sm:flex-row sm:flex-wrap">
           {primaryAction ? <button type="button" onClick={primaryAction.onClick} disabled={primaryAction.disabled} className="btn-primary flex-1 rounded-lg disabled:opacity-50">{primaryAction.label}</button> : null}
           {secondaryActions.map(action => <button key={action.label} type="button" onClick={action.onClick} disabled={action.disabled} className="btn-secondary flex-1 rounded-lg disabled:opacity-50">{action.label}</button>)}
-          <button type="button" onClick={() => onOpen(complaint)} className="btn-secondary flex-1 rounded-lg">Open full record</button>
+          <button type="button" onClick={() => onOpen(complaint)} className="btn-secondary flex-1 rounded-lg">{openLabel}</button>
         </div>
       </div>
     </aside>

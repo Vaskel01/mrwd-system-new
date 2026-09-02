@@ -290,7 +290,6 @@ const PAGE_HELP = [
     summary: 'See the complete complaint record, current workflow step, timeline, and the actions available to your account.',
     tips: [
       'The progress indicator shows where the complaint is in the MRWD workflow.',
-      'The Next action section highlights the most relevant step for your current role.',
       'Use the timeline to understand who changed the complaint and when important events happened.',
       'Available actions differ by role so customers, Commercial Services, ECMD, and Maintenance Personnel see only appropriate controls.',
     ],

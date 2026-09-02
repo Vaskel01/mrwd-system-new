@@ -456,14 +456,6 @@
   .app-main button { overflow-wrap: normal; word-break: normal; }
   .app-main table button { white-space: nowrap; }
 
-  .workflow-next-step {
-    border-color: #93c5fd;
-    background: #eff6ff;
-  }
-  .workflow-next-step__icon { background: #fff; color: #1d4ed8; }
-  .workflow-next-step__title { color: #172554; }
-  .workflow-next-step__copy { color: #1e3a8a; }
-
   .notification-row {
     background: #fff;
     transition: background-color .15s ease, box-shadow .15s ease;
@@ -1078,17 +1070,6 @@ html[data-theme='dark'] .data-table > tbody > tr:hover {
   background: #1b2d47 !important;
   box-shadow: inset 3px 0 0 #7da6df;
 }
-
-html[data-theme='dark'] .workflow-next-step {
-  border-color: #3f67a1;
-  background: #142950;
-}
-html[data-theme='dark'] .workflow-next-step__icon {
-  background: #0d1b32;
-  color: #9fc5ff;
-}
-html[data-theme='dark'] .workflow-next-step__title { color: #f1f5f9; }
-html[data-theme='dark'] .workflow-next-step__copy { color: #bfdbfe; }
 
 html[data-theme='dark'] .notification-row { background: #111c2e; }
 html[data-theme='dark'] .notification-row--unread {

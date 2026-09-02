@@ -6,47 +6,6 @@ function formatDate(value) {
   return new Date(value).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-function nextStepFor(complaint, mode) {
-  if (!complaint) return null
-  if (mode === 'customer') {
-    if (complaint.status === 'pending') return ['Commercial Services review', 'Your complaint is being checked. No action is needed unless staff asks for more information.']
-    if (complaint.status === 'forwarded') return ['Field planning', 'Commercial Services sent the complaint to WDLCD for field assignment and planning.']
-    if (complaint.status === 'assigned') return ['Maintenance assignment', 'Maintenance Personnel has been assigned and will review the location and field instructions.']
-    if (['en_route', 'in_progress'].includes(complaint.status)) return ['Field work in progress', 'Maintenance Personnel is handling the reported issue. Updates will appear in the complaint history.']
-    if (complaint.status === 'blocked') return ['Coordination in progress', 'The field team requested assistance. WDLCD is coordinating the support needed to continue.']
-    if (complaint.status === 'awaiting_verification') return ['Completion review', 'Field work is complete and WDLCD is checking the result before resolving the complaint.']
-    if (['resolved', 'completed'].includes(complaint.status)) return ['Resolution complete', 'The completed field work was verified. You can open the complaint to review the outcome and leave feedback.']
-    if (complaint.status === 'rejected') return ['Review the decision', 'Open the complaint to see the recorded rejection reason and available next steps.']
-    if (complaint.status === 'cancelled') return ['Complaint cancelled', 'This complaint remains in your history, but no further field action is scheduled.']
-    return ['Review the latest update', 'Open the complaint to see its complete history and current status.']
-  }
-
-  if (mode === 'maintenance') {
-    if (complaint.status === 'assigned') return ['Review and begin', 'Check the address, field instructions, and required resources before starting the task.']
-    if (['en_route', 'in_progress'].includes(complaint.status)) return ['Continue field work', 'Keep progress current, record materials used, and report a blocker as soon as support is needed.']
-    if (complaint.status === 'blocked') return ['Follow up on requested help', 'Review the blocker and continue only when access, equipment, material, or crew support is ready.']
-    if (complaint.status === 'awaiting_verification') return ['Waiting for WDLCD verification', 'Your completion report has been submitted. No field action is needed unless WDLCD returns the task.']
-    if (['resolved', 'completed'].includes(complaint.status)) return ['Task complete', 'WDLCD verified the completed work and resolved the complaint.']
-    return ['Review the task', 'Open the task to check its instructions, history, and available actions.']
-  }
-
-  if (mode === 'commercial') {
-    if (complaint.status === 'pending') return ['Review and route', 'Confirm the complaint details and priority, then send valid field work to WDLCD.']
-    if (complaint.status === 'forwarded') return ['Handoff complete', 'WDLCD can now assign Maintenance Personnel and plan the field response.']
-    if (complaint.status === 'blocked') return ['Coordinate support', 'Review the recorded blocker and help the field team remove it.']
-    if (complaint.status === 'awaiting_verification') return ['Waiting for WDLCD', 'WDLCD must verify the completion report before this complaint is resolved.']
-    if (complaint.status === 'resolved') return ['Resolved', 'The field response and verification are complete.']
-    return ['Follow progress', 'Open the full record to review the latest assignment, notes, and activity.']
-  }
-
-  if (complaint.status === 'forwarded' && !complaint.assigned_to) return ['Assign field work', 'Choose an available Maintenance Crew or Maintenance Personnel member and add clear field instructions.']
-  if (complaint.status === 'assigned') return ['Prepare the response', 'Confirm that the assignment and field instructions match the complaint location and priority.']
-  if (['en_route', 'in_progress'].includes(complaint.status)) return ['Monitor field work', 'Follow the active repair and respond quickly if the assigned team reports a blocker.']
-  if (complaint.status === 'blocked') return ['Remove the blocker', 'Coordinate access, materials, equipment, or additional support before lower-priority work.']
-  if (complaint.status === 'awaiting_verification') return ['Verify completion', 'Review the completion evidence and resolve the complaint only when the work is confirmed.']
-  return ['Review the record', 'Open the full complaint to check its latest activity and available actions.']
-}
-
 export default function ComplaintFocusPanel({
   complaint,
   mode,
@@ -62,13 +21,12 @@ export default function ComplaintFocusPanel({
         <div className="max-w-xs">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-navy-50 text-navy-700"><AppIcon name="clipboard" /></span>
           <h2 className="mt-4 font-display text-lg font-black text-navy-900">Select a complaint</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">Choose an item from the queue to see its details and the recommended next action.</p>
+          <p className="mt-1 text-sm leading-6 text-gray-500">Choose an item from the queue to see its details and available actions.</p>
         </div>
       </aside>
     )
   }
 
-  const nextStep = nextStepFor(complaint, mode)
   const signals = [
     complaint.classification_mismatch ? `Selected as ${complaint.complaint_type}; automatic analysis suggests ${complaint.classified_category}.` : '',
     complaint.similar_count ? `${complaint.similar_count} nearby or related complaint${complaint.similar_count === 1 ? '' : 's'} may need review.` : '',
@@ -86,16 +44,6 @@ export default function ComplaintFocusPanel({
           <div className="flex flex-wrap gap-2">{mode !== 'customer' ? <PriorityBadge priority={complaint.priority} /> : null}<StatusBadge status={complaint.status} /></div>
         </div>
 
-        <div className="mt-5 rounded-xl border border-brand-200 bg-brand-50 p-4">
-          <div className="flex gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700"><AppIcon name="assignment" className="h-4 w-4" /></span>
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-wider text-brand-700">Recommended next step</p>
-              <p className="mt-1 font-black text-navy-900">{nextStep[0]}</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep[1]}</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="space-y-5 p-5 sm:p-6">

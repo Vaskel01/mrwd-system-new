@@ -137,14 +137,15 @@ export default function MyComplaintsPage() {
         <section aria-label="Customer complaint tracker" className="space-y-3">
           <div className="card rounded-xl px-4 py-4 sm:px-5">
             <h2 className="font-display font-black text-navy-900">Complaint tracker</h2>
-            <p className="mt-0.5 text-xs text-gray-500">Each complaint shows its current progress and next update in one row.</p>
+            <p className="mt-0.5 text-xs text-gray-500">Each complaint shows its current status and progress in one row.</p>
           </div>
 
           {paged.map(complaint => {
             const config = STATUS_CONFIG[complaint.status] || STATUS_CONFIG.pending
             const isResolved = ['resolved', 'completed'].includes(complaint.status)
             return (
-              <article key={complaint.id} className="qol-clickable-row card overflow-hidden rounded-xl border-l-4 border-l-navy-700">
+              <article key={complaint.id} className="qol-clickable-row card overflow-hidden rounded-xl">
+                <div className="h-1 bg-navy-700" aria-hidden="true" />
                 <div className="grid min-w-0 gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)_auto] lg:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-2 lg:block">

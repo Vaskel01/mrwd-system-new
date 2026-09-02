@@ -20,10 +20,10 @@ function formatAssignedDate(iso) {
 }
 
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
-const PRIORITY_STRIPE = {
-  high: 'border-l-red-500',
-  medium: 'border-l-amber-400',
-  low: 'border-l-green-400',
+const PRIORITY_HIGHLIGHT = {
+  high: 'bg-red-500',
+  medium: 'bg-amber-400',
+  low: 'bg-green-400',
 }
 
 function matchesSearch(task, query) {
@@ -190,7 +190,8 @@ export default function MaintenanceTasksPage() {
 
           <div className="divide-y divide-gray-100">
             {paged.map(task => (
-              <article key={task.id} className={`qol-clickable-row border-l-4 ${PRIORITY_STRIPE[task.priority]}`}>
+              <article key={task.id} className="qol-clickable-row">
+                <div className={`h-1 ${PRIORITY_HIGHLIGHT[task.priority] || 'bg-navy-700'}`} aria-hidden="true" />
                 <div className="grid min-w-0 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(220px,1fr)_minmax(220px,0.9fr)_minmax(180px,0.7fr)_auto] lg:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2"><h3 className="break-words text-sm font-black text-gray-900">{task.complaint_type}</h3><PriorityBadge priority={task.priority} /></div>

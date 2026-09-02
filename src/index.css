@@ -543,6 +543,29 @@
 .qol-clickable-row:hover { background-color: rgba(239, 246, 255, .58); }
 .qol-clickable-row:focus-within { box-shadow: inset 3px 0 0 #3463b0; }
 
+/* Operations queues use one continuous working surface: a scannable list on
+   the left and the selected complaint's context and actions on the right. */
+.focus-queue-list {
+  max-height: 46rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.focus-queue-row {
+  background: transparent;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+.focus-queue-row:hover { background: rgba(219, 234, 254, .42); }
+.focus-queue-row[data-active='true'] {
+  background: #eaf2ff;
+  box-shadow: inset 4px 0 0 #3463b0;
+}
+.focus-queue-row button:focus-visible { outline-offset: -2px; }
+.focus-panel { background: rgba(255, 255, 255, .34); }
+
+@media (max-width: 1279px) {
+  .focus-queue-list { max-height: 34rem; }
+}
+
 .qol-filter-bar {
   position: relative;
 }
@@ -966,6 +989,12 @@ html[data-theme='dark'] .section-title { color: var(--md-on-surface); }
 html[data-theme='dark'] .skip-link { color: var(--md-on-surface); }
 html[data-theme='dark'] .qol-clickable-row:hover { background-color: rgba(63, 102, 158, .22); }
 html[data-theme='dark'] .qol-clickable-row:focus-within { box-shadow: inset 3px 0 0 var(--md-primary); }
+html[data-theme='dark'] .focus-queue-row:hover { background: #17263d; }
+html[data-theme='dark'] .focus-queue-row[data-active='true'] {
+  background: #1b2d47;
+  box-shadow: inset 4px 0 0 #7da6df;
+}
+html[data-theme='dark'] .focus-panel { background: rgba(13, 23, 40, .36); }
 
 html[data-theme='dark'] .bg-white { background-color: var(--md-surface-container) !important; }
 html[data-theme='dark'] .bg-white\/70 { background-color: rgba(17, 28, 46, .82) !important; }

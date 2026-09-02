@@ -13,7 +13,10 @@ import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import BulkActionBar from '../../components/ui/BulkActionBar'
 import Dialog from '../../components/ui/Dialog'
 import { useProductionStore } from '../../store/productionStore'
-import { availabilityLabel, STATUS_LABELS } from '../../config/terminology'
+import BulkActionPreviewDialog from '../../components/ui/BulkActionPreviewDialog'
+import ComplaintFocusPanel from '../../components/ui/ComplaintFocusPanel'
+import { readWorkspacePreferences, writeWorkspacePreferences } from '../../lib/workspacePreferences'
+import { availabilityLabel, PRIORITY_LABELS, STATUS_LABELS } from '../../config/terminology'
 
 const QUEUE_FILTERS = [
   { key: 'all', label: 'All active', test: () => true },
@@ -34,6 +37,7 @@ const availabilityTone = value => ({
 export default function EcmdDispatchPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const initialPreferences = useMemo(() => readWorkspacePreferences('ecmd_dispatch'), [])
   const pushToast = useToastStore(state => state.push)
   const complaints = useComplaintStore(state => state.complaints)
   const loading = useComplaintStore(state => state.loading)
@@ -53,15 +57,17 @@ export default function EcmdDispatchPage() {
 
   const [staff, setStaff] = useState([])
   const [crews, setCrews] = useState([])
-  const [view, setView] = useState(() => searchParams.get('view') || 'queue')
-  const [queueFilter, setQueueFilter] = useState(() => searchParams.get('queue') || 'all')
-  const [query, setQuery] = useState(() => searchParams.get('q') || '')
-  const [priority, setPriority] = useState(() => searchParams.get('priority') || 'all')
-  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'priority')
+  const [view, setView] = useState(() => searchParams.get('view') || initialPreferences.view || 'queue')
+  const [queueFilter, setQueueFilter] = useState(() => searchParams.get('queue') || initialPreferences.queue || 'all')
+  const [query, setQuery] = useState(() => searchParams.get('q') || initialPreferences.q || '')
+  const [priority, setPriority] = useState(() => searchParams.get('priority') || initialPreferences.priority || 'all')
+  const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || initialPreferences.sort || 'priority')
+  const [focusedId, setFocusedId] = useState(() => searchParams.get('focus') || '')
   const [assigning, setAssigning] = useState(null)
   const [form, setForm] = useState({ crewId: '', staffId: '', reasonCode: '', notes: '' })
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false)
 
   const load = useCallback(async () => {
     await Promise.all([fetchComplaints(), fetchWorkload(), fetchOperationalReference()])
@@ -86,8 +92,13 @@ export default function EcmdDispatchPage() {
     if (query.trim()) next.q = query.trim()
     if (priority !== 'all') next.priority = priority
     if (sortBy !== 'priority') next.sort = sortBy
+    if (focusedId) next.focus = focusedId
     setSearchParams(next, { replace: true })
-  }, [view, queueFilter, query, priority, sortBy, setSearchParams])
+  }, [view, queueFilter, query, priority, sortBy, focusedId, setSearchParams])
+
+  useEffect(() => {
+    writeWorkspacePreferences('ecmd_dispatch', { view, queue: queueFilter, q: query, priority, sort: sortBy })
+  }, [view, queueFilter, query, priority, sortBy])
 
   const activeComplaints = useMemo(() => complaints.filter(item => !['resolved', 'completed', 'rejected', 'cancelled'].includes(item.status)), [complaints])
 
@@ -120,8 +131,21 @@ export default function EcmdDispatchPage() {
       || a.full_name.localeCompare(b.full_name)
   }), [staff, workloadMap])
 
-  const applySavedView = view => { setView(view.view || 'queue'); setQueueFilter(view.queue || 'all'); setQuery(view.q || ''); setPriority(view.priority || 'all'); setSortBy(view.sort || 'priority') }
+  const applySavedView = savedView => { setView(savedView.view || 'queue'); setQueueFilter(savedView.queue || 'all'); setQuery(savedView.q || ''); setPriority(savedView.priority || 'all'); setSortBy(savedView.sort || 'priority'); setFocusedId('') }
   const toggleSelected = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
+  const previewBulk = () => {
+    if (!selected.length) return
+    if (bulkChoice === 'assign' && !bulkStaffId) {
+      setNotice('Choose Maintenance Personnel for the selected complaints. Crew assignment can be completed individually when needed.')
+      return
+    }
+    if (bulkChoice === 'priority' && bulkReason.trim().length < 3) {
+      setNotice('Enter a reason for the priority change.')
+      return
+    }
+    setNotice('')
+    setBulkPreviewOpen(true)
+  }
   const runBulk = async () => {
     if (!selected.length) return
     setBusy(true); setNotice('')
@@ -141,7 +165,36 @@ export default function EcmdDispatchPage() {
       if (!failed.length) setBulkReason('')
       await Promise.all([fetchComplaints(), fetchWorkload()])
       setNotice(failed.length ? `${succeeded.length} updated; ${failed.length} skipped. ${failed[0]?.error || ''}` : `${succeeded.length || selected.length} complaint${(succeeded.length || selected.length) === 1 ? '' : 's'} updated.`)
-    } catch (err) { setNotice(err.message) } finally { setBusy(false) }
+      setBulkPreviewOpen(false)
+    } catch (err) { setNotice(err.message); setBulkPreviewOpen(false) } finally { setBusy(false) }
+  }
+
+  const focusedComplaint = filtered.find(complaint => complaint.id === focusedId) || filtered[0] || null
+  const selectedComplaints = complaints.filter(complaint => selected.includes(complaint.id))
+  const allFilteredSelected = filtered.length > 0 && filtered.every(complaint => selected.includes(complaint.id))
+  const selectedStaff = rankedStaff.find(person => person.id === bulkStaffId)
+  const selectedStaffWorkload = selectedStaff ? workloadMap[selectedStaff.id]?.active_tasks || 0 : 0
+  const bulkActionLabel = bulkChoice === 'assign'
+    ? `Assign to ${selectedStaff?.full_name || 'Maintenance Personnel'}`
+    : bulkChoice === 'priority'
+      ? `Change priority to ${PRIORITY_LABELS[bulkPriority]}`
+      : 'Add to watchlist'
+  const bulkActionDescription = bulkChoice === 'assign'
+    ? `${selected.length} complaint${selected.length === 1 ? '' : 's'} will be assigned directly to one Maintenance Personnel account.`
+    : bulkChoice === 'priority'
+      ? `Every selected complaint will use ${PRIORITY_LABELS[bulkPriority]} priority with the same recorded reason.`
+      : 'The selected complaints will be added to your personal watchlist.'
+  const bulkWarning = bulkChoice === 'assign'
+    ? `${selectedStaff?.full_name || 'The selected person'} is ${availabilityLabel(selectedStaff?.availability_status).toLowerCase()} with ${activeTaskLabel(selectedStaffWorkload)}. Confirm that the combined workload is appropriate.`
+    : bulkChoice === 'priority'
+      ? 'Use one priority only when the same operational reason applies to every selected complaint.'
+      : ''
+
+  const toggleFilteredSelection = () => {
+    const filteredIds = filtered.map(complaint => complaint.id)
+    setSelected(current => allFilteredSelected
+      ? current.filter(id => !filteredIds.includes(id))
+      : [...new Set([...current, ...filteredIds])])
   }
 
   const openAssign = complaint => {
@@ -260,7 +313,7 @@ export default function EcmdDispatchPage() {
             <input value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="input-field rounded-lg text-sm" placeholder={bulkChoice === 'priority' ? 'Required reason' : 'Optional note for the assigned personnel'} />
           </label>
         ) : null}
-        <button type="button" disabled={busy} onClick={runBulk} className="btn-primary rounded-lg disabled:opacity-50">{busy ? 'Applying…' : 'Apply action'}</button>
+        <button type="button" disabled={busy} onClick={previewBulk} className="btn-primary rounded-lg disabled:opacity-50">Review action</button>
       </BulkActionBar>
 
       {view === 'map' ? (
@@ -269,87 +322,70 @@ export default function EcmdDispatchPage() {
           <ComplaintOperationsMap complaints={filtered} onOpen={item => navigate(`/complaints/${item.id}`)} />
         </section>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="card min-w-0 overflow-hidden rounded-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-              <div><h2 className="font-display font-black text-navy-900">Dispatch queue</h2><p className="mt-0.5 text-xs text-gray-500">{filtered.length} complaint{filtered.length === 1 ? '' : 's'} shown</p></div>
-            </div>
+        <section className="card overflow-hidden rounded-xl" aria-label="WDLCD dispatch workspace">
+          <div className="grid min-w-0 xl:grid-cols-[minmax(340px,0.86fr)_minmax(430px,1.14fr)]">
+            <div className="min-w-0 border-b border-gray-100 xl:border-b-0 xl:border-r">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:px-5">
+                <div><h2 className="font-display font-black text-navy-900">Dispatch queue</h2><p className="mt-0.5 text-xs text-gray-500">{filtered.length} complaint{filtered.length === 1 ? '' : 's'} shown · select one to work in place</p></div>
+                <button type="button" onClick={toggleFilteredSelection} disabled={!filtered.length} className="btn-secondary rounded-lg px-3 py-2 text-xs disabled:opacity-50">{allFilteredSelected ? 'Clear filtered' : 'Select filtered'}</button>
+              </div>
 
-            <div className="hidden min-w-0 overflow-hidden lg:block">
-              <table className="data-table">
-                <thead className="border-b border-gray-100 bg-gray-50/80 text-xs font-black uppercase tracking-wider text-gray-500">
-                  <tr>
-                    <th className="w-[34%] px-4 py-3">Complaint</th>
-                    <th className="w-[10%] px-3 py-3">Priority</th>
-                    <th className="w-[16%] px-3 py-3">Status</th>
-                    <th className="w-[18%] px-3 py-3">Assignment</th>
-                    <th className="w-[22%] px-3 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filtered.map(item => (
-                    <tr key={item.id} onClick={() => navigate(`/complaints/${item.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${item.id}`) }} className="qol-clickable-row group hover:bg-navy-50/30">
-                      <td className="px-4 py-4 align-top">
-                        <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select</span></div>
-                        <button onClick={() => navigate(`/complaints/${item.id}`)} className="min-w-0 text-left">
-                          <p className="break-all font-mono text-xs font-bold text-gray-500">{item.reference_number}</p>
-                          <p className="mt-1 break-words text-sm font-black text-navy-900 group-hover:text-brand-700">{item.complaint_type}</p>
-                          <p className="mt-1 line-clamp-2 break-words text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
-                          <p className="mt-1 break-words text-xs text-gray-500">{item.customer_name || 'Customer'}</p>
-                          {item.similar_count ? <p className="mt-1 text-xs font-bold text-amber-700">{item.similar_count} nearby or related complaint{item.similar_count === 1 ? '' : 's'}</p> : null}
-                        </button>
-                      </td>
-                      <td className="px-3 py-4 align-top"><PriorityBadge priority={item.priority}/></td>
-                      <td className="px-3 py-4 align-top"><StatusBadge status={item.status}/></td>
-                      <td className="px-3 py-4 align-top">
-                        <p className="text-xs font-bold text-gray-700">{item.assigned_name || 'Unassigned'}</p>
-                        {item.assigned_name && <p className="mt-1 text-xs text-gray-500">Maintenance Personnel</p>}
-                      </td>
-                      <td className="px-3 py-4 align-top text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700 hover:border-navy-200">View</button>
-                          {item.status === 'awaiting_verification' ? (
-                            <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${item.id}`) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-black text-white hover:bg-navy-900">Verify</button>
-                          ) : (
-                            <button onClick={event => { event.stopPropagation(); openAssign(item) }} className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-black text-white hover:bg-navy-900">{item.assigned_to ? 'Reassign' : 'Assign'}</button>
-                          )}
+              <div className="focus-queue-list divide-y divide-gray-100">
+                {filtered.map(item => (
+                  <article key={item.id} className="focus-queue-row" data-active={focusedComplaint?.id === item.id}>
+                    <div className="flex items-start gap-3 p-4">
+                      <input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelected(item.id)} aria-label={`Select ${item.reference_number}`} className="mt-1 h-4 w-4 shrink-0 accent-navy-800" />
+                      <button type="button" onClick={() => setFocusedId(item.id)} className="min-w-0 flex-1 text-left" aria-current={focusedComplaint?.id === item.id ? 'true' : undefined}>
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                          <div className="min-w-0"><p className="break-words text-sm font-black text-gray-900">{item.complaint_type}</p><p className="mt-1 font-mono text-xs font-bold text-gray-500">{item.reference_number}</p></div>
+                          <PriorityBadge priority={item.priority} />
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!filtered.length && <tr><td colSpan="5" className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-500">No complaints in this queue.</p><p className="mt-1 text-xs text-gray-500">Choose another status or clear the filters.</p></td></tr>}
-                </tbody>
-              </table>
+                        <p className="mt-2 line-clamp-2 break-words text-xs font-semibold text-gray-600">{item.address || 'No address recorded'}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={item.status} /><span className="text-xs font-bold text-gray-500">{item.assigned_name || 'Unassigned'}</span></div>
+                        {item.similar_count ? <p className="mt-2 text-xs font-bold text-amber-700">{item.similar_count} nearby or related complaint{item.similar_count === 1 ? '' : 's'}</p> : null}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {!filtered.length ? <div className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-600">No complaints in this queue.</p><p className="mt-1 text-xs text-gray-500">Choose another status or clear the filters.</p></div> : null}
+              </div>
             </div>
 
-            <div className="divide-y divide-gray-100 lg:hidden">
-              {filtered.map(item => (
-                <article key={item.id} className="p-4">
-                  <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelected(item.id)} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select complaint</span></div>
-                  <button onClick={() => navigate(`/complaints/${item.id}`)} className="w-full text-left">
-                    <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-xs font-bold text-gray-500">{item.reference_number}</p><p className="mt-1 font-black text-navy-900">{item.complaint_type}</p></div><PriorityBadge priority={item.priority}/></div>
-                    <p className="mt-2 text-xs font-semibold text-gray-600">{item.address || 'No address'}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status={item.status}/><span className="text-xs text-gray-500">{item.assigned_name || 'Unassigned'}</span></div>
-                  </button>
-                  <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2"><button onClick={() => navigate(`/complaints/${item.id}`)} className="btn-secondary w-full rounded-lg text-xs">View details</button>{item.status === 'awaiting_verification' ? <button onClick={() => navigate(`/complaints/${item.id}`)} className="btn-primary w-full rounded-lg text-xs">Verify</button> : <button onClick={() => openAssign(item)} className="btn-primary w-full rounded-lg text-xs">{item.assigned_to ? 'Reassign' : 'Assign'}</button>}</div>
-                </article>
-              ))}
-              {!filtered.length && <div className="px-5 py-12 text-center"><p className="text-sm font-bold text-gray-500">No complaints in this queue.</p></div>}
-            </div>
-          </section>
-
-          <aside className="card h-fit rounded-xl p-4 xl:sticky xl:top-5">
-            <div className="flex items-start justify-between gap-3"><div><h2 className="font-display font-black text-navy-900">Maintenance availability</h2><p className="mt-1 text-xs text-gray-500">Check who is available and how many active assignments each person has.</p></div><span className="rounded-lg bg-navy-50 px-2 py-1 text-xs font-black text-navy-700">{rankedStaff.length} staff</span></div>
-            <div className="mt-4 divide-y divide-gray-100">
-              {rankedStaff.map((person, index) => {
-                const current = workloadMap[person.id] || person
-                return <div key={person.id} className="py-3 first:pt-0 last:pb-0"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-1.5"><p className="truncate text-xs font-black text-gray-900">{person.full_name}</p>{index === 0 && person.availability_status === 'available' && <span title="Recommended" className="text-gold-500">★</span>}</div><span className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-xs font-black uppercase ${availabilityTone(person.availability_status)}`}>{availabilityLabel(person.availability_status)}</span></div><span className="shrink-0 text-xs font-black text-navy-800">{activeTaskLabel(current.active_tasks)}</span></div>{person.availability_note && <p className="mt-1.5 line-clamp-2 text-xs text-gray-500">{person.availability_note}</p>}</div>
-              })}
-              {!rankedStaff.length && <p className="py-6 text-center text-xs text-gray-500">No Maintenance Personnel are available in this list.</p>}
-            </div>
-          </aside>
-        </div>
+            <ComplaintFocusPanel
+              complaint={focusedComplaint}
+              mode="ecmd"
+              onOpen={complaint => navigate(`/complaints/${complaint.id}`)}
+              primaryAction={focusedComplaint ? {
+                label: focusedComplaint.status === 'awaiting_verification' ? 'Verify completion' : focusedComplaint.assigned_to ? 'Reassign field work' : 'Assign field work',
+                onClick: () => focusedComplaint.status === 'awaiting_verification' ? navigate(`/complaints/${focusedComplaint.id}`) : openAssign(focusedComplaint),
+              } : null}
+              recommendation={rankedStaff.length ? (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-gray-500">Assignment guidance</p><p className="mt-1 text-sm font-black text-navy-900">Maintenance availability</p></div><span className="rounded-full bg-navy-100 px-2.5 py-1 text-xs font-black text-navy-700">{rankedStaff.length} staff</span></div>
+                  <div className="mt-3 divide-y divide-gray-200">
+                    {rankedStaff.slice(0, 3).map((person, index) => {
+                      const current = workloadMap[person.id] || person
+                      return <div key={person.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"><div className="min-w-0"><p className="truncate text-xs font-black text-gray-900">{index === 0 && person.availability_status === 'available' ? '★ ' : ''}{person.full_name}</p><span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-black uppercase ${availabilityTone(person.availability_status)}`}>{availabilityLabel(person.availability_status)}</span></div><span className="shrink-0 text-xs font-black text-navy-800">{activeTaskLabel(current.active_tasks)}</span></div>
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            />
+          </div>
+        </section>
       )}
+
+      <BulkActionPreviewDialog
+        open={bulkPreviewOpen}
+        title="Review WDLCD bulk action"
+        actionLabel={bulkActionLabel}
+        description={bulkActionDescription}
+        complaints={selectedComplaints}
+        warning={bulkWarning}
+        loading={busy}
+        onConfirm={runBulk}
+        onCancel={() => !busy && setBulkPreviewOpen(false)}
+      />
 
       <Dialog
         open={Boolean(assigning)}

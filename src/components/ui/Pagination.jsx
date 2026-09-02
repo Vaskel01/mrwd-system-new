@@ -1,4 +1,4 @@
-export default function Pagination({ page, pageSize, total, onPageChange, label = 'records' }) {
+export default function Pagination({ page, pageSize, total, onPageChange, label = 'records', embedded = false }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   if (total <= pageSize) return null
   const safePage = Math.min(Math.max(page, 1), totalPages)
@@ -12,7 +12,7 @@ export default function Pagination({ page, pageSize, total, onPageChange, label 
   }
 
   return (
-    <nav className="card flex flex-col justify-between gap-3 px-4 py-3 md:flex-row md:items-center" aria-label={`${label} pagination`}>
+    <nav className={`${embedded ? '' : 'card px-4 py-3'} flex flex-col justify-between gap-3 md:flex-row md:items-center`} aria-label={`${label} pagination`}>
       <p className="text-xs text-gray-500">Showing <b>{start}–{end}</b> of <b>{total}</b> {label}</p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => changePage(1)} disabled={safePage <= 1}

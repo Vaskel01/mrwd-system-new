@@ -12,6 +12,9 @@ import SavedViewsBar from '../../components/ui/SavedViewsBar'
 import { useProductionStore } from '../../store/productionStore'
 import BulkActionBar from '../../components/ui/BulkActionBar'
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../config/terminology'
+import BulkActionPreviewDialog from '../../components/ui/BulkActionPreviewDialog'
+import ComplaintFocusPanel from '../../components/ui/ComplaintFocusPanel'
+import { readWorkspacePreferences, writeWorkspacePreferences } from '../../lib/workspacePreferences'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -30,11 +33,10 @@ const PRIORITY_STRIPE = {
   low: 'border-l-green-400',
 }
 
-const TABLE_ACTION_CLASS = 'inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-lg bg-navy-800 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-navy-900 disabled:opacity-50'
-
 export default function CommercialComplaintReviewPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const initialPreferences = useMemo(() => readWorkspacePreferences('commercial_complaints'), [])
   const complaints = useComplaintStore(s => s.complaints)
   const loading = useComplaintStore(s => s.loading)
   const error = useComplaintStore(s => s.error)
@@ -46,15 +48,17 @@ export default function CommercialComplaintReviewPage() {
   const [bulkReason, setBulkReason] = useState('')
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkMessage, setBulkMessage] = useState('')
-  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || 'pending')
-  const [filterPriority, setFilterPriority] = useState(() => searchParams.get('priority') || 'all')
-  const [search, setSearch] = useState(() => searchParams.get('q') || '')
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false)
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || initialPreferences.status || 'pending')
+  const [filterPriority, setFilterPriority] = useState(() => searchParams.get('priority') || initialPreferences.priority || 'all')
+  const [search, setSearch] = useState(() => searchParams.get('q') || initialPreferences.q || '')
   const [sortBy, setSortBy] = useState(() => {
-    const storedSort = searchParams.get('sort')
+    const storedSort = searchParams.get('sort') || initialPreferences.sort
     return storedSort === 'priority_date' ? 'priority_oldest' : storedSort || 'priority_oldest'
   })
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
-  const pageSize = 12
+  const [focusedId, setFocusedId] = useState(() => searchParams.get('focus') || '')
+  const pageSize = 10
 
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
   useEffect(() => {
@@ -64,8 +68,13 @@ export default function CommercialComplaintReviewPage() {
     if (search.trim()) next.q = search.trim()
     if (sortBy !== 'priority_oldest') next.sort = sortBy
     if (page > 1) next.page = String(page)
+    if (focusedId) next.focus = focusedId
     setSearchParams(next, { replace: true })
-  }, [filterStatus, filterPriority, search, sortBy, page, setSearchParams])
+  }, [filterStatus, filterPriority, search, sortBy, page, focusedId, setSearchParams])
+
+  useEffect(() => {
+    writeWorkspacePreferences('commercial_complaints', { status: filterStatus, priority: filterPriority, q: search, sort: sortBy })
+  }, [filterStatus, filterPriority, search, sortBy])
 
   const { updatesAvailable, refreshNow } = useComplaintListRefresh(complaints, fetchComplaints)
 
@@ -92,11 +101,19 @@ export default function CommercialComplaintReviewPage() {
               : new Date(b.created_at) - new Date(a.created_at))
   }, [complaints, filterStatus, filterPriority, search, sortBy])
 
-  const applySavedView = view => { setFilterStatus(view.status || 'pending'); setFilterPriority(view.priority || 'all'); setSearch(view.q || ''); setSortBy(view.sort || 'priority_oldest'); setPage(1) }
+  const applySavedView = view => { setFilterStatus(view.status || 'pending'); setFilterPriority(view.priority || 'all'); setSearch(view.q || ''); setSortBy(view.sort || 'priority_oldest'); setPage(1); setFocusedId('') }
   const toggleSelected = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
+  const previewBulk = () => {
+    if (!selected.length) return
+    if (['priority','request_archive'].includes(bulkChoice) && bulkReason.trim().length < 3) {
+      setBulkMessage('Enter a reason for this bulk action.')
+      return
+    }
+    setBulkMessage('')
+    setBulkPreviewOpen(true)
+  }
   const runBulk = async () => {
     if (!selected.length) return
-    if (['priority','request_archive'].includes(bulkChoice) && bulkReason.trim().length < 3) return setBulkMessage('Enter a reason for this bulk action.')
     setBulkBusy(true); setBulkMessage('')
     try {
       const extra = bulkChoice === 'priority' ? { priority: bulkPriority, reason: bulkReason } : bulkChoice === 'request_archive' ? { reason: bulkReason } : bulkChoice === 'forward_to_ecmd' ? { handoff_note: bulkReason || undefined } : {}
@@ -108,11 +125,40 @@ export default function CommercialComplaintReviewPage() {
       setSelected(failed.map(row => row.id))
       if (!failed.length) setBulkReason('')
       await fetchComplaints()
-    } catch (err) { setBulkMessage(err.message) } finally { setBulkBusy(false) }
+      setBulkPreviewOpen(false)
+    } catch (err) { setBulkMessage(err.message); setBulkPreviewOpen(false) } finally { setBulkBusy(false) }
   }
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
+  const focusedComplaint = paged.find(complaint => complaint.id === focusedId) || paged[0] || null
+  const selectedComplaints = complaints.filter(complaint => selected.includes(complaint.id))
+  const allPageSelected = paged.length > 0 && paged.every(complaint => selected.includes(complaint.id))
+  const bulkActionLabel = {
+    forward_to_ecmd: 'Send to WDLCD',
+    priority: `Change priority to ${PRIORITY_LABELS[bulkPriority]}`,
+    watch: 'Add to watchlist',
+    request_archive: 'Request archive',
+  }[bulkChoice]
+  const bulkActionDescription = bulkChoice === 'forward_to_ecmd'
+    ? 'The selected complaints will leave the Commercial Services review queue and become available for WDLCD dispatch.'
+    : bulkChoice === 'priority'
+      ? `The selected complaints will use ${PRIORITY_LABELS[bulkPriority]} priority. The recorded reason will remain in the activity history.`
+      : bulkChoice === 'request_archive'
+        ? 'A System Supervisor will need to review the archive request before records are archived.'
+        : 'The selected complaints will be added to your personal watchlist.'
+  const bulkWarning = bulkChoice === 'forward_to_ecmd'
+    ? 'Confirm that every selected complaint contains field work and has enough location detail for dispatch.'
+    : bulkChoice === 'priority'
+      ? 'Apply one priority only when the same reason is valid for every selected complaint.'
+      : ''
+
+  const togglePageSelection = () => {
+    const pageIds = paged.map(complaint => complaint.id)
+    setSelected(current => allPageSelected
+      ? current.filter(id => !pageIds.includes(id))
+      : [...new Set([...current, ...pageIds])])
+  }
   if (loading && complaints.length === 0) return <PageLoader label="Loading complaints..." />
 
   return (
@@ -197,74 +243,70 @@ export default function CommercialComplaintReviewPage() {
             <input value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="input-field rounded-lg text-sm" placeholder={bulkChoice === 'forward_to_ecmd' ? 'Optional note for WDLCD' : 'Required reason'} />
           </label>
         ) : null}
-        <button type="button" disabled={bulkBusy} onClick={runBulk} className="btn-primary rounded-lg disabled:opacity-50">{bulkBusy ? 'Applying…' : 'Apply action'}</button>
+        <button type="button" disabled={bulkBusy} onClick={previewBulk} className="btn-primary rounded-lg disabled:opacity-50">Review action</button>
       </BulkActionBar>
 
-      <div className="hidden xl:block card rounded-xl overflow-hidden p-2">
-        <table className="data-table">
-          <colgroup>
-            <col className="w-[31%]" />
-            <col className="w-[13%]" />
-            <col className="w-[10%]" />
-            <col className="w-[12%]" />
-            <col className="w-[14%]" />
-            <col className="w-[9%]" />
-            <col className="w-[11%]" />
-          </colgroup>
-          <thead><tr className="border-b-2 border-gray-200 bg-gray-50 text-left">
-            {['Complaint', 'Customer', 'Priority', 'Status', 'Assigned', 'Submitted', 'Action'].map(h => <th key={h} className="px-4 py-3 text-xs font-black text-gray-500 uppercase tracking-wider">{h}</th>)}
-          </tr></thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtered.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-gray-500">No complaints match your search and filters.</td></tr> : paged.map(c => (
-              <tr key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/complaints/${c.id}`) }} className={`qol-clickable-row hover:bg-gray-50 border-l-4 ${PRIORITY_STRIPE[c.priority]} ${c.priority === 'high' && c.status === 'pending' ? 'bg-red-50/60' : ''}`}>
-                <td className="px-4 py-3">
-                  <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(c.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(c.id)} aria-label={`Select ${c.reference_number}`} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select</span></div>
-                  <p className="font-bold text-gray-900 break-words">{c.complaint_type}</p>
-                  <p className="text-xs text-gray-500 line-clamp-2 break-words">{c.description}</p>
-                  <p className="text-xs text-gray-500 font-mono font-bold mt-1 break-all">{c.reference_number}</p>
-                  {c.status === 'rejected' && <p className="text-xs text-red-600 mt-1 break-words"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>}
-                </td>
-                <td className="px-4 py-3 text-gray-700 break-words">{c.customer_name}</td>
-                <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
-                <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                <td className="px-4 py-3 text-gray-500"><p className="break-words">{c.assigned_name || '—'}</p>{c.assigned_at && <p className="text-xs text-gray-500 mt-1">{new Date(c.assigned_at).toLocaleDateString('en-PH')}</p>}</td>
-                <td className="px-4 py-3 text-gray-500 text-xs break-words">{timeAgo(c.created_at)}</td>
-                <td className="px-4 py-3 pr-5">
-                  <button onClick={event => { event.stopPropagation(); navigate(`/complaints/${c.id}`) }} className={TABLE_ACTION_CLASS}>
-                    Open
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {bulkMessage && !selected.length ? <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900" role="status">{bulkMessage}</div> : null}
 
-      <div className="xl:hidden space-y-3">
-        {filtered.length === 0 ? <div className="card rounded-xl p-10 text-center text-gray-500">No complaints match your search and filters.</div> : paged.map(c => (
-          <div key={c.id} onClick={() => navigate(`/complaints/${c.id}`)} className={`card rounded-xl p-4 border-l-4 ${PRIORITY_STRIPE[c.priority]} cursor-pointer`}>
-            <div className="mb-2 flex items-center gap-2"><input type="checkbox" checked={selected.includes(c.id)} onClick={event => event.stopPropagation()} onChange={() => toggleSelected(c.id)} className="h-4 w-4 accent-navy-800"/><span className="text-xs font-black uppercase text-gray-500">Select complaint</span></div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-bold text-gray-900">{c.complaint_type}</p>
-                <p className="text-xs text-gray-500 font-mono font-bold mt-1">{c.reference_number}</p>
-                <p className="text-xs text-gray-500 mt-1">{c.customer_name} · {timeAgo(c.created_at)}</p>
-                <p className="text-xs text-gray-500 line-clamp-2 break-words mt-1 inline-flex items-center gap-1"><AppIcon name="location" className="w-3.5 h-3.5" />{c.address}</p>
+      <section className="card overflow-hidden rounded-xl" aria-label="Complaint review workspace">
+        <div className="grid min-w-0 xl:grid-cols-[minmax(340px,0.86fr)_minmax(430px,1.14fr)]">
+          <div className="min-w-0 border-b border-gray-100 xl:border-b-0 xl:border-r">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:px-5">
+              <div>
+                <h2 className="font-display font-black text-navy-900">Review queue</h2>
+                <p className="mt-0.5 text-xs text-gray-500">Select an item to review it without leaving the queue.</p>
               </div>
-              <span className="font-display font-black text-2xl text-navy-800" aria-label={`Priority score ${c.priority_score} out of 100`}>{c.priority_score}</span>
+              <button type="button" onClick={togglePageSelection} disabled={!paged.length} className="btn-secondary rounded-lg px-3 py-2 text-xs disabled:opacity-50">{allPageSelected ? 'Clear page' : 'Select page'}</button>
             </div>
-            <div className="flex items-center gap-2 mt-3"><PriorityBadge priority={c.priority}/><StatusBadge status={c.status}/></div>
-            {c.status === 'rejected' && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-xs text-red-700"><span className="font-bold">Reason:</span> {c.rejection_reason || 'Not recorded'}</p>
-              </div>
-            )}
-            <p className="text-xs font-bold text-navy-600 mt-3">Open complaint →</p>
-          </div>
-        ))}
-      </div>
 
-      <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" />
+            <div className="focus-queue-list divide-y divide-gray-100">
+              {paged.map(c => (
+                <article key={c.id} className={`focus-queue-row border-l-4 ${PRIORITY_STRIPE[c.priority]}`} data-active={focusedComplaint?.id === c.id}>
+                  <div className="flex items-start gap-3 p-4">
+                    <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggleSelected(c.id)} aria-label={`Select ${c.reference_number}`} className="mt-1 h-4 w-4 shrink-0 accent-navy-800" />
+                    <button type="button" onClick={() => setFocusedId(c.id)} className="min-w-0 flex-1 text-left" aria-current={focusedComplaint?.id === c.id ? 'true' : undefined}>
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <div className="min-w-0"><p className="break-words text-sm font-black text-gray-900">{c.complaint_type}</p><p className="mt-1 font-mono text-xs font-bold text-gray-500">{c.reference_number}</p></div>
+                        <span className="shrink-0 font-display text-lg font-black text-navy-800" aria-label={`Priority score ${c.priority_score} out of 100`}>{c.priority_score}</span>
+                      </div>
+                      <p className="mt-2 line-clamp-1 break-words text-xs font-bold text-gray-700">{c.customer_name || 'Customer'}</p>
+                      <p className="mt-1 flex min-w-0 items-start gap-1 text-xs text-gray-500"><AppIcon name="location" className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2 break-words">{c.address || 'No address recorded'}</span></p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2"><PriorityBadge priority={c.priority} /><StatusBadge status={c.status} /><span className="text-xs font-bold text-gray-500">{timeAgo(c.created_at)}</span></div>
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {!paged.length ? <div className="px-5 py-14 text-center"><p className="text-sm font-bold text-gray-600">No complaints match this view.</p><p className="mt-1 text-xs text-gray-500">Clear the filters or choose another saved view.</p></div> : null}
+            </div>
+
+            <div className="border-t border-gray-100 p-4">
+              <Pagination page={effectivePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} label="complaints" embedded />
+            </div>
+          </div>
+
+          <ComplaintFocusPanel
+            complaint={focusedComplaint}
+            mode="commercial"
+            onOpen={complaint => navigate(`/complaints/${complaint.id}`)}
+            primaryAction={focusedComplaint?.status === 'pending' ? {
+              label: 'Send to WDLCD',
+              onClick: () => { setSelected([focusedComplaint.id]); setBulkChoice('forward_to_ecmd'); setBulkReason(''); setBulkPreviewOpen(true) },
+            } : null}
+          />
+        </div>
+      </section>
+
+      <BulkActionPreviewDialog
+        open={bulkPreviewOpen}
+        title="Review Commercial Services action"
+        actionLabel={bulkActionLabel}
+        description={bulkActionDescription}
+        complaints={selectedComplaints}
+        warning={bulkWarning}
+        loading={bulkBusy}
+        onConfirm={runBulk}
+        onCancel={() => !bulkBusy && setBulkPreviewOpen(false)}
+      />
     </div>
   )
 }

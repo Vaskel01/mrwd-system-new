@@ -26,7 +26,7 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
     const focusFirst = () => {
       const panel = panelRef.current
       if (!panel) return
-      const autofocus = panel.querySelector('[autofocus]')
+      const autofocus = panel.querySelector('[data-dialog-initial-focus], [autofocus]')
       const firstField = panel.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])')
       ;(autofocus || firstField || panel).focus({ preventScroll: true })
     }
@@ -88,7 +88,7 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
             type="button"
             onClick={onClose}
             disabled={closeDisabled}
-            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/25 text-xl text-white hover:bg-white/10 disabled:opacity-50"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/25 text-xl text-white hover:bg-white/10 focus-visible:outline-white disabled:opacity-50"
             aria-label="Close dialog"
           >
             ×

@@ -7,6 +7,15 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
   const titleId = useId()
   const descriptionId = useId()
   const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+  const closeDisabledRef = useRef(closeDisabled)
+
+  // Inline callbacks and loading state may change while a user types. Keep the
+  // latest values available without restarting the focus trap on every render.
+  useEffect(() => {
+    onCloseRef.current = onClose
+    closeDisabledRef.current = closeDisabled
+  }, [onClose, closeDisabled])
 
   useEffect(() => {
     if (!open) return undefined
@@ -18,15 +27,15 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
       const panel = panelRef.current
       if (!panel) return
       const autofocus = panel.querySelector('[autofocus]')
-      const first = autofocus || panel.querySelector(FOCUSABLE)
-      ;(first || panel).focus()
+      const firstField = panel.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])')
+      ;(autofocus || firstField || panel).focus({ preventScroll: true })
     }
     const timer = window.setTimeout(focusFirst, 20)
 
     const onKeyDown = event => {
-      if (event.key === 'Escape' && !closeDisabled) {
+      if (event.key === 'Escape' && !closeDisabledRef.current) {
         event.preventDefault()
-        onClose?.()
+        onCloseRef.current?.()
         return
       }
       if (event.key !== 'Tab') return
@@ -56,7 +65,7 @@ export default function Dialog({ open, title, description, subtitle, onClose, ch
       document.body.style.overflow = previousOverflow
       if (previousActive instanceof HTMLElement) previousActive.focus()
     }
-  }, [open, closeDisabled, onClose])
+  }, [open])
 
   if (!open) return null
 

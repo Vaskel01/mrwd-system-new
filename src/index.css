@@ -1150,7 +1150,8 @@ html[data-theme='dark'] .bg-yellow-50 { background-color: rgba(120, 53, 15, .3) 
 html[data-theme='dark'] .text-amber-600,
 html[data-theme='dark'] .text-amber-700,
 html[data-theme='dark'] .text-amber-800,
-html[data-theme='dark'] .text-amber-900 { color: #fcd34d !important; }
+html[data-theme='dark'] .text-amber-900,
+html[data-theme='dark'] .text-amber-950 { color: #fcd34d !important; }
 html[data-theme='dark'] .border-amber-200,
 html[data-theme='dark'] .border-amber-300 { border-color: rgba(251, 191, 36, .36) !important; }
 

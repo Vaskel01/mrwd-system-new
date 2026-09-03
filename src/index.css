@@ -214,7 +214,7 @@
     opacity: .45;
   }
   .dialog-surface { border-radius: var(--radius-dialog); }
-  .dialog-header { border-radius: var(--radius-dialog) var(--radius-dialog) 0 0; }
+  .app-main .dialog-header.page-band { border-radius: var(--radius-dialog) var(--radius-dialog) 0 0; }
 
   /* The primary navigation keeps the page-header navy pattern, with the
      same layered water artwork anchored only at the bottom. */

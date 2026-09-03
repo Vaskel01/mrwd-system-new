@@ -102,7 +102,10 @@ router.get('/watched-complaints', requireAuth, async (req, res) => {
 router.put('/complaints/:id/watch', requireAuth, async (req, res) => {
   const complaint = await fetchShapedComplaintById(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
-  const { error } = await req.supabase.from('complaint_watches').upsert({ user_id: req.user.id, complaint_id: req.params.id })
+  const { error } = await req.supabase.from('complaint_watches').upsert(
+    { user_id: req.user.id, complaint_id: req.params.id },
+    { onConflict: 'user_id,complaint_id', ignoreDuplicates: true },
+  )
   if (error) return res.status(400).json({ error: error.message })
   res.json({ watched: true })
 })
@@ -274,7 +277,10 @@ router.post('/complaints/bulk-action', requireAuth, requireOperational, async (r
         if (error) throw error
         await writeComplaintEvent(req.supabase, req.user, id, { eventType: 'priority_changed', title: `Priority changed to ${priority}`, message: reason, customerVisible: false })
       } else if (action === 'watch') {
-        const { error } = await req.supabase.from('complaint_watches').upsert({ user_id: req.user.id, complaint_id: id })
+        const { error } = await req.supabase.from('complaint_watches').upsert(
+          { user_id: req.user.id, complaint_id: id },
+          { onConflict: 'user_id,complaint_id', ignoreDuplicates: true },
+        )
         if (error) throw error
       } else if (action === 'request_archive') {
         if (!hasCapability(req.user, CAPABILITIES.COMMERCIAL_ARCHIVE_REQUEST)) throw new Error('Commercial Services archive-request access required')

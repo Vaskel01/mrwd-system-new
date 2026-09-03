@@ -4,7 +4,7 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { Spinner, ErrorBanner } from './Feedback'
 import AppIcon from './AppIcon'
 
-function Star({ filled, onClick, onMouseEnter, onMouseLeave, size = 'w-7 h-7' }) {
+function Star({ filled, selected = false, value, onClick, onMouseEnter, onMouseLeave, size = 'w-7 h-7' }) {
   const icon = (
     <svg className={size} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.447a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.367 2.446c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.02 9.384c-.783-.57-.38-1.81.588-1.81h4.163a1 1 0 00.95-.69l1.287-3.957z"/>
@@ -12,17 +12,18 @@ function Star({ filled, onClick, onMouseEnter, onMouseLeave, size = 'w-7 h-7' })
   )
 
   if (!onClick) {
-    return <span className={`${filled ? 'text-gold-500' : 'text-gray-200'}`}>{icon}</span>
+    return <span className={`feedback-star ${filled ? 'feedback-star--filled' : 'feedback-star--empty'}`}>{icon}</span>
   }
 
   return (
     <button
       type="button"
-      aria-label={`${filled ? 'Selected' : 'Select'} rating`}
+      aria-label={`${value} out of 5 stars`}
+      aria-pressed={selected}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`transition-colors ${filled ? 'text-gold-500' : 'text-gray-200 hover:text-gold-300'}`}
+      className={`feedback-star transition-colors ${filled ? 'feedback-star--filled' : 'feedback-star--empty'}`}
     >
       {icon}
     </button>
@@ -102,7 +103,7 @@ export default function FeedbackBox({ complaintId }) {
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map(n => <Star key={n} filled={n <= existing.rating} size="w-5 h-5" />)}
+                {[1, 2, 3, 4, 5].map(n => <Star key={n} value={n} filled={n <= existing.rating} size="w-5 h-5" />)}
               </div>
               <span className="text-xs font-bold text-green-800">{existing.rating}/5</span>
             </div>
@@ -133,17 +134,19 @@ export default function FeedbackBox({ complaintId }) {
   }
 
   return (
-    <div className="bg-gold-50 border border-gold-200 rounded-xl p-4">
+    <div className="feedback-form rounded-xl border p-4">
       <p className="text-sm font-bold text-gray-800 mb-1">How did we do?</p>
       <p className="text-xs text-gray-500 mb-3">Let us know how the resolution went.</p>
 
       {error && <div className="mb-3"><ErrorBanner message={error} /></div>}
 
-      <div className="flex gap-1 mb-3">
+      <div className="mb-3 flex gap-1" role="group" aria-label="Resolution rating">
         {[1, 2, 3, 4, 5].map(n => (
           <Star
             key={n}
+            value={n}
             filled={n <= (hover || rating)}
+            selected={n === rating}
             onClick={() => setRating(n)}
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}

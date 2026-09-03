@@ -1081,6 +1081,25 @@ html[data-theme='dark'] .notification-row:focus-within { background: #1b2d47; }
 html[data-theme='dark'] .notification-row--unread:hover,
 html[data-theme='dark'] .notification-row--unread:focus-within { background: #213b62; }
 
+/* Feedback uses a warm, quiet surface in light mode and a true dark surface
+   in dark mode. Keep star states readable without relying on utility colors. */
+.feedback-form {
+  border-color: #ead786;
+  background: #fff9df;
+}
+.feedback-star--filled { color: #d49a08; }
+.feedback-star--empty { color: #c7cdd6; }
+button.feedback-star--empty:hover { color: #e0ad2c; }
+
+html[data-theme='dark'] .feedback-form {
+  border-color: #3a4a62;
+  background: #0d1728;
+  color: var(--md-on-surface);
+}
+html[data-theme='dark'] .feedback-star--filled { color: #f2c75c; }
+html[data-theme='dark'] .feedback-star--empty { color: #53637a; }
+html[data-theme='dark'] button.feedback-star--empty:hover { color: #d9b95e; }
+
 /* Light gold controls retain dark ink in either theme. Dark mode should not
    turn navy utility text white when the supporting surface remains light. */
 html[data-theme='dark'] button[class*="bg-gold-"],

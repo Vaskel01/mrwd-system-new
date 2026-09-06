@@ -408,11 +408,7 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
   const reason = String(req.body?.reason || '').trim()
   if (reason.length < 5) return res.status(400).json({ error: 'Please explain why the issue is not resolved.' })
 
-  const task = await getTaskForComplaint(req.supabase, req.params.id)
-  if (task) {
-    await req.supabase.from('maintenance_tasks').update({ is_active: false, status: 'reopened', superseded_at: new Date().toISOString() }).eq('id', task.id)
-    await logTaskUpdate(req.supabase, task.id, req.user.id, `Customer reopened the complaint. Reason: ${reason}`)
-  }
+  // The database retires the assignment in this same complaint transaction.
   const { error } = await req.supabase.from('complaints').update({
     status: 'pending',
     reopened_at: new Date().toISOString(),
@@ -677,6 +673,10 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
   if (req.user.role === 'maintenance_personnel' && task.assigned_staff_id !== req.user.id) {
     return res.status(403).json({ error: 'This task is not assigned to you.' })
   }
+  if (task.status === 'completed') {
+    const existing = await getComplaintRow(req.supabase, req.params.id)
+    if (existing?.status === 'resolved') return respondWithComplaint(req, res, req.params.id)
+  }
   const now = new Date().toISOString()
   let completion
   try {
@@ -684,11 +684,15 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
   } catch (error) {
     return res.status(400).json({ error: error.message })
   }
-  const { completionNotes, taskUpdate, complaintUpdate } = completion
-  const { error: taskError } = await req.supabase.from('maintenance_tasks').update(taskUpdate).eq('id', task.id)
-  if (taskError) return res.status(400).json({ error: taskError.message })
-  const { error } = await req.supabase.from('complaints').update(complaintUpdate).eq('id', req.params.id)
+  const { completionNotes, taskUpdate } = completion
+  const { data: alreadyCompleted, error } = await req.supabase.rpc('complete_complaint_field_work', {
+    p_complaint_id: req.params.id,
+    p_notes: completionNotes,
+    p_photo_url: taskUpdate.completion_photo_url,
+    p_materials: taskUpdate.materials_used,
+  })
   if (error) return res.status(400).json({ error: error.message })
+  if (alreadyCompleted) return respondWithComplaint(req, res, req.params.id)
 
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   await logTaskUpdate(req.supabase, task.id, req.user.id, `Task completed and complaint resolved. Resolution: ${completionNotes}`)
@@ -785,7 +789,7 @@ router.get('/:id/updates', requireAuth, async (req, res) => {
 router.post('/:id/feedback', requireAuth, requireRole('customer'), async (req, res) => {
   const rating = Number(req.body?.rating)
   const comment = String(req.body?.comment || '').trim()
-  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be a number from 1 to 5.' })
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating must be a whole number from 1 to 5.' })
   const complaint = await getComplaintRow(req.supabase, req.params.id)
   if (!complaint) return res.status(404).json({ error: 'Complaint not found.' })
   if (complaint.resident_id !== req.user.id) return res.status(403).json({ error: 'Not your complaint.' })

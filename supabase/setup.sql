@@ -4817,3 +4817,119 @@ end $$;
 revoke all on function app_private.guard_complaint_service_account() from public,anon,authenticated;
 drop trigger if exists guard_complaint_service_account on public.complaints;
 create trigger guard_complaint_service_account before insert or update on public.complaints for each row execute function app_private.guard_complaint_service_account();
+
+-- Reliability audit: database-enforced lifecycle and atomic field completion.
+-- No data deletion or rewriting of existing complaint history.
+create or replace function app_private.guard_complaint_lifecycle()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+declare role_name text := public.current_user_role();
+begin
+  if auth.uid() is null then return new; end if;
+  if tg_op = 'INSERT' then
+    if role_name = 'customer' and (new.resident_id <> auth.uid() or new.status <> 'pending') then
+      raise exception 'Customer complaints must start pending review';
+    end if;
+    return new;
+  end if;
+  if new.resident_id is distinct from old.resident_id then raise exception 'Complaint ownership cannot be changed'; end if;
+  if role_name = 'customer' then
+    if new.status is distinct from old.status and not (
+      (old.status = 'pending' and new.status = 'cancelled') or
+      (old.status in ('resolved','completed') and new.status = 'pending' and length(trim(coalesce(new.reopen_reason,''))) >= 5)
+    ) then raise exception 'Customers may only cancel pending complaints or reopen resolved complaints with a reason'; end if;
+    if old.status <> 'pending' and new.status = old.status then
+      raise exception 'Only pending complaints can be edited by customers';
+    end if;
+  end if;
+  if new.status in ('resolved','completed') and new.status is distinct from old.status then
+    if role_name <> 'maintenance_personnel' then raise exception 'Only assigned Maintenance Personnel can complete field work'; end if;
+    if not exists(select 1 from public.maintenance_tasks t where t.complaint_id=new.id and t.is_active
+      and t.assigned_staff_id=auth.uid() and t.status='completed'
+      and length(trim(coalesce(t.completion_notes,'')))>=5
+      and coalesce(t.completion_photo_url,'') ~ '^https?://[^/]+/.+') then
+      raise exception 'A completed task with notes and a completion proof photo is required';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_complaint_lifecycle on public.complaints;
+create trigger guard_complaint_lifecycle before insert or update on public.complaints
+for each row execute function app_private.guard_complaint_lifecycle();
+
+create or replace function app_private.guard_task_completion()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+begin
+  if auth.uid() is null then return new; end if;
+  if public.current_user_role()='maintenance_personnel' and tg_op='UPDATE' then
+    if (to_jsonb(new)-array['status','completed_at','completion_notes','completion_photo_url','materials_used','unable_reason','reassignment_requested_at','reassignment_reason','assistance_requested_at','assistance_reason','updated_at'])
+      is distinct from (to_jsonb(old)-array['status','completed_at','completion_notes','completion_photo_url','materials_used','unable_reason','reassignment_requested_at','reassignment_reason','assistance_requested_at','assistance_reason','updated_at']) then
+      raise exception 'Maintenance Personnel cannot change task ownership or assignment';
+    end if;
+    if not old.is_active or old.status not in ('assigned','en_route','in_progress','blocked') then
+      raise exception 'Only active field work can be changed';
+    end if;
+    if new.status not in ('assigned','en_route','in_progress','blocked','completed') then raise exception 'Invalid field-work status'; end if;
+  end if;
+  if new.status='completed' and (tg_op='INSERT' or old.status is distinct from new.status) then
+    if length(trim(coalesce(new.completion_notes,'')))<5 or coalesce(new.completion_photo_url,'') !~ '^https?://[^/]+/.+' then
+      raise exception 'Resolution notes and a completion proof photo are required';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_task_completion on public.maintenance_tasks;
+create trigger guard_task_completion before insert or update on public.maintenance_tasks
+for each row execute function app_private.guard_task_completion();
+
+create or replace function app_private.guard_resolution_feedback()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+begin
+  if auth.uid() is null then return new; end if;
+  if public.current_user_role()<>'customer' or new.resident_id<>auth.uid() or not exists (
+    select 1 from public.complaints c where c.id=new.complaint_id and c.resident_id=auth.uid() and c.status in ('resolved','completed')
+  ) then raise exception 'Feedback is allowed only for your own resolved complaint'; end if;
+  return new;
+end $$;
+drop trigger if exists guard_resolution_feedback on public.feedback;
+create trigger guard_resolution_feedback before insert or update on public.feedback
+for each row execute function app_private.guard_resolution_feedback();
+
+-- Both rows are locked and written inside the same transaction. RLS remains on.
+create or replace function public.complete_complaint_field_work(p_complaint_id uuid,p_notes text,p_photo_url text,p_materials text default null)
+returns boolean language plpgsql security invoker set search_path = '' as $$
+declare c public.complaints; t public.maintenance_tasks;
+begin
+  if auth.uid() is null or public.current_user_role()<>'maintenance_personnel' then raise exception 'Maintenance Personnel access required'; end if;
+  select * into c from public.complaints where id=p_complaint_id for update;
+  if not found then raise exception 'Complaint not found or not assigned to you'; end if;
+  select * into t from public.maintenance_tasks where complaint_id=c.id and is_active order by created_at desc limit 1 for update;
+  if not found or t.assigned_staff_id<>auth.uid() then raise exception 'This task is not assigned to you'; end if;
+  if t.status='completed' and c.status='resolved' then return true; end if;
+  if t.status not in ('assigned','en_route','in_progress','blocked') or c.status not in ('assigned','en_route','in_progress','blocked') then
+    raise exception 'Only active field work can be completed';
+  end if;
+  if length(trim(coalesce(p_notes,'')))<5 or coalesce(trim(p_photo_url),'') !~ '^https?://[^/]+/.+' then raise exception 'Resolution notes and a completion proof photo are required'; end if;
+  update public.maintenance_tasks set status='completed',completed_at=now(),completion_notes=trim(p_notes),completion_photo_url=trim(p_photo_url),
+    materials_used=coalesce(nullif(trim(p_materials),''),t.materials_used),unable_reason=null,reassignment_requested_at=null,reassignment_reason=null,assistance_requested_at=null,assistance_reason=null where id=t.id;
+  update public.complaints set status='resolved',verified_at=null,verified_by=null,resolution_code='resolved',resolution_notes=trim(p_notes),updated_at=now() where id=c.id;
+  return false;
+end $$;
+revoke all on function public.complete_complaint_field_work(uuid,text,text,text) from public,anon;
+grant execute on function public.complete_complaint_field_work(uuid,text,text,text) to authenticated;
+
+-- Retire the completed assignment as part of the customer's reopen transaction.
+-- This narrowly scoped trigger needs elevated access because customers cannot
+-- edit maintenance assignments. It can only act on their own reopened record.
+create or replace function app_private.retire_reopened_assignment()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or auth.uid()<>new.resident_id or public.current_user_role()<>'customer' then return new; end if;
+  if old.status in ('resolved','completed') and new.status='pending' then
+    update public.maintenance_tasks set is_active=false,status='reopened',superseded_at=now() where complaint_id=new.id and is_active;
+  end if;
+  return new;
+end $$;
+revoke all on function app_private.retire_reopened_assignment() from public,anon,authenticated;
+drop trigger if exists retire_reopened_assignment on public.complaints;
+create trigger retire_reopened_assignment after update on public.complaints
+for each row execute function app_private.retire_reopened_assignment();

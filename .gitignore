@@ -32,3 +32,6 @@ server/.env.*
 *.sw?
 
 .vercel
+
+# Local QA screenshots and result records (may show account information)
+/qa-output/

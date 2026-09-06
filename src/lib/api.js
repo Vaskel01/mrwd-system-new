@@ -2,6 +2,8 @@
 // signed-in user's Supabase access token so the backend can identify
 // them and enforce Row Level Security on their behalf.
 
+import { readApiResponse } from './apiResponse.js'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const TOKEN_KEY = 'mrwd_access_token'
 
@@ -22,11 +24,12 @@ export async function apiFetch(path, options = {}) {
     ...(options.headers || {}),
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
-  const data = await res.json().catch(() => ({}))
-
-  if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`)
+  let res
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers })
+  } catch (error) {
+    if (error.name === 'AbortError') throw error
+    throw new Error('Connection interrupted. Your change may not have been saved. Check your connection and refresh to confirm before trying again.', { cause: error })
   }
-  return data
+  return readApiResponse(res)
 }

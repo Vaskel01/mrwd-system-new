@@ -6,6 +6,7 @@ import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRol
 import { getDepartmentAdminIds, getDivisionAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 import { writeComplaintEvent } from '../lib/complaintEvents.js'
 import { buildDirectCompletion } from '../lib/completionWorkflow.js'
+import { buildCommercialHandoff } from '../lib/commercialHandoff.js'
 import { STATUS_LABELS as STATUS_LABEL } from '../../../src/config/terminology.js'
 
 const router = Router()
@@ -433,10 +434,8 @@ router.patch('/:id/forward-to-ecmd', requireAuth, requireCapability(CAPABILITIES
   if (!['pending', 'rejected'].includes(complaint.status)) return res.status(400).json({ error: 'Only a complaint under Commercial Services review can be sent to WDLCD.' })
   const note = String(req.body?.note || '').trim()
   const now = new Date().toISOString()
-  const { error } = await req.supabase.from('complaints').update({
-    status: 'forwarded', forwarded_to_ecmd_at: now, forwarded_to_ecmd_by: req.user.id,
-    rejection_reason: null, rejected_at: null, updated_at: now,
-  }).eq('id', req.params.id)
+  const { error } = await req.supabase.from('complaints')
+    .update(buildCommercialHandoff(note, req.user.id, now)).eq('id', req.params.id)
   if (error) return res.status(400).json({ error: error.message })
   const ecmd = await getDivisionAdminIds(req.supabase, 'WDLCD')
   await notifyUsers(req.supabase, req.user, ecmd, { title: 'Complaint ready for WDLCD dispatch', message: `${complaint.reference_number} was reviewed by NSCCCD and is ready for WDLCD dispatch.`, type: 'assignment', complaintId: req.params.id })

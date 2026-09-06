@@ -4,6 +4,7 @@ import cors from 'cors'
 import authRoutes from './src/routes/auth.js'
 import complaintsRoutes from './src/routes/complaints.js'
 import billingRoutes from './src/routes/billing.js'
+import serviceAccountRoutes from './src/routes/serviceAccounts.js'
 import announcementsRoutes from './src/routes/announcements.js'
 import usersRoutes from './src/routes/users.js'
 import notificationsRoutes from './src/routes/notifications.js'
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/complaints', complaintsRoutes)
 app.use('/api/billing', billingRoutes)
+app.use('/api/service-accounts', serviceAccountRoutes)
 app.use('/api/announcements', announcementsRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/notifications', notificationsRoutes)

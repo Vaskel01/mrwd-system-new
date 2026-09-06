@@ -299,6 +299,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   })
   const { data: inserted, error } = await req.supabase.from('complaints').insert({
     resident_id: req.user.id,
+    service_account_id: req.body?.service_account_id || null,
     category_id: category.id,
     description: description.trim(),
     address_text: address.trim(),

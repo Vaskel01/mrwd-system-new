@@ -9,6 +9,7 @@ import { ErrorBanner } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
 import { MAP_PIN_DARK_COLOR } from '../../config/uiTokens'
 import { TERMS } from '../../config/terminology'
+import { apiFetch } from '../../lib/api'
 
 const schema = z.object({
   complaint_type: z.string().min(1, 'Select a complaint type'),
@@ -151,6 +152,12 @@ async function reverseGeocode(lat, lng, callback) {
 export default function SubmitComplaintPage() {
   const user            = useAuthStore(s => s.user)
   const submitComplaint = useComplaintStore(s => s.submitComplaint)
+  const [serviceAccounts, setServiceAccounts] = useState([])
+  const [serviceAccountId, setServiceAccountId] = useState('')
+  const [accountError, setAccountError] = useState('')
+  useEffect(() => {
+    apiFetch('/service-accounts').then(data => setServiceAccounts(data.accounts)).catch(err => setAccountError(err.message))
+  }, [])
 
   const [initialDraft] = useState(() => readComplaintDraft())
   const initialStep = draftStep(initialDraft)
@@ -287,7 +294,7 @@ export default function SubmitComplaintPage() {
     setSubmitError(null)
     try {
       const result = await submitComplaint(
-        { ...data, photo, gps: gpsCoords },
+        { ...data, photo, gps: gpsCoords, service_account_id: serviceAccountId },
         user.id,
         user.full_name
       )
@@ -376,6 +383,20 @@ export default function SubmitComplaintPage() {
         )})}
       </div>
 
+      <section className="card rounded-xl p-5 space-y-2">
+        <label className="block text-sm font-bold text-gray-700">Service account (optional)
+          <select className="input-field mt-2" value={serviceAccountId} onChange={event => {
+            setServiceAccountId(event.target.value)
+            const account = serviceAccounts.find(item => item.id === event.target.value)
+            if (account?.service_address) { setValue('address', account.service_address); setGpsCoords(null); setLocationMode('saved') }
+          }}>
+            <option value="">General complaint / account not yet verified</option>
+            {serviceAccounts.map(account => <option key={account.id} value={account.id}>{account.account_number} — {account.service_address || account.registered_name}</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-gray-500">Manage verified connections in Billing. You can submit a complaint without an account link.</p>
+        {accountError && <p role="alert" className="text-xs text-red-700">Service accounts could not load: {accountError}. You can still file a general complaint.</p>}
+      </section>
       <form onSubmit={handleSubmit(onSubmit)}>
 
         {/* Step 0 — Type */}

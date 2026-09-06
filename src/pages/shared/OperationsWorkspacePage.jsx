@@ -5,6 +5,8 @@ import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import { availabilityLabel, departmentDisplayName, divisionDisplayName, TERMS } from '../../config/terminology'
 import { useToastStore } from '../../store/toastStore'
+import ServiceAccountReview from '../../components/ui/ServiceAccountReview'
+import ServiceAccountDirectory from '../../components/ui/ServiceAccountDirectory'
 
 const MODULE_CONFIG = {
   commercial: {
@@ -363,7 +365,7 @@ function BillingTab({ data, busy, run }) {
         <p className="mt-3 text-xs text-gray-500">{data?.account_registry?.length || 0} customer accounts are currently visible.</p>
       </Section>
 
-      <Section title="Billing import" description="Check customer links, duplicate billing periods, dates, and amounts before importing any billing records.">
+      <Section title="Billing import" description="Match bills to the official account list. Customers do not need a login yet. Reimport an account and billing period to update its bill or payment status.">
         <div className="max-w-full break-all rounded-lg bg-gray-50 p-3 font-mono text-xs leading-5 text-gray-600">account_number, billing_period, previous_reading, current_reading, consumption, amount_due, due_date, status</div>
         <input type="file" accept=".csv,text/csv" onChange={event => { setBillingFile(event.target.files?.[0] || null); setPreviews(value => ({ ...value, billing: null })) }} className="input-field mt-3 min-w-0 max-w-full rounded-lg" />
         <div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" disabled={!billingFile || validationBusy === 'billing'} onClick={() => validateFile('billing', billingFile)} className="btn-secondary rounded-lg">{validationBusy === 'billing' ? 'Validating…' : 'Validate file'}</button><button type="button" disabled={!billingFile || !previews.billing?.can_import || busy === 'billing-import'} onClick={async () => { const ok = await run('billing-import', () => importFile('billing', billingFile), 'Billing file processed. Review the batch results below.'); if (ok) setPreviews(value => ({ ...value, billing: null })) }} className="btn-primary rounded-lg disabled:opacity-50">Import validated billing</button></div>
@@ -371,6 +373,8 @@ function BillingTab({ data, busy, run }) {
       </Section>
     </div>
 
+    <ServiceAccountReview />
+    <ServiceAccountDirectory refreshVersion={data?.account_registry?.[0]?.updated_at} />
     <Section title="Recent billing imports">
       {(data?.billing_batches || []).length === 0 ? <p className="text-sm text-gray-500">No billing files have been imported.</p> : <div className="space-y-2">{data.billing_batches.map(item => <div key={item.id} className="grid min-w-0 gap-2 rounded-lg border border-gray-200 p-3 text-xs sm:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]"><span className="min-w-0 break-all font-black text-navy-900">{item.filename}</span><span>{item.imported_count}/{item.row_count} imported</span><span className={item.failed_count ? 'font-bold text-red-700' : 'text-green-700'}>{item.failed_count} failed</span><span>{formatDate(item.created_at)}</span></div>)}</div>}
     </Section>

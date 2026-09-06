@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { useBillingStore } from '../../store/billingStore'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
+import ServiceAccountsPanel from '../../components/ui/ServiceAccountsPanel'
 
 function formatPeso(amount) {
   return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })
@@ -24,16 +25,21 @@ function WaterUseBar({ consumption, max = 30 }) {
 
 export default function BillingPage() {
   const user = useAuthStore(s => s.user)
-  const getMyBills = useBillingStore(s => s.getMyBills)
+  const allBills = useBillingStore(s => s.bills)
+  const billsOwner = useBillingStore(s => s.ownerId)
+  const [selectedAccount, setSelectedAccount] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
   const loading = useBillingStore(s => s.loading)
   const error = useBillingStore(s => s.error)
   const fetchBills = useBillingStore(s => s.fetchBills)
-  const bills = getMyBills(user.id)
+  const bills = (billsOwner === user?.id ? allBills : []).filter(bill => !accountNumber || bill.account_number === accountNumber)
+    .toSorted((a, b) => new Date(b.due_date) - new Date(a.due_date))
 
   useEffect(() => { fetchBills() }, [fetchBills])
 
   const unpaidBills  = bills.filter(b => b.status === 'unpaid')
-  const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + b.amount_due, 0)
+  const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + Number(b.amount_due), 0)
+  const updatedAt = bills.map(bill => bill.source_updated_at).filter(Boolean).sort().at(-1)
   const latestBill   = bills[0]
   const overdueBills = bills.filter(b => isOverdue(b.due_date, b.status))
 
@@ -63,10 +69,12 @@ export default function BillingPage() {
             <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
             <p className="text-navy-300 text-sm mt-1">Account: <span className="text-white font-semibold">{user?.full_name}</span></p>
           </div>
-          <p className="font-display text-4xl font-black leading-none text-gold-400">{formatPeso(totalUnpaid)}</p>
+            <p className="font-display text-4xl font-black leading-none text-gold-400">{bills.length ? formatPeso(totalUnpaid) : '—'}</p>
         </div>
       </div>
 
+      <ServiceAccountsPanel selected={selectedAccount} onSelect={(id, account) => { setSelectedAccount(id); setAccountNumber(account?.account_number || ''); fetchBills() }} />
+      <p className="text-xs text-gray-500">{updatedAt ? `Billing data last imported: ${new Date(updatedAt).toLocaleString('en-PH')}. Payments appear after MRWD imports an updated report.` : 'No confirmed billing import time is available. Existing records may be demonstration data; confirm balances with MRWD.'}</p>
       {/* Overdue alert banner */}
       {overdueBills.length > 0 && (
         <div className="rounded-xl border-l-4 border-red-600 bg-red-50 px-4 py-3 flex items-start gap-3">
@@ -109,8 +117,8 @@ export default function BillingPage() {
         </div>
         <div className={`stat-card rounded-xl ${totalUnpaid > 0 ? 'accent-red' : 'accent-green'}`}>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Amount due</p>
-          <p className={`font-display font-black text-3xl leading-none ${totalUnpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatPeso(totalUnpaid)}</p>
-          <p className="text-xs text-gray-500 mt-1.5">{unpaidBills.length === 0 ? 'No balance due' : `${unpaidBills.length} unpaid`}</p>
+          <p className={`font-display font-black text-3xl leading-none ${totalUnpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>{bills.length ? formatPeso(totalUnpaid) : '—'}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{!bills.length ? 'Billing information unavailable' : unpaidBills.length === 0 ? 'No unpaid bills in imported records' : `${unpaidBills.length} unpaid`}</p>
         </div>
         <div className="stat-card accent-amber rounded-xl">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Water use</p>
@@ -129,7 +137,7 @@ export default function BillingPage() {
         {bills.length === 0 ? (
           <div className="p-8">
             <EmptyState icon={<AppIcon name="billing" className="h-10 w-10" />} title="No bills yet"
-              description="New billing statements will appear here after they are issued." />
+              description="Bills appear after MRWD imports a report and verifies your service-account link. No records does not mean there is no balance." />
           </div>
         ) : (
         <>

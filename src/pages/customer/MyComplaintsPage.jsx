@@ -40,6 +40,7 @@ const STATUS_CONFIG = {
 export default function MyComplaintsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [accountFilter, setAccountFilter] = useState(() => searchParams.get('account') || '')
   const initialPreferences = useMemo(() => readWorkspacePreferences('customer_complaints'), [])
   const user = useAuthStore(state => state.user)
   const allComplaints = useComplaintStore(state => state.complaints)
@@ -55,11 +56,12 @@ export default function MyComplaintsPage() {
   useEffect(() => { fetchComplaints() }, [fetchComplaints])
   useEffect(() => {
     const next = {}
+    if (accountFilter) next.account = accountFilter
     if (filter !== 'all') next.status = filter
     if (search.trim()) next.q = search.trim()
     if (page > 1) next.page = String(page)
     setSearchParams(next, { replace: true })
-  }, [filter, search, page, setSearchParams])
+  }, [filter, search, page, accountFilter, setSearchParams])
 
   useEffect(() => {
     writeWorkspacePreferences('customer_complaints', { status: filter, q: search })
@@ -82,11 +84,11 @@ export default function MyComplaintsPage() {
         || (filter === 'active' ? ['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'].includes(complaint.status)
           : filter === 'resolved' ? ['awaiting_verification', 'resolved', 'completed'].includes(complaint.status)
           : complaint.status === filter)
-      const matchesSearch = !query || [complaint.reference_number, complaint.complaint_type, complaint.description, complaint.address, complaint.status, complaint.assigned_name, complaint.rejection_reason]
+      const matchesSearch = !query || [complaint.service_account_number, complaint.reference_number, complaint.complaint_type, complaint.description, complaint.address, complaint.status, complaint.assigned_name, complaint.rejection_reason]
         .some(value => String(value || '').toLowerCase().includes(query))
-      return matchesStatus && matchesSearch
+      return matchesStatus && matchesSearch && (!accountFilter || complaint.service_account_id === accountFilter)
     })
-  }, [complaints, filter, search])
+  }, [complaints, filter, search, accountFilter])
 
   const effectivePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize)
@@ -94,6 +96,7 @@ export default function MyComplaintsPage() {
 
   return (
     <div className="space-y-5">
+      {accountFilter && <div className="card rounded-xl p-4 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-gray-700">Showing your complaints for the selected service account.</p><button className="btn-secondary" onClick={() => { setAccountFilter(''); setPage(1) }}>Show all accounts</button></div>}
       <div className="page-band wave-header page-header">
         <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>

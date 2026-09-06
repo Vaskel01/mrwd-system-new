@@ -54,6 +54,7 @@ export const useComplaintStore = create((set, get) => ({
       method: 'POST',
       body: JSON.stringify({
         complaint_type: formData.complaint_type,
+        service_account_id: formData.service_account_id || null,
         description: formData.description,
         address: formData.address,
         gps: formData.gps || null,

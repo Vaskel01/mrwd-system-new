@@ -4700,3 +4700,120 @@ comment on table public.divisions is 'Organizational divisions under MRWD depart
 comment on column public.profiles.division_id is 'Operational division assignment for staff accounts.';
 comment on column public.complaints.routed_division_id is 'Division responsible for field routing; field-related complaints are routed to WDLCD.';
 comment on column public.maintenance_crews.division_id is 'Owning operational division; MRWD maintenance crews belong to WDLCD.';
+
+-- Apply after setup.sql. Existing bills are retained; no official account data is fabricated.
+create table if not exists public.service_account_requests (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id),
+  account_number text not null check (length(account_number) between 1 and 80),
+  ownership_note text not null check (length(trim(ownership_note)) between 5 and 1000),
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  review_note text,
+  reviewed_by uuid references public.profiles(id),
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists service_account_requests_pending on public.service_account_requests(customer_id, account_number) where status='pending';
+alter table public.service_account_requests enable row level security;
+revoke all on public.service_account_requests from anon,authenticated;
+grant select on public.service_account_requests to authenticated;
+drop policy if exists service_account_requests_read on public.service_account_requests;
+create policy service_account_requests_read on public.service_account_requests for select to authenticated
+  using (customer_id=(select auth.uid()) or public.current_user_has_capability('commercial.billing'));
+drop policy if exists service_accounts_read_linked on public.customer_account_registry;
+create policy service_accounts_read_linked on public.customer_account_registry for select to authenticated
+  using (linked_profile_id=(select auth.uid()) and is_active);
+create unique index if not exists service_accounts_number_normalized on public.customer_account_registry(upper(trim(account_number)));
+
+create or replace function app_private.request_service_account(p_account_number text, p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare result uuid; normalized text := upper(trim(coalesce(p_account_number,'')));
+begin
+  if auth.uid() is null or app_private.current_user_role()<>'customer' then raise exception 'Customer access required'; end if;
+  if length(normalized) not between 1 and 80 or length(trim(coalesce(p_note,''))) not between 5 and 1000 then
+    raise exception 'Enter an account number and a short explanation of your relationship to the account';
+  end if;
+  if exists(select 1 from public.customer_account_registry where upper(trim(account_number))=normalized and linked_profile_id=auth.uid() and is_active) then
+    raise exception 'This service account is already linked to you';
+  end if;
+  insert into public.service_account_requests(customer_id,account_number,ownership_note)
+    values(auth.uid(),normalized,trim(p_note))
+    on conflict(customer_id,account_number) where status='pending'
+    do update set ownership_note=excluded.ownership_note returning id into result;
+  return result;
+end $$;
+
+create or replace function public.request_service_account(p_account_number text,p_note text) returns uuid
+language sql security invoker set search_path='' as $$ select app_private.request_service_account(p_account_number,p_note) $$;
+
+create or replace function app_private.review_service_account(p_request_id uuid,p_approve boolean,p_note text) returns void
+language plpgsql security definer set search_path='' as $$
+declare r public.service_account_requests; a public.customer_account_registry;
+begin
+  if auth.uid() is null or not app_private.current_user_has_capability('commercial.billing') then raise exception 'Commercial billing access required'; end if;
+  if p_approve is null or length(trim(coalesce(p_note,''))) not between 5 and 1000 then raise exception 'Record the verification method or rejection reason'; end if;
+  select * into r from public.service_account_requests where id=p_request_id for update;
+  if r.id is null or r.status<>'pending' then raise exception 'Request is no longer pending'; end if;
+  if p_approve then
+    select * into a from public.customer_account_registry where upper(trim(account_number))=r.account_number and is_active for update;
+    if a.id is null then raise exception 'Import this official service account into the customer account list first'; end if;
+    if a.linked_profile_id is not null and a.linked_profile_id<>r.customer_id then raise exception 'Account already belongs to another customer login'; end if;
+    update public.customer_account_registry set linked_profile_id=r.customer_id,updated_at=now() where id=a.id;
+  end if;
+  update public.service_account_requests set status=case when p_approve then 'approved' else 'rejected' end,
+    review_note=trim(p_note),reviewed_by=auth.uid(),reviewed_at=now() where id=r.id;
+  insert into public.audit_logs(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),'service_account.reviewed','service_account_request',r.id,jsonb_build_object('approved',p_approve,'note',trim(p_note)));
+end $$;
+create or replace function public.review_service_account(p_request_id uuid,p_approve boolean,p_note text) returns void
+language sql security invoker set search_path='' as $$ select app_private.review_service_account(p_request_id,p_approve,p_note) $$;
+
+-- Legacy profile editing can never claim an official account automatically.
+create or replace function app_private.validate_my_customer_account(p_account_number text) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare verified boolean; state text;
+begin
+  if auth.uid() is null or app_private.current_user_role()<>'customer' then raise exception 'Customer access required'; end if;
+  select exists(select 1 from public.customer_account_registry where upper(trim(account_number))=upper(trim(p_account_number)) and linked_profile_id=auth.uid() and is_active) into verified;
+  state := case when verified then 'verified' when trim(coalesce(p_account_number,''))='' then 'unverified' else 'pending_review' end;
+  update public.profiles set account_validation_status=state,account_validated_at=case when verified then now() else null end where id=auth.uid();
+  return jsonb_build_object('status',state,'message',case when verified then 'Service account linked.' else 'Use Billing to request service-account verification.' end);
+end $$;
+
+revoke all on function app_private.request_service_account(text,text),app_private.review_service_account(uuid,boolean,text),public.request_service_account(text,text),public.review_service_account(uuid,boolean,text) from public,anon;
+grant execute on function app_private.request_service_account(text,text),app_private.review_service_account(uuid,boolean,text),public.request_service_account(text,text),public.review_service_account(uuid,boolean,text) to authenticated;
+
+alter table public.bills alter column customer_id drop not null;
+alter table public.bills add column if not exists source_updated_at timestamptz;
+create unique index if not exists bills_account_period on public.bills(upper(trim(account_number)),billing_period) where account_number is not null;
+drop policy if exists bills_select on public.bills;
+create policy bills_select on public.bills for select to authenticated using (
+  public.current_user_has_capability('commercial.billing') or
+  (account_number is null and customer_id=(select auth.uid())) or
+  exists(select 1 from public.customer_account_registry a where upper(trim(a.account_number))=upper(trim(bills.account_number)) and a.linked_profile_id=(select auth.uid()) and a.is_active)
+);
+
+alter table public.complaints add column if not exists service_account_id uuid references public.customer_account_registry(id);
+alter table public.complaints add column if not exists service_account_number text;
+create index if not exists complaints_service_account on public.complaints(service_account_id) where service_account_id is not null;
+create or replace function app_private.guard_complaint_service_account() returns trigger
+language plpgsql security definer set search_path='' as $$
+declare a public.customer_account_registry;
+begin
+  if tg_op='UPDATE' then
+    if new.service_account_id is distinct from old.service_account_id or new.service_account_number is distinct from old.service_account_number then
+      raise exception 'The service account recorded on a complaint cannot be changed';
+    end if;
+    return new;
+  end if;
+  new.service_account_number := null;
+  if new.service_account_id is not null then
+    select * into a from public.customer_account_registry where id=new.service_account_id and linked_profile_id=new.resident_id and is_active;
+    if a.id is null then raise exception 'Select a verified service account linked to the complaint submitter'; end if;
+    new.service_account_number := a.account_number;
+  end if;
+  return new;
+end $$;
+revoke all on function app_private.guard_complaint_service_account() from public,anon,authenticated;
+drop trigger if exists guard_complaint_service_account on public.complaints;
+create trigger guard_complaint_service_account before insert or update on public.complaints for each row execute function app_private.guard_complaint_service_account();

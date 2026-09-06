@@ -404,20 +404,9 @@ async function existingAccountRegistry(supabase, accountNumbers = []) {
   return existing
 }
 
-async function linkedCustomerAccounts(supabase, accountNumbers = []) {
-  const unique = [...new Set(accountNumbers.filter(Boolean))]
-  const linked = new Set()
-  for (let index = 0; index < unique.length; index += 250) {
-    const chunk = unique.slice(index, index + 250)
-    const { data, error } = await supabase.from('profiles').select('account_number').eq('role', 'customer').in('account_number', chunk)
-    if (error) throw error
-    for (const row of data || []) linked.add(String(row.account_number || '').toUpperCase())
-  }
-  return linked
-}
-
 async function validateAccountImportRows(supabase, inputRows) {
-  const rows = inputRows.slice(0, 2000)
+  if (inputRows.length > 2000) throw new Error('Split the account file into batches of at most 2,000 rows. No rows were imported.')
+  const rows = inputRows
   const normalized = rows.map((row, index) => ({
     row: index + 2,
     account_number: trimmed(row.account_number).toUpperCase(),
@@ -449,14 +438,15 @@ async function validateAccountImportRows(supabase, inputRows) {
 }
 
 async function validateBillingImportRows(supabase, inputRows) {
-  const rows = inputRows.slice(0, 5000)
+  if (inputRows.length > 5000) throw new Error('Split the billing file into batches of at most 5,000 rows. No rows were imported.')
+  const rows = inputRows
   const normalized = rows.map((row, index) => ({ ...row, row: index + 2, account_number: trimmed(row.account_number).toUpperCase(), billing_period: trimmed(row.billing_period) }))
   const keys = new Map()
   for (const row of normalized) {
     const key = `${row.account_number}|${row.billing_period}`
     if (row.account_number && row.billing_period) keys.set(key, (keys.get(key) || 0) + 1)
   }
-  const linked = await linkedCustomerAccounts(supabase, normalized.map(row => row.account_number))
+  const linked = await existingAccountRegistry(supabase, normalized.map(row => row.account_number))
   const errors = []
   const validRows = []
   for (const row of normalized) {
@@ -464,7 +454,7 @@ async function validateBillingImportRows(supabase, inputRows) {
     const key = `${row.account_number}|${row.billing_period}`
     if (!row.account_number) rowErrors.push('account_number is required')
     if (!row.billing_period) rowErrors.push('billing_period is required')
-    if (row.account_number && !linked.has(row.account_number)) rowErrors.push('account number is not linked to a customer profile')
+    if (row.account_number && !linked.has(row.account_number)) rowErrors.push('import this account into the official customer account list first; a customer login is not required')
     if (row.account_number && row.billing_period && keys.get(key) > 1) rowErrors.push('duplicate account_number + billing_period in this file')
     for (const field of ['previous_reading','current_reading','consumption','amount_due']) {
       const value = row[field]
@@ -530,12 +520,12 @@ router.post('/billing/import', requireAuth, requireCapability(CAPABILITIES.COMME
     const failures = []
     for (const row of validation.validRows) {
       try {
-        const { data: customer, error: customerError } = await req.supabase.from('profiles')
-          .select('id').eq('role', 'customer').ilike('account_number', row.account_number).maybeSingle()
+        const { data: customer, error: customerError } = await req.supabase.from('customer_account_registry')
+          .select('id').eq('account_number', row.account_number).maybeSingle()
         if (customerError) throw customerError
-        if (!customer) throw new Error('account number is not linked to a customer profile')
+        if (!customer) throw new Error('Account was not found in the official account list')
         const bill = {
-          customer_id: customer.id,
+          customer_id: null,
           account_number: row.account_number,
           billing_period: row.billing_period,
           previous_reading: numberValue(row.previous_reading ?? 0, 'previous_reading'),
@@ -546,9 +536,10 @@ router.post('/billing/import', requireAuth, requireCapability(CAPABILITIES.COMME
           status: String(row.status || 'unpaid').toLowerCase(),
           source_batch_id: batch.id,
           import_row_number: row.row,
+          source_updated_at: new Date().toISOString(),
         }
         const { data: existing, error: existingError } = await req.supabase.from('bills').select('id')
-          .eq('customer_id', customer.id).eq('billing_period', row.billing_period).maybeSingle()
+          .eq('account_number', row.account_number).eq('billing_period', row.billing_period).maybeSingle()
         if (existingError) throw existingError
         const result = existing ? await req.supabase.from('bills').update(bill).eq('id', existing.id) : await req.supabase.from('bills').insert(bill)
         if (result.error) throw result.error

@@ -152,6 +152,8 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     reference_number: row.reference_number || `MRWD-${String(row.id).slice(0, 8).toUpperCase()}`,
     customer_id: row.resident_id,
     customer_name: profileMap[row.resident_id] || 'Customer profile unavailable',
+    service_account_id: row.service_account_id || null,
+    service_account_number: row.service_account_number || null,
     complaint_type: categoryMap[row.category_id] || 'Unknown',
     description: row.description,
     address: row.address_text,

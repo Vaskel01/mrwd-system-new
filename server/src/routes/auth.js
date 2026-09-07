@@ -127,8 +127,13 @@ router.patch('/password', requireAuth, async (req, res) => {
   const { error } = await client.auth.updateUser({ password })
   if (error) return res.status(400).json({ error: error.message })
 
-  await req.supabase.rpc('record_my_password_change')
-  await writeAudit(req.supabase, req.user, 'account.password_changed', 'profile', req.user.id)
+  const { error: profileUpdateError } = await client.rpc('record_my_password_change')
+  if (profileUpdateError) {
+    return res.status(500).json({
+      error: 'Your password changed, but the account status could not be updated. Sign in with the new password and contact a System Supervisor.',
+    })
+  }
+  await writeAudit(client, req.user, 'account.password_changed', 'profile', req.user.id)
   await securityEvent({ actorId: req.user.id, email: req.user.email, eventType: 'password.changed', success: true })
   const { data: sessionData } = await client.auth.getSession()
   res.json({

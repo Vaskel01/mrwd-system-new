@@ -32,7 +32,9 @@ Scope: continue the untested checks using supplied demo accounts, labelled synth
 | Approval review | Two non-operational approval fixtures were inserted for testing the reviewer, not the request-creation UI. Self-review displayed “A different System Supervisor must review this request” and stayed pending. Independent review became approved with a review timestamp. |
 | Stale-record save | After fixture cleanup, submitting a stale displayed approval returned “Approval request not found,” not a false success. |
 | Auth outage | Automated HTTP test used a local simulated auth provider returning 503 and verified the application's real login endpoint returns the service-unavailable message. No real provider outage was induced. |
-| Photo failure recovery | Six automated cases covered successful save, lost-response recovery, definitive-save-failure cleanup, failed reconciliation, cleanup failure, and unique owner-scoped paths. A live disposable 1×1 image proved owner upload/removal, cross-user delete denial, and zero object remaining after cleanup. No real complaint was created or changed. |
+| Photo failure recovery | Seven automated cases covered validation, successful save, lost-response recovery, definitive-save-failure cleanup, failed reconciliation, cleanup failure, and unique owner-scoped paths. A live disposable 1×1 image proved owner upload/removal, cross-user delete denial, and zero object remaining after cleanup. No real complaint was created or changed. |
+| First-login password change | A randomly generated temporary staff fixture logged in with `must_change_password=true`. Missing/wrong current password, password reuse, and a weak password returned 400. A valid change cleared the flag, set `last_password_changed_at`, returned a refreshed session, rejected the old password, and accepted the new one. The fixture was deactivated, globally signed out, and deleted; database verification found zero remaining Auth users or profiles. |
+| Password-reset privacy | An isolated local Auth-provider simulation confirmed that registered-looking and absent-looking addresses receive the same generic HTTP 200 response. Blank email returns 400. No email was sent. |
 
 ## Test-harness correction
 
@@ -46,7 +48,7 @@ Baseline customer billing count was verified back at six. These QA deletions are
 
 ## Build and test evidence
 
-- `npm test`: **53 passed, zero failed** (includes the HTTP outage, restricted-lookup, and interrupted-photo regressions).
+- `npm test`: **54 passed, zero failed** (includes the HTTP outage, password-reset privacy, restricted-lookup, and interrupted-photo regressions).
 - `npm run lint`: passed.
 - `npm run build`: passed; existing >500 kB main-chunk warning remains.
 - `git diff --check`: passed.
@@ -60,10 +62,12 @@ Baseline customer billing count was verified back at six. These QA deletions are
 3. **Hosted latest-code verification:** Vercel inspection on September 7 showed production at `54f9bf07e724e943ca541a74870f4fe95dc57357` and a newer ready preview at `77077d2f9dda37e5f5f9ae6d5ac1ed14fa422611`. Neither contains all current local fixes. No push, promotion, or deployment was performed.
 4. **Production report scheduling:** local runner/in-app notice passed, but a real hosted timed invocation and its production CRON_SECRET configuration remain unverified.
 5. **Failure coverage limits:** deterministic interrupted-save recovery and live Storage authorization passed, but no physical mobile-network interruption, recovery from a partially transferred Storage object, sustained load test, or exhaustive race testing of every mutable endpoint was executed.
-6. **Credential workflows:** real password-reset email receipt and first-login password-change completion still require a controlled mailbox and the user's credential-entry step.
+6. **Credential workflows:** first-login password change and password-reset response privacy passed. Real password-reset email receipt still requires a controlled mailbox and approved delivery test.
 
 ## Source reference for security review
 
 The lookup design preserves the existing general table access restrictions and keeps privileged credentials server-side, consistent with [Supabase's RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security). Photo cleanup uses the Storage API rather than direct SQL deletion and grants DELETE only when the authenticated owner ID and first path segment both match, consistent with [Storage access control](https://supabase.com/docs/guides/storage/security/access-control) and [Storage schema guidance](https://supabase.com/docs/guides/storage/schema/design).
+
+The password tests follow Supabase's current guidance for current-password validation, refreshed sessions, and password-recovery links: [Password security](https://supabase.com/docs/guides/auth/password-security) and [resetPasswordForEmail](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail).
 
 The post-migration Supabase security advisor reported one pre-existing warning: leaked-password protection is disabled. The photo policy itself introduced no security-advisor finding.

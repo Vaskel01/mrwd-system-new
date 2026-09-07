@@ -39,6 +39,28 @@ CRON_SECRET
 PASSWORD_RESET_REDIRECT_URL=https://YOUR_DOMAIN/reset-password
 ```
 
+Optional application-notification providers:
+
+```text
+APP_BASE_URL=https://YOUR_DOMAIN
+RESEND_API_KEY
+NOTIFICATION_EMAIL_FROM=MRWD <notifications@YOUR_DOMAIN>
+TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN
+TWILIO_MESSAGING_SERVICE_SID
+```
+
+Use `TWILIO_FROM_NUMBER` instead of `TWILIO_MESSAGING_SERVICE_SID` only when the Twilio account sends from one approved number. Configure either email, SMS, or both. Provider secrets are server-only variables and must never use the `VITE_` prefix.
+
+Optional platform-readiness monitoring:
+
+```text
+SUPABASE_PROJECT_REF
+SUPABASE_MANAGEMENT_TOKEN
+```
+
+Create the management token with read-only Auth configuration and backup permissions. The System Health response reports only readiness state; it does not return the token or SMTP credentials.
+
 Optional for split-origin deployments:
 
 ```text
@@ -51,9 +73,16 @@ CORS_ORIGIN=https://YOUR_FRONTEND_DOMAIN
 
 ```text
 /api/production/cron/run-reports
+/api/production/cron/run-notifications
 ```
 
-The endpoint is protected by `CRON_SECRET`. Scheduled reports also have a manual **Run Now** path in the application for troubleshooting.
+Both endpoints are protected by `CRON_SECRET`. Scheduled reports have a manual **Run Now** path, and System Health has **Deliver pending now** for notification troubleshooting.
+
+The checked-in schedules run daily so they remain compatible with Vercel Hobby scheduling. On a plan that supports more frequent cron execution, change the notification schedule to the required service level, such as every five minutes, and verify the production invocation after deployment.
+
+### Authentication email
+
+Password resets, confirmations, and other Auth messages are sent by Supabase Auth—not by the application notification worker. Configure an approved custom SMTP provider in Supabase **Authentication → SMTP Settings**, add the deployed reset URL to the Auth redirect allow list, then test receipt with an address controlled by the project team.
 
 ## Generic Node hosting
 
@@ -92,6 +121,10 @@ At minimum verify:
 - System Supervisor MFA and Staff Accounts.
 - Commercial billing CSV validation/import.
 - Scheduled-report configuration and System Health.
+- External email/SMS delivery with clearly labelled test recipients.
+- Actual password-reset email receipt through Supabase custom SMTP.
+- Production cron invocations in hosting logs.
+- Backup availability and one isolated restore rehearsal using `docs/RECOVERY.md`.
 
 ## Rollback
 

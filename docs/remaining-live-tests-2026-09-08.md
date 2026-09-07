@@ -10,6 +10,8 @@ Scope: continue the untested checks using supplied demo accounts, labelled synth
 - Ownership review: with the user's explicit approval, return name, email, and phone only for customer IDs on RLS-visible pending requests to staff with `commercial.billing`. The server-only lookup selects four fields including its internal join ID; only three contact fields reach the client. Customer, Maintenance, ECMD, and System Supervisor roles do not receive this endpoint's billing permission. General profile RLS and database grants are unchanged.
 - Account directory: refresh linked-account status after ownership review, without waiting for a subsequent import/page reload. React review emphasized event-driven refresh and a primitive refresh-version dependency.
 - Photo persistence: validate image type and the 6 MB standard-upload limit, generate collision-resistant object paths, and reconcile an interrupted save before cleanup. If the record committed despite a lost response, the app recovers it and preserves the referenced photo; if the record is definitively absent, the owner removes the orphan through the Storage API.
+- External delivery: added a collision-safe database claim function, Resend email and Twilio SMS adapters, three-attempt retry limits, a secured cron endpoint, manual System Health delivery, failed-item requeue controls, and duplicate-safe handling when a provider receipt cannot be recorded.
+- Platform readiness: System Health can report custom Auth SMTP, leaked-password protection, and managed-backup availability through an optional read-only Supabase Management API token. A separate recovery runbook covers isolated restore rehearsals and the configuration that database backups do not restore.
 
 ## Executed checks
 
@@ -48,7 +50,7 @@ Baseline customer billing count was verified back at six. These QA deletions are
 
 ## Build and test evidence
 
-- `npm test`: **54 passed, zero failed** (includes the HTTP outage, password-reset privacy, restricted-lookup, and interrupted-photo regressions).
+- `npm test`: **64 passed, zero failed** after adding provider request, phone normalization, bounded retry, duplicate-safe receipt-recording failure, and safe platform-summary coverage.
 - `npm run lint`: passed.
 - `npm run build`: passed; existing >500 kB main-chunk warning remains.
 - `git diff --check`: passed.
@@ -57,10 +59,10 @@ Baseline customer billing count was verified back at six. These QA deletions are
 
 ## Still not verified / setup required
 
-1. **Real email/SMS delivery:** UI correctly says provider not connected. Requires an approved provider/worker, credentials, and a user-controlled test recipient. No real external test message was sent.
+1. **Real email/SMS delivery:** the provider-backed worker, cron route, retry controls, and health UI are implemented. Provider credentials and a user-controlled test recipient are still required; no real external message was sent.
 2. **Actual backup restoration:** no isolated restore destination or available pg_dump/pg_restore/psql/docker runtime was identified. Never restore over this live project for a test. Requires a dedicated non-production target and backup artifact, then schema/data/storage/auth recovery checks.
 3. **Hosted latest-code verification:** Vercel inspection on September 7 showed production at `54f9bf07e724e943ca541a74870f4fe95dc57357` and a newer ready preview at `77077d2f9dda37e5f5f9ae6d5ac1ed14fa422611`. Neither contains all current local fixes. No push, promotion, or deployment was performed.
-4. **Production report scheduling:** local runner/in-app notice passed, but a real hosted timed invocation and its production CRON_SECRET configuration remain unverified.
+4. **Production scheduling:** local report runner/in-app notice passed, and both report and notification cron routes are configured in `vercel.json`; real hosted timed invocations and production `CRON_SECRET` configuration remain unverified.
 5. **Failure coverage limits:** deterministic interrupted-save recovery and live Storage authorization passed, but no physical mobile-network interruption, recovery from a partially transferred Storage object, sustained load test, or exhaustive race testing of every mutable endpoint was executed.
 6. **Credential workflows:** first-login password change and password-reset response privacy passed. Real password-reset email receipt still requires a controlled mailbox and approved delivery test.
 
@@ -70,4 +72,4 @@ The lookup design preserves the existing general table access restrictions and k
 
 The password tests follow Supabase's current guidance for current-password validation, refreshed sessions, and password-recovery links: [Password security](https://supabase.com/docs/guides/auth/password-security) and [resetPasswordForEmail](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail).
 
-The post-migration Supabase security advisor reported one pre-existing warning: leaked-password protection is disabled. The photo policy itself introduced no security-advisor finding.
+The external-delivery migration was applied on September 8, 2026. Verification confirmed the claim function is `SECURITY INVOKER`, executable by `service_role`, and not executable by `anon` or `authenticated`. The post-migration Supabase security advisor reported one pre-existing warning: leaked-password protection is disabled. The new migration introduced no additional security-advisor finding.

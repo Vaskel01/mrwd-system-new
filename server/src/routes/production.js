@@ -6,12 +6,18 @@ import { writeComplaintEvent } from '../lib/complaintEvents.js'
 import { fetchShapedComplaintById, fetchShapedComplaints } from '../lib/shapeComplaint.js'
 import { supabaseAdminClient } from '../supabaseClient.js'
 import { addDaysYmd, manilaDateYmd } from '../lib/date.js'
+import { externalProviderReadiness, runExternalNotificationBatch } from '../lib/externalNotifications.js'
+import { getPlatformReadiness } from '../lib/platformReadiness.js'
 
 const router = Router()
 const CLOSED = new Set(['resolved', 'completed', 'rejected', 'cancelled', 'merged'])
 
 function text(value) { return String(value ?? '').trim() }
 function uniqueIds(value) { return [...new Set((Array.isArray(value) ? value : []).map(String).filter(Boolean))] }
+function cronAuthorized(req) {
+  const secret = process.env.CRON_SECRET
+  return Boolean(secret && req.get('authorization') === `Bearer ${secret}`)
+}
 function canOperate(user) {
   return hasCapability(user, CAPABILITIES.COMMERCIAL_COMPLAINTS)
     || hasCapability(user, CAPABILITIES.ECMD_DISPATCH)
@@ -535,8 +541,7 @@ router.get('/report-runs', requireAuth, async (req, res) => {
 // Scheduled report runner (designed for a daily Vercel Cron invocation)
 // ---------------------------------------------------------------------------
 router.get('/cron/run-reports', async (req, res) => {
-  const secret = process.env.CRON_SECRET
-  if (!secret || req.get('authorization') !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized scheduled-report runner.' })
+  if (!cronAuthorized(req)) return res.status(401).json({ error: 'Unauthorized scheduled-report runner.' })
   const admin = supabaseAdminClient()
   if (!admin) return res.status(503).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is required for scheduled report execution.' })
 
@@ -562,13 +567,69 @@ router.get('/cron/run-reports', async (req, res) => {
 })
 
 // ---------------------------------------------------------------------------
+// External email/SMS delivery (cron plus a supervisor troubleshooting path)
+// ---------------------------------------------------------------------------
+router.get('/cron/run-notifications', async (req, res) => {
+  if (!cronAuthorized(req)) return res.status(401).json({ error: 'Unauthorized notification runner.' })
+  const admin = supabaseAdminClient()
+  if (!admin) return res.status(503).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is required for notification delivery.' })
+  try {
+    const result = await runExternalNotificationBatch(admin)
+    res.json({ checked_at: new Date().toISOString(), ...result })
+  } catch (error) {
+    res.status(500).json({ error: String(error?.message || error) })
+  }
+})
+
+router.post('/notification-deliveries/run', requireAuth, requireCapability(CAPABILITIES.SYSTEM_AUDIT), async (req, res) => {
+  const admin = supabaseAdminClient()
+  if (!admin) return res.status(503).json({ error: 'Server-side notification delivery is not configured.' })
+  try {
+    const result = await runExternalNotificationBatch(admin)
+    await writeAudit(req.supabase, req.user, 'notification_delivery.manual_run', 'notification_delivery', null, {
+      claimed: result.claimed, sent: result.sent, failed: result.failed,
+      recording_failed: result.recording_failed || 0,
+    })
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ error: String(error?.message || error) })
+  }
+})
+
+router.post('/notification-deliveries/:id/retry', requireAuth, requireCapability(CAPABILITIES.SYSTEM_AUDIT), async (req, res) => {
+  const { data: current, error: readError } = await req.supabase.from('notification_deliveries')
+    .select('id, status, channel, attempt_count').eq('id', req.params.id).maybeSingle()
+  if (readError) return res.status(400).json({ error: readError.message })
+  if (!current) return res.status(404).json({ error: 'Notification delivery was not found.' })
+  if (current.status !== 'failed') {
+    return res.status(409).json({ error: 'Only failed deliveries can be queued again. Processing deliveries require provider reconciliation to avoid duplicates.' })
+  }
+  const { data, error } = await req.supabase.from('notification_deliveries').update({
+    status: 'pending', attempt_count: 0, last_error: null, next_attempt_at: null,
+  }).eq('id', current.id).eq('status', 'failed').select('id, status, channel, attempt_count').maybeSingle()
+  if (error) return res.status(400).json({ error: error.message })
+  if (!data) return res.status(409).json({ error: 'The delivery changed while it was being queued. Refresh and try again.' })
+  await writeAudit(req.supabase, req.user, 'notification_delivery.requeued', 'notification_delivery', current.id, {
+    channel: current.channel, previous_attempt_count: current.attempt_count,
+  })
+  res.json({ delivery: data })
+})
+
+// ---------------------------------------------------------------------------
 // System health / backup verification / security event visibility
 // ---------------------------------------------------------------------------
 router.get('/system-health', requireAuth, requireCapability(CAPABILITIES.SUPERVISOR_DASHBOARD), async (req, res) => {
   const started = Date.now()
   const admin = supabaseAdminClient()
   const storagePromise = admin ? admin.storage.listBuckets() : Promise.resolve({ data: null, error: null })
-  const [dbPing, lastAudit, lastBackup, pendingImports, staffCount, securityEvents, storageCheck] = await Promise.all([
+  const platformPromise = getPlatformReadiness()
+  const deliveryClient = admin || req.supabase
+  const deliveryStatuses = ['pending', 'processing', 'sent', 'failed', 'cancelled']
+  const deliveryCountsPromise = Promise.all(deliveryStatuses.map(async status => {
+    const result = await deliveryClient.from('notification_deliveries').select('id', { count: 'exact', head: true }).eq('status', status)
+    return [status, result]
+  }))
+  const [dbPing, lastAudit, lastBackup, pendingImports, staffCount, securityEvents, storageCheck, deliveries, deliveryCountResults, platform] = await Promise.all([
     req.supabase.from('departments').select('id', { count: 'exact', head: true }),
     req.supabase.from('audit_logs').select('created_at, action, actor_name').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     req.supabase.from('system_backup_checks').select('*').order('checked_at', { ascending: false }).limit(1).maybeSingle(),
@@ -576,14 +637,34 @@ router.get('/system-health', requireAuth, requireCapability(CAPABILITIES.SUPERVI
     req.supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('role','customer'),
     req.supabase.from('security_events').select('*').order('created_at', { ascending: false }).limit(8),
     storagePromise,
+    deliveryClient.from('notification_deliveries')
+      .select('id, channel, status, attempt_count, last_error, created_at, last_attempt_at, next_attempt_at, sent_at')
+      .order('created_at', { ascending: false }).limit(100),
+    deliveryCountsPromise,
+    platformPromise,
   ])
   const dbError = dbPing.error
+  const deliveryRows = deliveries.data || []
+  const deliveryCounts = Object.fromEntries(deliveryCountResults.map(([status, result]) => [status, result.count || 0]))
+  const deliveryCountError = deliveryCountResults.find(([, result]) => result.error)?.[1]?.error
+  const externalProviders = externalProviderReadiness()
+  const externalWorkerReady = Boolean(admin && (externalProviders.email.configured || externalProviders.sms.configured))
   res.json({
     api: { status: 'online', uptime_seconds: Math.round(process.uptime()), node: process.version },
     database: { status: dbError ? 'degraded' : 'online', latency_ms: Date.now() - started, error: dbError?.message || null },
     auth_admin: { configured: Boolean(admin) },
     storage: { status: !admin ? 'not_checked' : storageCheck.error ? 'degraded' : 'online', bucket_count: storageCheck.data?.length || 0, error: storageCheck.error?.message || null },
     scheduled_reports: { configured: Boolean(admin && process.env.CRON_SECRET), cron_path: '/api/production/cron/run-reports' },
+    external_notifications: {
+      configured: externalWorkerReady,
+      cron_configured: Boolean(externalWorkerReady && process.env.CRON_SECRET),
+      cron_path: '/api/production/cron/run-notifications',
+      providers: externalProviders,
+      counts: deliveryCounts,
+      recent_attention: deliveryRows.filter(item => ['failed', 'processing'].includes(item.status)).slice(0, 12),
+      error: deliveries.error?.message || deliveryCountError?.message || null,
+    },
+    platform,
     counts: { staff: staffCount.count || 0, import_attention: pendingImports.count || 0 },
     last_audit: lastAudit.data || null,
     last_backup_check: lastBackup.data || null,

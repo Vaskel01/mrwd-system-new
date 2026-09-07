@@ -4,7 +4,7 @@ import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import Dialog from '../../components/ui/Dialog'
 
 function StatusPill({ ok, children }) {
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-black uppercase ${ok ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>{children}</span>
+  return <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-black uppercase ${ok ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>{children}</span>
 }
 
 function formatDate(value) {
@@ -16,6 +16,8 @@ export default function SystemHealthPage() {
   const [checks, setChecks] = useState([])
   const [archives, setArchives] = useState([])
   const [error, setError] = useState('')
+  const [deliveryMessage, setDeliveryMessage] = useState('')
+  const [deliveryBusy, setDeliveryBusy] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [restoreTarget, setRestoreTarget] = useState(null)
@@ -79,6 +81,38 @@ export default function SystemHealthPage() {
     }
   }
 
+  const runDeliveries = async () => {
+    setDeliveryBusy('run')
+    setDeliveryMessage('')
+    setError('')
+    try {
+      const result = await apiFetch('/production/notification-deliveries/run', { method: 'POST' })
+      setDeliveryMessage(result.claimed
+        ? `Checked ${result.claimed} queued message${result.claimed === 1 ? '' : 's'}: ${result.sent} sent and ${result.failed} failed.`
+        : 'No due messages were waiting for a configured provider.')
+      await load()
+    } catch (deliveryError) {
+      setError(deliveryError.message)
+    } finally {
+      setDeliveryBusy('')
+    }
+  }
+
+  const retryDelivery = async id => {
+    setDeliveryBusy(id)
+    setDeliveryMessage('')
+    setError('')
+    try {
+      await apiFetch(`/production/notification-deliveries/${id}/retry`, { method: 'POST' })
+      setDeliveryMessage('The failed delivery was returned to the queue. Use “Deliver pending now” to try it immediately.')
+      await load()
+    } catch (deliveryError) {
+      setError(deliveryError.message)
+    } finally {
+      setDeliveryBusy('')
+    }
+  }
+
   if (loading) return <PageLoader label="Checking system health..." />
 
   return (
@@ -96,13 +130,37 @@ export default function SystemHealthPage() {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">API</p><StatusPill ok={health?.api?.status === 'online'}>{health?.api?.status || 'Unknown'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{Math.floor((health?.api?.uptime_seconds || 0) / 60)} min</p><p className="text-xs text-gray-500">How long the API process has been running</p></div>
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Database</p><StatusPill ok={health?.database?.status === 'online'}>{health?.database?.status || 'Unknown'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.database?.latency_ms ?? '—'} ms</p><p className="text-xs text-gray-500">Database response time</p></div>
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Storage</p><StatusPill ok={health?.storage?.status === 'online'}>{health?.storage?.status === 'not_checked' ? 'Needs setup' : health?.storage?.status || 'Unknown'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.storage?.bucket_count ?? '—'}</p><p className="text-xs text-gray-500">Whether server-side storage access is available</p></div>
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Staff authentication</p><StatusPill ok={health?.auth_admin?.configured}>{health?.auth_admin?.configured ? 'Ready' : 'Needs setup'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.counts?.staff ?? 0}</p><p className="text-xs text-gray-500">Staff accounts</p></div>
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Scheduled reports</p><StatusPill ok={health?.scheduled_reports?.configured}>{health?.scheduled_reports?.configured ? 'Ready' : 'Needs setup'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.scheduled_reports?.configured ? 'On' : 'Off'}</p><p className="text-xs text-gray-500">Scheduled report runner</p></div>
         <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Imports needing attention</p><StatusPill ok={!health?.counts?.import_attention}>{health?.counts?.import_attention ? 'Review' : 'Clear'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.counts?.import_attention ?? 0}</p><p className="text-xs text-gray-500">Billing or account imports that need review</p></div>
+        <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Auth safeguards</p><StatusPill ok={health?.platform?.auth?.custom_smtp === true && health?.platform?.auth?.leaked_password_protection === true}>{health?.platform?.auth?.status === 'not_checked' ? 'Not checked' : health?.platform?.auth?.custom_smtp && health?.platform?.auth?.leaked_password_protection ? 'Ready' : 'Review'}</StatusPill></div><p className="mt-3 font-display text-2xl font-black text-navy-900">{health?.platform?.auth?.minimum_password_length ? `${health.platform.auth.minimum_password_length} chars` : '—'}</p><p className="text-xs text-gray-500">Custom SMTP: {health?.platform?.auth?.custom_smtp == null ? 'not checked' : health.platform.auth.custom_smtp ? 'on' : 'off'} · leaked-password check: {health?.platform?.auth?.leaked_password_protection == null ? 'not checked' : health.platform.auth.leaked_password_protection ? 'on' : 'off'}</p></div>
+        <div className="card rounded-xl p-4"><div className="flex justify-between gap-2"><p className="text-xs font-black uppercase text-gray-500">Managed backup</p><StatusPill ok={Boolean(health?.platform?.backups?.latest_completed_at)}>{health?.platform?.backups?.status === 'not_checked' ? 'Not checked' : health?.platform?.backups?.latest_completed_at ? 'Available' : 'Review'}</StatusPill></div><p className="mt-3 font-display text-base font-black text-navy-900">{formatDate(health?.platform?.backups?.latest_completed_at)}</p><p className="text-xs text-gray-500">Latest database backup · PITR: {health?.platform?.backups?.pitr_enabled == null ? 'not checked' : health.platform.backups.pitr_enabled ? 'on' : 'off'}</p></div>
+      </section>
+
+      <section className="card rounded-xl p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="font-display font-black text-navy-900">External notification delivery</h2>
+            <p className="mt-1 text-xs text-gray-500">Send queued application alerts through configured email or SMS providers. Password-reset messages remain managed by Supabase Auth SMTP.</p>
+          </div>
+          <button type="button" onClick={runDeliveries} disabled={Boolean(deliveryBusy) || !health?.external_notifications?.configured} className="btn-primary min-h-11 shrink-0 rounded-lg disabled:opacity-50">{deliveryBusy === 'run' ? 'Delivering…' : 'Deliver pending now'}</button>
+        </div>
+        {deliveryMessage && <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">{deliveryMessage}</div>}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {['pending', 'processing', 'sent', 'failed'].map(status => <div key={status} className="rounded-lg border border-gray-200 p-3"><p className="font-display text-2xl font-black text-navy-900">{health?.external_notifications?.counts?.[status] ?? 0}</p><p className="text-xs font-bold capitalize text-gray-500">{status}</p></div>)}
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {['email', 'sms'].map(channel => {
+            const provider = health?.external_notifications?.providers?.[channel]
+            return <div key={channel} className="rounded-lg border border-gray-200 p-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-black capitalize text-navy-900">{channel} provider</p><StatusPill ok={provider?.configured}>{provider?.configured ? 'Ready' : 'Needs setup'}</StatusPill></div>{!provider?.configured && <p className="mt-2 break-words text-xs text-gray-500">Missing server configuration: {(provider?.missing || []).join(', ') || 'provider credentials'}.</p>}</div>
+          })}
+        </div>
+        {!health?.external_notifications?.cron_configured && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Automatic delivery needs CRON_SECRET, a configured provider, and a deployed scheduler. Manual delivery remains available after a provider is configured.</p>}
+        {(health?.external_notifications?.recent_attention || []).length > 0 && <div className="mt-5"><h3 className="text-xs font-black uppercase tracking-wider text-gray-500">Needs attention</h3><div className="mt-2 space-y-2">{health.external_notifications.recent_attention.map(item => <div key={item.id} className="flex min-w-0 flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><p className="text-sm font-black capitalize text-navy-900">{item.channel} · {item.status}</p><p className="mt-1 break-words text-xs text-gray-500">Attempt {item.attempt_count || 0} · {formatDate(item.last_attempt_at || item.created_at)}</p>{item.last_error && <p className="mt-1 break-words text-xs text-red-700">{item.last_error}</p>}{item.status === 'processing' && <p className="mt-1 text-xs text-amber-700">Check the provider before retrying; the provider may already have accepted this message.</p>}</div>{item.status === 'failed' && <button type="button" disabled={Boolean(deliveryBusy)} onClick={() => retryDelivery(item.id)} className="btn-secondary min-h-10 shrink-0 rounded-lg text-xs disabled:opacity-50">{deliveryBusy === item.id ? 'Queuing…' : 'Queue again'}</button>}</div>)}</div></div>}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.7fr)]">

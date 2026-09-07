@@ -7,6 +7,9 @@ Never expose these values to the browser:
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 CRON_SECRET
+RESEND_API_KEY
+TWILIO_AUTH_TOKEN
+SUPABASE_MANAGEMENT_TOKEN
 ```
 
 Only variables prefixed with `VITE_` are intended for the Vite frontend.
@@ -40,7 +43,13 @@ New staff accounts use temporary passwords and are marked for password replaceme
 
 ## Password protection
 
-The application enforces its normal account workflow and MFA requirements. Supabase's optional leaked-password database check is a platform feature and may not be available on every plan; the application does not attempt to imitate or bypass that service.
+The application enforces its normal account workflow and MFA requirements. System Health can read whether Supabase leaked-password protection is enabled when a read-only Management API token is configured. Enable the platform feature in Supabase when the project plan supports it; the application does not imitate or bypass that service.
+
+## External notification delivery
+
+Application notifications are queued in the database and claimed by a server-only worker. Email uses Resend and SMS uses Twilio when their server credentials are configured. Retries are bounded to three automatic attempts. A provider-accepted message whose database receipt cannot be recorded stays in `processing` for manual reconciliation, preventing an automatic retry from silently duplicating an SMS.
+
+Only System Supervisors with audit access can run the worker manually or requeue a failed delivery. Delivery health does not expose recipients or provider credentials.
 
 ## Recommended checks after schema changes
 

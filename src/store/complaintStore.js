@@ -1,24 +1,41 @@
 import { create } from 'zustand'
 import { apiFetch } from '../lib/api'
+import {
+  createComplaintPhotoPath,
+  persistUploadedPhoto,
+  validateComplaintPhoto,
+} from '../lib/photoPersistence'
 import { supabase } from '../lib/supabase'
 
 // Uploads a photo File directly to Supabase Storage (bucket:
 // complaint-photos) using the signed-in user's own session, so
 // Storage's Row Level Security policy — which only allows a user to
 // write under a folder named after their own user id — is satisfied.
-// Returns the public URL, or null if no photo was attached.
-export async function uploadComplaintPhoto(file, userId, folder = '') {
+// Returns the stored object path and public URL, or null if no photo was attached.
+export async function uploadComplaintPhotoAsset(file, userId, folder = '') {
   if (!file) return null
 
-  const ext = file.name.split('.').pop()
-  const nested = folder ? `${folder.replace(/^\/+|\/+$/g, '')}/` : ''
-  const path = `${userId}/${nested}${Date.now()}.${ext}`
+  validateComplaintPhoto(file)
+  const path = createComplaintPhotoPath({ userId, fileName: file.name, folder })
 
-  const { error } = await supabase.storage.from('complaint-photos').upload(path, file)
+  const { error } = await supabase.storage.from('complaint-photos').upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  })
   if (error) throw new Error(`Photo upload failed: ${error.message}`)
 
   const { data } = supabase.storage.from('complaint-photos').getPublicUrl(path)
-  return data.publicUrl
+  return { path, publicUrl: data.publicUrl }
+}
+
+export async function uploadComplaintPhoto(file, userId, folder = '') {
+  const asset = await uploadComplaintPhotoAsset(file, userId, folder)
+  return asset?.publicUrl || null
+}
+
+export async function removeComplaintPhoto(path) {
+  const { error } = await supabase.storage.from('complaint-photos').remove([path])
+  if (error) throw new Error(`Photo cleanup failed: ${error.message}`)
 }
 
 export const useComplaintStore = create((set, get) => ({
@@ -48,19 +65,33 @@ export const useComplaintStore = create((set, get) => ({
   // Storage first, then sends the resulting URL to the backend, which
   // computes the authoritative priority score and stores the record.
   submitComplaint: async (formData, userId) => {
-    const photo_url = await uploadComplaintPhoto(formData.photo, userId)
+    const photoAsset = await uploadComplaintPhotoAsset(formData.photo, userId)
+    const saveComplaint = async (photoUrl) => {
+      const { complaint } = await apiFetch('/complaints', {
+        method: 'POST',
+        body: JSON.stringify({
+          complaint_type: formData.complaint_type,
+          service_account_id: formData.service_account_id || null,
+          description: formData.description,
+          address: formData.address,
+          gps: formData.gps || null,
+          photo_url: photoUrl,
+        }),
+      })
+      return complaint
+    }
 
-    const { complaint } = await apiFetch('/complaints', {
-      method: 'POST',
-      body: JSON.stringify({
-        complaint_type: formData.complaint_type,
-        service_account_id: formData.service_account_id || null,
-        description: formData.description,
-        address: formData.address,
-        gps: formData.gps || null,
-        photo_url,
-      }),
-    })
+    const complaint = photoAsset
+      ? await persistUploadedPhoto({
+          asset: photoAsset,
+          persist: saveComplaint,
+          reconcile: async (photoUrl) => {
+            const { complaints } = await apiFetch('/complaints')
+            return complaints.find(item => item.photo_url === photoUrl) || null
+          },
+          remove: removeComplaintPhoto,
+        })
+      : await saveComplaint(null)
 
     set(s => ({ complaints: [complaint, ...s.complaints] }))
     return complaint
@@ -196,16 +227,32 @@ export const useComplaintStore = create((set, get) => ({
   },
 
   completeTask: async (complaintId, data, userId) => {
-    const completion_photo_url = data.photo
-      ? await uploadComplaintPhoto(data.photo, userId, 'completion')
-      : null
-    const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        completion_notes: data.completion_notes,
-        materials_used: data.materials_used || undefined,
-        completion_photo_url: completion_photo_url || undefined,
-      }),
+    const photoAsset = await uploadComplaintPhotoAsset(data.photo, userId, 'completion')
+    if (!photoAsset) throw new Error('Add a completion photo before resolving this complaint.')
+
+    const saveCompletion = async (photoUrl) => {
+      const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          completion_notes: data.completion_notes,
+          materials_used: data.materials_used || undefined,
+          completion_photo_url: photoUrl,
+        }),
+      })
+      return complaint
+    }
+
+    const complaint = await persistUploadedPhoto({
+      asset: photoAsset,
+      persist: saveCompletion,
+      reconcile: async (photoUrl) => {
+        const { complaint: savedComplaint } = await apiFetch(`/complaints/${complaintId}`)
+        return savedComplaint.status === 'resolved'
+          && savedComplaint.completion_photo_url === photoUrl
+          ? savedComplaint
+          : null
+      },
+      remove: removeComplaintPhoto,
     })
     set(state => ({ complaints: state.complaints.map(item => item.id === complaintId ? complaint : item) }))
     return complaint

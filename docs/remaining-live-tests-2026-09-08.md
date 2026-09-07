@@ -9,6 +9,7 @@ Scope: continue the untested checks using supplied demo accounts, labelled synth
 - Sign-in: distinguish provider/network outages (503), rate limits (429), and invalid credentials (401). Security-event reasons match the response.
 - Ownership review: with the user's explicit approval, return name, email, and phone only for customer IDs on RLS-visible pending requests to staff with `commercial.billing`. The server-only lookup selects four fields including its internal join ID; only three contact fields reach the client. Customer, Maintenance, ECMD, and System Supervisor roles do not receive this endpoint's billing permission. General profile RLS and database grants are unchanged.
 - Account directory: refresh linked-account status after ownership review, without waiting for a subsequent import/page reload. React review emphasized event-driven refresh and a primitive refresh-version dependency.
+- Photo persistence: validate image type and the 6 MB standard-upload limit, generate collision-resistant object paths, and reconcile an interrupted save before cleanup. If the record committed despite a lost response, the app recovers it and preserves the referenced photo; if the record is definitively absent, the owner removes the orphan through the Storage API.
 
 ## Executed checks
 
@@ -31,6 +32,7 @@ Scope: continue the untested checks using supplied demo accounts, labelled synth
 | Approval review | Two non-operational approval fixtures were inserted for testing the reviewer, not the request-creation UI. Self-review displayed “A different System Supervisor must review this request” and stayed pending. Independent review became approved with a review timestamp. |
 | Stale-record save | After fixture cleanup, submitting a stale displayed approval returned “Approval request not found,” not a false success. |
 | Auth outage | Automated HTTP test used a local simulated auth provider returning 503 and verified the application's real login endpoint returns the service-unavailable message. No real provider outage was induced. |
+| Photo failure recovery | Six automated cases covered successful save, lost-response recovery, definitive-save-failure cleanup, failed reconciliation, cleanup failure, and unique owner-scoped paths. A live disposable 1×1 image proved owner upload/removal, cross-user delete denial, and zero object remaining after cleanup. No real complaint was created or changed. |
 
 ## Test-harness correction
 
@@ -44,7 +46,7 @@ Baseline customer billing count was verified back at six. These QA deletions are
 
 ## Build and test evidence
 
-- `npm test`: **46 passed, zero failed** (includes the HTTP outage and restricted-lookup regressions).
+- `npm test`: **53 passed, zero failed** (includes the HTTP outage, restricted-lookup, and interrupted-photo regressions).
 - `npm run lint`: passed.
 - `npm run build`: passed; existing >500 kB main-chunk warning remains.
 - `git diff --check`: passed.
@@ -57,9 +59,11 @@ Baseline customer billing count was verified back at six. These QA deletions are
 2. **Actual backup restoration:** no isolated restore destination or available pg_dump/pg_restore/psql/docker runtime was identified. Never restore over this live project for a test. Requires a dedicated non-production target and backup artifact, then schema/data/storage/auth recovery checks.
 3. **Hosted latest-code verification:** Vercel inspection on September 7 showed production at `54f9bf07e724e943ca541a74870f4fe95dc57357` and a newer ready preview at `77077d2f9dda37e5f5f9ae6d5ac1ed14fa422611`. Neither contains all current local fixes. No push, promotion, or deployment was performed.
 4. **Production report scheduling:** local runner/in-app notice passed, but a real hosted timed invocation and its production CRON_SECRET configuration remain unverified.
-5. **Failure coverage limits:** no physical mobile-network interruption, mid-upload disconnect, recovery from a partially transferred Storage object, sustained load test, or exhaustive race testing of every mutable endpoint was executed. Successful photo completion and missing-photo rejection were covered in the preceding workflow pass; those do not establish interrupted-upload recovery.
+5. **Failure coverage limits:** deterministic interrupted-save recovery and live Storage authorization passed, but no physical mobile-network interruption, recovery from a partially transferred Storage object, sustained load test, or exhaustive race testing of every mutable endpoint was executed.
 6. **Credential workflows:** real password-reset email receipt and first-login password-change completion still require a controlled mailbox and the user's credential-entry step.
 
 ## Source reference for security review
 
-The lookup design preserves the existing general table access restrictions and keeps privileged credentials server-side, consistent with [Supabase's RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security). No new migration was required.
+The lookup design preserves the existing general table access restrictions and keeps privileged credentials server-side, consistent with [Supabase's RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security). Photo cleanup uses the Storage API rather than direct SQL deletion and grants DELETE only when the authenticated owner ID and first path segment both match, consistent with [Storage access control](https://supabase.com/docs/guides/storage/security/access-control) and [Storage schema guidance](https://supabase.com/docs/guides/storage/schema/design).
+
+The post-migration Supabase security advisor reported one pre-existing warning: leaked-password protection is disabled. The photo policy itself introduced no security-advisor finding.

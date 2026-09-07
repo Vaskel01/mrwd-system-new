@@ -881,6 +881,15 @@ create policy "complaint_photos_upload_own_folder" on storage.objects
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "complaint_photos_delete_own_folder" on storage.objects;
+create policy "complaint_photos_delete_own_folder" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'complaint-photos'
+    and owner_id = (select auth.uid())::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
 grant select, insert, update on public.notifications to authenticated;
 grant select, insert on public.audit_logs to authenticated;
 grant select, insert, update, delete on public.maintenance_tasks to authenticated;

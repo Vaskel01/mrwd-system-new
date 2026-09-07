@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { requireAuth, requireRole, requireCapability } from '../middleware/auth.js'
 import { CAPABILITIES } from '../lib/accessControl.js'
+import { supabaseAdminClient } from '../supabaseClient.js'
+import { attachRequesterContacts } from '../lib/serviceAccountReview.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -45,10 +47,15 @@ router.post('/requests', requireRole('customer'), async (req, res) => {
 
 router.get('/review', requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {
   const { data, error } = await req.supabase.from('service_account_requests')
-    .select('*,customer:profiles!service_account_requests_customer_id_fkey(full_name,email,phone)')
+    .select('*')
     .eq('status', 'pending').order('created_at')
   if (error) return res.status(400).json({ error: error.message })
-  res.json({ requests: data })
+  try {
+    const requests = await attachRequesterContacts({ user: req.user, requests: data || [], admin: supabaseAdminClient() })
+    res.json({ requests })
+  } catch (error) {
+    res.status(503).json({ error: error.message })
+  }
 })
 
 router.post('/requests/:id/review', requireCapability(CAPABILITIES.COMMERCIAL_BILLING), async (req, res) => {

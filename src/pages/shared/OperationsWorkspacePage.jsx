@@ -293,6 +293,7 @@ function SchedulesTab({ data, busy, run, staffMap }) {
 function BillingTab({ data, busy, run }) {
   const [accountFile, setAccountFile] = useState(null)
   const [billingFile, setBillingFile] = useState(null)
+  const [accountReviewVersion, setAccountReviewVersion] = useState(0)
   const [previews, setPreviews] = useState({ accounts: null, billing: null })
   const [validationBusy, setValidationBusy] = useState('')
   const [validationError, setValidationError] = useState('')
@@ -373,8 +374,8 @@ function BillingTab({ data, busy, run }) {
       </Section>
     </div>
 
-    <ServiceAccountReview />
-    <ServiceAccountDirectory refreshVersion={data?.account_registry?.[0]?.updated_at} />
+    <ServiceAccountReview onReviewed={() => setAccountReviewVersion(value => value + 1)} />
+    <ServiceAccountDirectory refreshVersion={`${data?.account_registry?.[0]?.updated_at || ''}:${accountReviewVersion}`} />
     <Section title="Recent billing imports">
       {(data?.billing_batches || []).length === 0 ? <p className="text-sm text-gray-500">No billing files have been imported.</p> : <div className="space-y-2">{data.billing_batches.map(item => <div key={item.id} className="grid min-w-0 gap-2 rounded-lg border border-gray-200 p-3 text-xs sm:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]"><span className="min-w-0 break-all font-black text-navy-900">{item.filename}</span><span>{item.imported_count}/{item.row_count} imported</span><span className={item.failed_count ? 'font-bold text-red-700' : 'text-green-700'}>{item.failed_count} failed</span><span>{formatDate(item.created_at)}</span></div>)}</div>}
     </Section>

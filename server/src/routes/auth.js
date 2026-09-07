@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { supabaseAnonClient, supabaseAdminClient } from '../supabaseClient.js'
 import { requireAuth } from '../middleware/auth.js'
 import { writeAudit } from '../lib/activity.js'
+import { loginFailure } from '../lib/loginFailure.js'
 
 const router = Router()
 const PROFILE_FIELDS = 'id, email, full_name, role, is_active, account_number, phone, service_address, barangay, availability_status, availability_note, availability_until, department_id, staff_position, supervisor_id, account_validation_status, account_validated_at, email_notifications_enabled, sms_notifications_enabled, must_change_password, last_password_changed_at, last_login_at, mfa_required, department:departments(id, code, name)'
@@ -36,8 +37,9 @@ router.post('/login', async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase()
   const { data, error } = await client.auth.signInWithPassword({ email: normalizedEmail, password })
   if (error || !data?.session) {
-    await securityEvent({ email: normalizedEmail, eventType: 'login.failed', success: false, details: { reason: 'invalid_credentials' } })
-    return res.status(401).json({ error: 'Incorrect email or password.' })
+    const failure = loginFailure(error)
+    await securityEvent({ email: normalizedEmail, eventType: 'login.failed', success: false, details: { reason: failure.reason } })
+    return res.status(failure.status).json({ error: failure.message })
   }
 
   const { data: profile, error: profileErr } = await client

@@ -24,7 +24,7 @@ function RequestRow({ request, onReviewed }) {
   </div>
 }
 
-export default function ServiceAccountReview() {
+export default function ServiceAccountReview({ onReviewed }) {
   const [requests, setRequests] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -35,6 +35,6 @@ export default function ServiceAccountReview() {
   return <section className="card rounded-xl p-5 space-y-4">
     <div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-display font-bold text-navy-900">Service account ownership requests</h2><p className="mt-1 text-sm text-gray-500">Import the official account list, then verify the requester using MRWD records before approving billing access.</p></div><button type="button" className="btn-secondary" disabled={loading} onClick={load}>Refresh requests</button></div>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-    {loading ? <p className="text-sm text-gray-500">Loading requests…</p> : !requests.length && !error ? <p className="text-sm text-gray-500">No pending ownership requests.</p> : requests.map(request => <RequestRow key={request.id} request={request} onReviewed={load} />)}
+    {loading ? <p className="text-sm text-gray-500">Loading requests…</p> : !requests.length && !error ? <p className="text-sm text-gray-500">No pending ownership requests.</p> : requests.map(request => <RequestRow key={request.id} request={request} onReviewed={() => { load(); onReviewed?.() }} />)}
   </section>
 }

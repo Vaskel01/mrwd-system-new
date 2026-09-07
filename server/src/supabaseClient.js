@@ -36,7 +36,8 @@ export function supabaseForToken(accessToken) {
 // Optional server-only administrative client. Normal application queries should
 // continue to use supabaseForToken() so RLS remains the primary authorization
 // boundary. The service-role client is reserved for Auth/session administration
-// and security-event recording where Supabase does not expose equivalent
+// and security-event recording, plus the explicitly capability-gated, minimal
+// contact projection for pending service-account ownership reviews, where no equivalent
 // user-scoped APIs. Never expose SUPABASE_SERVICE_ROLE_KEY to the frontend.
 export function supabaseAdminClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY

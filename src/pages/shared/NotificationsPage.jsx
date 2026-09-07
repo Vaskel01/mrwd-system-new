@@ -6,6 +6,7 @@ import AppIcon from '../../components/ui/AppIcon'
 import Pagination from '../../components/ui/Pagination'
 import SearchField from '../../components/ui/SearchField'
 import { readWorkspacePreferences, writeWorkspacePreferences } from '../../lib/workspacePreferences'
+import { needsAction, actionLabel } from '../../lib/notificationPresentation'
 
 function formatDate(value) {
   return new Date(value).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -19,21 +20,6 @@ const ICONS = {
   feedback: 'star',
   new: 'document',
   info: 'info',
-}
-
-const ACTION_TYPES = new Set(['assignment', 'warning', 'feedback'])
-
-function needsAction(item) {
-  if (!item.related_complaint_id) return false
-  if (ACTION_TYPES.has(item.notification_type)) return true
-  return /action|assigned|blocked|feedback|information|review|reply|request/i.test(`${item.title || ''} ${item.message || ''}`)
-}
-
-function actionLabel(item) {
-  if (item.notification_type === 'assignment') return 'Open assigned task →'
-  if (item.notification_type === 'feedback') return 'Review feedback →'
-  if (item.notification_type === 'warning') return 'Review issue →'
-  return needsAction(item) ? 'Open and respond →' : 'Open complaint →'
 }
 
 export default function NotificationsPage() {
@@ -52,7 +38,7 @@ export default function NotificationsPage() {
   const markAllRead = useNotificationStore(state => state.markAllRead)
   const dismiss = useNotificationStore(state => state.dismiss)
   const requestedPage = Math.max(1, Number(searchParams.get('page')) || 1)
-  const [view, setView] = useState(() => initialPreferences.view || 'action')
+  const [view, setView] = useState(() => initialPreferences.view || 'all')
   const [query, setQuery] = useState(() => initialPreferences.q || '')
 
   useEffect(() => { fetchNotifications(requestedPage).catch(() => {}) }, [fetchNotifications, requestedPage])

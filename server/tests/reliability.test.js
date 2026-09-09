@@ -2,6 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { isCalendarDate, validateAccountImportRows, validateBillingImportRows } from '../src/lib/importValidation.js'
 import { readApiResponse } from '../../src/lib/apiResponse.js'
+import { friendlyError } from '../../src/lib/friendlyError.js'
+import {
+  COMPLAINT_DESCRIPTION_MAX_LENGTH,
+  COMPLAINT_DESCRIPTION_MIN_LENGTH,
+  validateComplaintInput,
+} from '../../src/config/complaintValidation.js'
+import { complaintWriteErrorResponse } from '../src/lib/complaintErrors.js'
 
 const registry = { from: () => ({ select: () => ({ in: async () => ({ data: [{ account_number: 'QA-001' }] }) }) }) }
 const bill = { account_number: 'qa-001', billing_period: '2026-02', amount_due: '10', due_date: '2026-02-28' }
@@ -42,7 +49,39 @@ test('unexpected HTTP 200 responses cannot report a successful save', async () =
     await assert.rejects(readApiResponse(new Response(body, { status: 200 })), /response/i)
   }
 })
-test('API responses preserve server validation errors and successful payloads', async () => {
+test('API responses preserve safe field validation details and suppress database internals', async () => {
   await assert.rejects(readApiResponse(new Response('{"error":"Photo is required"}', { status: 400 })), /Photo is required/)
+
+  const short = validateComplaintInput({ complaint_type: 'Water Leak', description: 'Too short', address: '123 Rizal Street' })
+  assert.equal(short.valid, false)
+  assert.match(short.fieldErrors.description, /at least 20 characters/i)
+  const long = validateComplaintInput({ complaint_type: 'Water Leak', description: 'x'.repeat(COMPLAINT_DESCRIPTION_MAX_LENGTH + 1), address: '123 Rizal Street' })
+  assert.equal(long.valid, false)
+  assert.match(long.fieldErrors.description, /1,200 characters or fewer/i)
+  const boundary = validateComplaintInput({ complaint_type: 'Water Leak', description: `  ${'x'.repeat(COMPLAINT_DESCRIPTION_MIN_LENGTH)}  `, address: '123 Rizal Street' })
+  assert.equal(boundary.valid, true)
+  assert.equal(boundary.values.description.length, COMPLAINT_DESCRIPTION_MIN_LENGTH)
+
+  const response = new Response(JSON.stringify({
+    error: 'Please review the highlighted complaint details and try again.',
+    code: 'VALIDATION_ERROR',
+    field_errors: { description: 'Please provide at least 20 characters.' },
+  }), { status: 400 })
+  await assert.rejects(readApiResponse(response), error => {
+    assert.equal(error.status, 400)
+    assert.equal(error.code, 'VALIDATION_ERROR')
+    assert.equal(error.fieldErrors.description, 'Please provide at least 20 characters.')
+    return true
+  })
+
+  const raw = 'new row for relation "complaints" violates check constraint "complaints_description_min_length"'
+  const mapped = complaintWriteErrorResponse({ code: '23514', message: raw })
+  assert.equal(mapped.status, 400)
+  assert.doesNotMatch(JSON.stringify(mapped.body), /constraint|relation|complaints_description_min_length/i)
+  assert.doesNotMatch(friendlyError('new row for relation "complaints" violates check constraint "internal_name"'), /constraint|relation|internal_name/i)
+
+  const unexpected = complaintWriteErrorResponse({ code: 'XX000', message: 'internal database failure' })
+  assert.equal(unexpected.status, 500)
+  assert.doesNotMatch(JSON.stringify(unexpected.body), /database|XX000/i)
   assert.deepEqual(await readApiResponse(new Response('{"complaint":{"id":"qa"}}')), { complaint: { id: 'qa' } })
 })

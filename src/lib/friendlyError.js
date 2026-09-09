@@ -1,4 +1,6 @@
 const PATTERNS = [
+  [/complaints_description_min_length|description.{0,40}(minimum|min(?:imum)? length)/i,
+    'Please provide at least 20 characters so MRWD can understand the issue.'],
   [/failed to fetch|network ?error|load failed/i,
     "Can't reach the server right now. Check your internet connection and try again."],
   [/missing authorization|invalid or expired session/i,
@@ -21,13 +23,19 @@ const PATTERNS = [
     'A system configuration error occurred. Contact the developer.'],
 ]
 
-// Runs a raw error message through the table above. If nothing
-// matches, falls back to the original message so nothing is ever
-// silently swallowed — just returns it dressed with a period if needed.
+const TECHNICAL_ERROR_PATTERN = /violates?\s+(?:check\s+)?constraint|new row for relation|duplicate key value|sqlstate|postgrest|pgrst\d+|schema cache|invalid input syntax|relation ["'][^"']+["'] does not exist|column ["'][^"']+["'] does not exist|permission denied for (?:table|schema|function)|at .+\([^)]*:\d+:\d+\)/i
+
+// Known failures are translated to specific guidance. Unexpected database,
+// PostgREST, SQL, and stack-trace text is replaced with a safe fallback so
+// implementation details never reach the interface.
 export function friendlyError(message) {
   if (!message) return 'Something went wrong. Please try again.'
+  const text = String(message).trim()
   for (const [pattern, friendly] of PATTERNS) {
-    if (pattern.test(message)) return friendly
+    if (pattern.test(text)) return friendly
   }
-  return message
+  if (TECHNICAL_ERROR_PATTERN.test(text)) {
+    return "Something went wrong while processing your request. Your entries have been kept; please try again or contact MRWD if the problem continues."
+  }
+  return text
 }

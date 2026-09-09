@@ -9,6 +9,8 @@ import { buildDirectCompletion } from '../lib/completionWorkflow.js'
 import { requireExistingOwnedComplaintPhotoPath } from '../lib/photoStorage.js'
 import { buildCommercialHandoff } from '../lib/commercialHandoff.js'
 import { STATUS_LABELS as STATUS_LABEL } from '../../../src/config/terminology.js'
+import { validateComplaintInput } from '../../../src/config/complaintValidation.js'
+import { complaintWriteErrorResponse, logComplaintWriteError } from '../lib/complaintErrors.js'
 
 const router = Router()
 const STATUS_VALUES = ['pending', 'forwarded', 'assigned', 'en_route', 'in_progress', 'blocked', 'resolved', 'rejected', 'cancelled']
@@ -281,10 +283,16 @@ router.get('/:id', requireAuth, async (req, res) => respondWithComplaint(req, re
 
 // POST complaint — customer only
 router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
-  const { complaint_type, description, address, gps, photo_url } = req.body || {}
-  if (!complaint_type || !description || !address) {
-    return res.status(400).json({ error: 'complaint_type, description, and address are required.' })
+  const { gps, photo_url } = req.body || {}
+  const validation = validateComplaintInput(req.body)
+  if (!validation.valid) {
+    return res.status(400).json({
+      error: 'Please review the highlighted complaint details and try again.',
+      code: 'VALIDATION_ERROR',
+      field_errors: validation.fieldErrors,
+    })
   }
+  const { complaint_type, description, address } = validation.values
   let photoPath = null
   if (photo_url) {
     try { photoPath = await requireExistingOwnedComplaintPhotoPath(req.supabase, photo_url, req.user.id) }
@@ -330,7 +338,11 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
     classifier_version: result.classifier_version,
     classification_method: result.classification_method,
   }).select().single()
-  if (error) return res.status(400).json({ error: error.message })
+  if (error) {
+    logComplaintWriteError('create', error)
+    const response = complaintWriteErrorResponse(error, 'submit')
+    return res.status(response.status).json(response.body)
+  }
 
   const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {
@@ -347,10 +359,15 @@ router.patch('/:id', requireAuth, requireRole('customer'), async (req, res) => {
   if (!row || row.resident_id !== req.user.id) return res.status(404).json({ error: 'Complaint not found.' })
   if (row.status !== 'pending') return res.status(400).json({ error: 'Only a pending complaint can be edited.' })
 
-  const { complaint_type, description, address } = req.body || {}
-  if (!complaint_type || !description?.trim() || !address?.trim()) {
-    return res.status(400).json({ error: 'Complaint type, description, and address are required.' })
+  const validation = validateComplaintInput(req.body)
+  if (!validation.valid) {
+    return res.status(400).json({
+      error: 'Please review the highlighted complaint details and try again.',
+      code: 'VALIDATION_ERROR',
+      field_errors: validation.fieldErrors,
+    })
   }
+  const { complaint_type, description, address } = validation.values
   const { data: category, error: categoryError } = await req.supabase
     .from('complaint_categories').select('id, base_severity_score').eq('name', complaint_type).single()
   if (categoryError || !category) return res.status(400).json({ error: 'Invalid complaint type.' })
@@ -386,7 +403,11 @@ router.patch('/:id', requireAuth, requireRole('customer'), async (req, res) => {
     classification_method: result.classification_method,
     updated_at: new Date().toISOString(),
   }).eq('id', req.params.id)
-  if (error) return res.status(400).json({ error: error.message })
+  if (error) {
+    logComplaintWriteError('update', error)
+    const response = complaintWriteErrorResponse(error, 'update')
+    return res.status(response.status).json(response.body)
+  }
   await writeAudit(req.supabase, req.user, 'complaint.edited', 'complaint', req.params.id)
   return respondWithComplaint(req, res, req.params.id)
 })
@@ -422,7 +443,11 @@ router.patch('/:id/reopen', requireAuth, requireRole('customer'), async (req, re
     reopen_reason: reason,
     updated_at: new Date().toISOString(),
   }).eq('id', req.params.id)
-  if (error) return res.status(400).json({ error: error.message })
+  if (error) {
+    logComplaintWriteError('create', error)
+    const response = complaintWriteErrorResponse(error, 'submit')
+    return res.status(response.status).json(response.body)
+  }
 
   const admins = await getDepartmentAdminIds(req.supabase, 'COMMERCIAL')
   await notifyUsers(req.supabase, req.user, admins, {

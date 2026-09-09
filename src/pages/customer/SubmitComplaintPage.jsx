@@ -10,11 +10,20 @@ import AppIcon from '../../components/ui/AppIcon'
 import { MAP_PIN_DARK_COLOR } from '../../config/uiTokens'
 import { TERMS } from '../../config/terminology'
 import { apiFetch } from '../../lib/api'
+import {
+  COMPLAINT_ADDRESS_MIN_LENGTH,
+  COMPLAINT_DESCRIPTION_MAX_LENGTH,
+  COMPLAINT_DESCRIPTION_MIN_LENGTH,
+  COMPLAINT_VALIDATION_MESSAGES,
+} from '../../config/complaintValidation'
 
 const schema = z.object({
-  complaint_type: z.string().min(1, 'Select a complaint type'),
-  description:    z.string().trim().min(1, 'Describe the issue before continuing'),
-  address:        z.string().min(10, 'Enter the full address or location'),
+  complaint_type: z.string().min(1, COMPLAINT_VALIDATION_MESSAGES.complaint_type),
+  description: z.string()
+    .trim()
+    .min(COMPLAINT_DESCRIPTION_MIN_LENGTH, COMPLAINT_VALIDATION_MESSAGES.description_too_short)
+    .max(COMPLAINT_DESCRIPTION_MAX_LENGTH, COMPLAINT_VALIDATION_MESSAGES.description_too_long),
+  address: z.string().trim().min(COMPLAINT_ADDRESS_MIN_LENGTH, COMPLAINT_VALIDATION_MESSAGES.address),
 })
 
 const STEP_LABELS = ['Type', 'Problem', 'Location', 'Review']
@@ -179,7 +188,7 @@ export default function SubmitComplaintPage() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [gpsError, setGpsError] = useState(null)
 
-  const { register, handleSubmit, control, reset, trigger, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, reset, trigger, setValue, setError, setFocus, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       complaint_type: initialDraft?.complaint_type || '',
@@ -277,10 +286,11 @@ export default function SubmitComplaintPage() {
 
   const goNext = async () => {
     let valid = true
-    if (step === 0) valid = await trigger('complaint_type')
-    if (step === 1) valid = await trigger('description')
-    if (step === 2) valid = await trigger('address')
+    if (step === 0) valid = await trigger('complaint_type', { shouldFocus: true })
+    if (step === 1) valid = await trigger('description', { shouldFocus: true })
+    if (step === 2) valid = await trigger('address', { shouldFocus: true })
     if (valid) {
+      setSubmitError(null)
       setStep(current => {
         const next = current + 1
         setFurthestStep(value => Math.max(value, next))
@@ -288,6 +298,26 @@ export default function SubmitComplaintPage() {
       })
     }
   }
+
+  const showValidationErrors = fieldErrors => {
+    const stepByField = { complaint_type: 0, description: 1, address: 2 }
+    const firstField = ['complaint_type', 'description', 'address'].find(field => fieldErrors?.[field])
+    if (!firstField) return false
+
+    for (const [field, value] of Object.entries(fieldErrors)) {
+      if (!(field in stepByField)) continue
+      const message = typeof value === 'string' ? value : value?.message
+      if (message) setError(field, { type: 'server', message })
+    }
+    const targetStep = stepByField[firstField]
+    setStep(targetStep)
+    setFurthestStep(value => Math.max(value, targetStep))
+    setSubmitError('Please review the highlighted field. Your complaint information is still saved in this browser.')
+    window.requestAnimationFrame(() => setFocus(firstField))
+    return true
+  }
+
+  const onInvalid = fieldErrors => showValidationErrors(fieldErrors)
 
   const onSubmit = async (data) => {
     setSubmitting(true)
@@ -306,7 +336,9 @@ export default function SubmitComplaintPage() {
       setPhoto(null); setPhotoPreview(null); setStep(0); setFurthestStep(0)
       setGpsCoords(null); setGpsError(null); setLocationMode(null)
     } catch (err) {
-      setSubmitError(err.message)
+      if (!showValidationErrors(err.fieldErrors)) {
+        setSubmitError(err.message || "We couldn't submit your complaint. Your information is still saved in this browser; please try again.")
+      }
     } finally { setSubmitting(false) }
   }
 
@@ -397,7 +429,8 @@ export default function SubmitComplaintPage() {
         <p className="text-xs text-gray-500">Manage verified connections in Billing. You can submit a complaint without an account link.</p>
         {accountError && <p role="alert" className="text-xs text-red-700">Service accounts could not load: {accountError}. You can still file a general complaint.</p>}
       </section>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
+        {submitError && <ErrorBanner message={submitError} className="mb-4" />}
 
         {/* Step 0 — Type */}
         {step === 0 && (
@@ -432,14 +465,29 @@ export default function SubmitComplaintPage() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <div className="flex justify-between mb-1.5">
-                  <label className="text-sm font-bold text-gray-700">Problem details <span className="text-red-500">*</span></label>
-                  <span className="text-xs text-gray-500">Add enough detail to explain the issue</span>
+                <div className="flex flex-wrap justify-between gap-1 mb-1.5">
+                  <label htmlFor="complaint-description" className="text-sm font-bold text-gray-700">Problem details <span className="text-red-500">*</span></label>
+                  <span className="text-xs text-gray-500">At least {COMPLAINT_DESCRIPTION_MIN_LENGTH} characters</span>
                 </div>
-                <textarea aria-label="Description" rows={5} placeholder="When did it start? How serious is it? Who or what area is affected?"
+                <textarea
+                  id="complaint-description"
+                  aria-label="Description"
+                  aria-describedby={`complaint-description-help${errors.description ? ' complaint-description-error' : ''}`}
+                  aria-invalid={Boolean(errors.description)}
+                  rows={5}
+                  minLength={COMPLAINT_DESCRIPTION_MIN_LENGTH}
+                  maxLength={COMPLAINT_DESCRIPTION_MAX_LENGTH}
+                  placeholder="When did it start? How serious is it? Who or what area is affected?"
                   {...register('description')}
-                  className={`input-field resize-none ${errors.description ? 'input-error' : ''}`} />
-                <div className="mt-1 flex items-center justify-between gap-3"><span>{errors.description && <span className="text-xs text-red-600">{errors.description.message}</span>}</span><span className={`text-xs font-bold ${watchedDesc.length > 1200 ? 'text-red-600' : 'text-gray-500'}`}>{watchedDesc.length.toLocaleString()} characters</span></div>
+                  className={`input-field resize-none ${errors.description ? 'input-error' : ''}`}
+                />
+                <div className="mt-1.5 flex items-start justify-between gap-3">
+                  <span>
+                    <span id="complaint-description-help" className="block text-xs text-gray-500">Include when it started, how serious it is, and who or what area is affected.</span>
+                    {errors.description && <span id="complaint-description-error" role="alert" className="mt-1 block text-xs font-semibold text-red-600">{errors.description.message}</span>}
+                  </span>
+                  <span className="shrink-0 text-xs font-bold text-gray-500">{watchedDesc.length.toLocaleString()}/{COMPLAINT_DESCRIPTION_MAX_LENGTH.toLocaleString()}</span>
+                </div>
               </div>
 
               <div>
@@ -459,7 +507,7 @@ export default function SubmitComplaintPage() {
                   <label className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 cursor-pointer hover:border-gold-400 transition-colors bg-gray-50">
                     <svg className="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span className="text-sm text-gray-500">Add a photo</span>
-                    <input name="complaint_photo" aria-label="Complaint photo" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange}/>
+                    <input name="complaint_photo" aria-label="Complaint photo" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange}/>
                   </label>
                 )}
               </div>
@@ -665,7 +713,6 @@ export default function SubmitComplaintPage() {
               </div>
             </div>
 
-            {submitError && <div className="px-5"><ErrorBanner message={submitError} /></div>}
 
             <div className="flex gap-0 border-t border-gray-200">
               <button type="button" onClick={() => setStep(2)} className="flex-1 py-3 text-sm font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 border-r border-gray-200 transition-colors">← Back</button>

@@ -1,9 +1,9 @@
-name: Quality checks
+name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,25 +12,52 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: |
             package-lock.json
             server/package-lock.json
-
       - name: Install frontend dependencies
         run: npm ci
-
-      - name: Install API dependencies
+      - name: Install server dependencies
         run: npm --prefix server ci
-
-      - name: Verify source, lint, build, and test
+      - name: Source, lint, build, and server tests
         run: npm run verify
+
+  browser-smoke:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      QA_BASE_URL: ${{ vars.QA_BASE_URL }}
+      QA_DEMO_PASSWORD: ${{ secrets.QA_DEMO_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install Playwright and Chromium
+        if: ${{ env.QA_BASE_URL != '' && env.QA_DEMO_PASSWORD != '' }}
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run deployed browser smoke
+        if: ${{ env.QA_BASE_URL != '' && env.QA_DEMO_PASSWORD != '' }}
+        run: npm run qa:browser
+      - name: Explain skipped live browser smoke
+        if: ${{ env.QA_BASE_URL == '' || env.QA_DEMO_PASSWORD == '' }}
+        run: echo "Browser smoke is wired into CI but requires repository variable QA_BASE_URL and secret QA_DEMO_PASSWORD."
+      - name: Upload browser QA artifacts
+        if: ${{ always() && env.QA_BASE_URL != '' && env.QA_DEMO_PASSWORD != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa
+          path: qa-output/
+          if-no-files-found: ignore

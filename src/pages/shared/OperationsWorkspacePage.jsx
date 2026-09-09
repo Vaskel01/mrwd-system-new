@@ -204,7 +204,7 @@ function OverviewTab({ data, run, complaintMap, staffMap, module }) {
     </Section>}
 
     {module === 'system' && <Section title="Email and SMS queue" description="External messages are added to the queue based on each user’s notification settings.">
-      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Delivery queue is operational</p><p className="mt-1 text-xs">{pendingDeliveries} message{pendingDeliveries === 1 ? '' : 's'} currently waiting. Provider readiness, manual delivery, failures, and retry controls are available in System Health.</p></div>
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Delivery queue is implemented</p><p className="mt-1 text-xs">{pendingDeliveries} message{pendingDeliveries === 1 ? '' : 's'} currently waiting. External delivery activates only after MRWD configures an approved email/SMS provider and hosted scheduler; readiness and retry controls are available in System Health.</p></div>
     </Section>}
   </div>
 }

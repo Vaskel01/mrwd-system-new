@@ -14,11 +14,14 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "express": "^4.19.2"
   },
   "description": "Express API for the MRWD Complaint Management System.",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "overrides": {
+    "qs": "6.16.0"
   }
 }

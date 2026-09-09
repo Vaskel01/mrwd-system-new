@@ -106,7 +106,7 @@ Set `VITE_API_URL` to the public API URL before building the frontend, and set `
 
 ## Supabase Storage
 
-The database setup creates the required storage/RLS configuration used by complaint attachments. Verify a customer can upload a complaint attachment during UAT.
+The database setup creates a **private** `complaint-photos` bucket with a 6 MB limit, JPEG/PNG/WebP MIME restrictions, uploader-folder writes, role/ownership reads, and short-lived signed URLs served by the API. For an existing project, apply `supabase/migrations/20260909143044_private_complaint_photos_and_fk_indexes.sql` followed by `supabase/migrations/20260909145541_remaining_complaint_fk_indexes.sql`, then run `npm run check:photo-storage`. The configured demonstration project completed this policy check on September 10, 2026.
 
 ## Production smoke test
 
@@ -115,16 +115,29 @@ At minimum verify:
 - Customer registration and complaint submission.
 - Commercial review and ECMD forwarding.
 - WDLCD dispatch to Maintenance Personnel.
-- Maintenance progress and completion notes.
-- WDLCD verification to Resolved.
+- Maintenance progress, completion notes, and required completion photo.
+- Direct transition to Resolved after assigned Maintenance Personnel submit the completion report; no WDLCD verification step.
 - Customer notification and feedback.
 - System Supervisor MFA and Staff Accounts.
 - Commercial billing CSV validation/import.
 - Scheduled-report configuration and System Health.
-- External email/SMS delivery with clearly labelled test recipients.
+- External email/SMS delivery with clearly labelled test recipients **only after MRWD approves and configures the provider**. Until then, describe the feature as implemented and configuration-ready.
 - Actual password-reset email receipt through Supabase custom SMTP.
 - Production cron invocations in hosting logs.
 - Backup availability and one isolated restore rehearsal using `docs/RECOVERY.md`.
+
+## Production readiness gates
+
+Do not describe the system as production-ready until all of these environment-dependent checks are recorded:
+
+- Supabase leaked-password protection enabled.
+- Private complaint-photo migration applied and storage policy check passed.
+- Supabase Security/Performance Advisor re-run after the migration; remaining findings reviewed.
+- Approved Resend/Twilio (or replacement) provider configured and controlled recipient delivery confirmed.
+- Hosted cron invocation confirmed from production logs.
+- Real browser → API → private Storage completion-photo journey passed.
+- Isolated backup restoration rehearsal completed and recorded.
+- Formal thesis respondent evaluation and independent two-reviewer classifier validation completed separately from engineering tests.
 
 ## Rollback
 

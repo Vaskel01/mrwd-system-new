@@ -8,7 +8,7 @@ The release contains one canonical installer:
 supabase/setup.sql
 ```
 
-It includes the supported core/feature schema, RLS, functions, storage rules, seed/reference data, department separation, production-readiness features, and privileged-function hardening. Removed SLA, task-acknowledgement, and maintenance completion-photo structures are not created in a fresh deployment.
+It includes the supported core/feature schema, RLS, functions, storage rules, seed/reference data, department separation, production-readiness features, and privileged-function hardening. Removed SLA, task-acknowledgement, and separate WDLCD completion-verification structures are not created in a fresh deployment; the current direct-resolution workflow still requires completion notes and a completion photo.
 
 Run it **once on a fresh Supabase project**.
 

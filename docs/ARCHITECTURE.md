@@ -68,10 +68,10 @@ WDLCD dispatch
 Maintenance Crew / Personnel field work
       |
       v
-WDLCD verification
+Maintenance completion notes + required photo
       |
       v
-Resolved / Customer feedback
+Resolved immediately / Customer feedback
 ```
 
 System Administration is parallel governance and does not inherit operational department access.
@@ -89,6 +89,6 @@ System Administration is parallel governance and does not inherit operational de
 - **Commercial Services Department**
   - **New Service Connection and Customer Care Division (NSCCCD)** receives and reviews complaints.
 - **Engineering, Construction and Maintenance Department (ECMD)**
-  - **Water Distribution and Leakage Control Division (WDLCD)** receives field-related complaints, assigns Maintenance Crews or Maintenance Personnel, coordinates field work, and verifies completion.
+  - **Water Distribution and Leakage Control Division (WDLCD)** receives field-related complaints, assigns Maintenance Crews or Maintenance Personnel, coordinates field work, and reviews completion evidence after direct resolution when follow-up is needed.
 
 The application keeps Commercial and ECMD as separate workspaces, while `divisions` records the real organizational unit responsible for the work.

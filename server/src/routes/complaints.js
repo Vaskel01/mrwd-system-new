@@ -6,6 +6,7 @@ import { fetchShapedComplaints, fetchShapedComplaintById, presentComplaintForRol
 import { getDepartmentAdminIds, getDivisionAdminIds, notifyUsers, writeAudit } from '../lib/activity.js'
 import { writeComplaintEvent } from '../lib/complaintEvents.js'
 import { buildDirectCompletion } from '../lib/completionWorkflow.js'
+import { requireExistingOwnedComplaintPhotoPath } from '../lib/photoStorage.js'
 import { buildCommercialHandoff } from '../lib/commercialHandoff.js'
 import { STATUS_LABELS as STATUS_LABEL } from '../../../src/config/terminology.js'
 
@@ -284,6 +285,11 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   if (!complaint_type || !description || !address) {
     return res.status(400).json({ error: 'complaint_type, description, and address are required.' })
   }
+  let photoPath = null
+  if (photo_url) {
+    try { photoPath = await requireExistingOwnedComplaintPhotoPath(req.supabase, photo_url, req.user.id) }
+    catch (error) { return res.status(400).json({ error: error.message }) }
+  }
 
   const { data: category, error: categoryError } = await req.supabase
     .from('complaint_categories')
@@ -295,7 +301,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
   const result = scoreComplaint({
     complaint_type,
     description,
-    has_photo: Boolean(photo_url),
+    has_photo: Boolean(photoPath),
     base_severity_score: category.base_severity_score,
   })
   const { data: inserted, error } = await req.supabase.from('complaints').insert({
@@ -306,7 +312,7 @@ router.post('/', requireAuth, requireRole('customer'), async (req, res) => {
     address_text: address.trim(),
     lat: gps?.lat ?? null,
     lng: gps?.lng ?? null,
-    photo_urls: photo_url ? [photo_url] : [],
+    photo_urls: photoPath ? [photoPath] : [],
     status: 'pending',
     priority: result.priority,
     priority_score: result.priority_score,
@@ -353,7 +359,7 @@ router.patch('/:id', requireAuth, requireRole('customer'), async (req, res) => {
   const result = scoreComplaint({
     complaint_type,
     description: description.trim(),
-    has_photo: Boolean(current?.photo_urls?.length),
+    has_photo: Boolean(current?.photo_storage_paths?.length),
     base_severity_score: category.base_severity_score,
   })
   const { error } = await req.supabase.from('complaints').update({
@@ -679,7 +685,13 @@ router.patch('/:id/complete', requireAuth, requireRole('maintenance_personnel'),
   const now = new Date().toISOString()
   let completion
   try {
-    completion = buildDirectCompletion({ body: req.body, task, now })
+    const completionPhotoPath = await requireExistingOwnedComplaintPhotoPath(
+      req.supabase,
+      req.body?.completion_photo_url,
+      req.user.id,
+      { folder: 'completion' },
+    )
+    completion = buildDirectCompletion({ body: { ...req.body, completion_photo_url: completionPhotoPath }, task, now })
   } catch (error) {
     return res.status(400).json({ error: error.message })
   }

@@ -1,12 +1,12 @@
 # MRWD Complaint Management System
 
-Production-ready web application for the **Metro Roxas Water District (MRWD)** complaint workflow. The system separates Commercial Services, ECMD, Maintenance Personnel, Customers, and System Administration into role-specific workspaces while keeping one shared complaint record and audit trail.
+Production-oriented controlled-demonstration web application for the **Metro Roxas Water District (MRWD)** complaint workflow. The system separates Commercial Services, ECMD, Maintenance Personnel, Customers, and System Administration into role-specific workspaces while keeping one shared complaint record and audit trail.
 
 ## What this release contains
 
 - Customer complaint submission, geolocation, attachments, tracking, follow-up responses, reopening, notifications, and feedback.
 - **Commercial Services Department / NSCCCD** workspace for complaint review, classifier review, priority overrides, customer-account/billing tools, advisories, reports, duplicate handling, customer follow-up requests, and NSCCCD → WDLCD handoff.
-- **Engineering, Construction and Maintenance Department (ECMD) / WDLCD** workspace for dispatch, workload/availability, crew management, field coordination, related incidents, map operations, verification, inventory, and maintenance reporting.
+- **Engineering, Construction and Maintenance Department (ECMD) / WDLCD** workspace for dispatch, workload/availability, crew management, field coordination, related incidents, map operations, completion-evidence review, inventory, and maintenance reporting.
 - **Maintenance Personnel** workspace for assigned field tasks, progress updates, manpower/material recording, completion notes, and reassignment/assistance requests.
 - **System Administration** workspace for System Supervisor account management, department access, audit/security events, announcements, archive recovery, backup verification, and system-health checks.
 - Dataset-backed hybrid complaint classification and Low / Medium / High priority recommendation.
@@ -21,7 +21,7 @@ This project does **not** use:
 
 - SLA or response-time tracking;
 - a Maintenance Personnel task accept/reject step;
-- required maintenance before/after completion photos.
+- paired maintenance before-and-after photos (one clear completion photo is required for every new resolution).
 
 Customer-submitted complaint photos are still supported.
 
@@ -36,7 +36,7 @@ Engineering, Construction and Maintenance Department (ECMD)
 └── Water Distribution and Leakage Control Division (WDLCD)
     └── assigns Maintenance Crews / Maintenance Personnel
         ↓
-    Field work → WDLCD verification → Resolved
+    Field work → completion notes + required photo → Resolved
 ```
 
 
@@ -76,7 +76,7 @@ The package lock requires **Node `^20.19.0` or `>=22.12.0`**.
 └── vite.config.js
 ```
 
-Historical migration/change-report files are intentionally **not shipped** in this deployment package. `supabase/setup.sql` is the canonical fresh-install database snapshot for this release and defines the supported workflow without legacy SLA, task-acknowledgement, or completion-photo structures.
+`supabase/setup.sql` is the canonical fresh-install database snapshot. `supabase/migrations/` contains targeted upgrade SQL for existing deployments, including the private complaint-photo and foreign-key-index hardening migration. Historical workflow migrations remain documentation only and are not part of the fresh-install baseline.
 
 ---
 
@@ -186,7 +186,7 @@ Local URLs:
 npm run verify
 ```
 
-The same verification runs automatically in GitHub Actions for pull requests and pushes to `main`. See [`docs/QUALITY_ASSURANCE.md`](docs/QUALITY_ASSURANCE.md).
+The same source/lint/build/server verification runs in GitHub Actions. A Playwright browser smoke job is also wired into CI when the repository QA deployment variable and password secret are configured. See [`docs/QUALITY_ASSURANCE.md`](docs/QUALITY_ASSURANCE.md).
 
 ### Replacing an older GitHub working tree
 
@@ -295,8 +295,7 @@ Use these terms in code-facing documentation, demonstrations, and training:
 - **Submitted**
 - **Active Complaints**
 - **Assigned Maintenance Personnel**
-- **Waiting for WDLCD Verification**
-- **Resolved** only after WDLCD verification
+- **Resolved** after assigned Maintenance Personnel submit completion notes and the required completion photo
 
 Internal database values such as `admin`, `department_staff`, and `maintenance_personnel` remain implementation details.
 
@@ -312,6 +311,7 @@ Internal database values such as `admin`, `department_staff`, and `maintenance_p
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — application structure and module boundaries
 - [`docs/CLASSIFIER_GUIDE.md`](docs/CLASSIFIER_GUIDE.md) — classifier implementation and limitations
 - [`docs/PAGE_HELP.md`](docs/PAGE_HELP.md) — contextual page-help tooltip system and authoring guide
+- [`docs/FINAL_DEFENSE_READINESS.md`](docs/FINAL_DEFENSE_READINESS.md) — evidence that must still come from respondents, MRWD reviewers, providers, or production-like tests
 
 ---
 

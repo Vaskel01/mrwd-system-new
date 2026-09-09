@@ -81,7 +81,7 @@ export default function BillingPage() {
           <span className="text-red-600 font-black text-lg shrink-0">!</span>
           <div>
             <p className="text-sm font-bold text-red-800">Overdue Balance — {formatPeso(overdueBills.reduce((s,b)=>s+b.amount_due,0))}</p>
-            <p className="text-xs text-red-700 mt-0.5">{overdueBills.length} bill{overdueBills.length>1?'s':''} past due. Settle now to avoid service interruption. Call <strong>(033) 123-4567</strong>.</p>
+            <p className="text-xs text-red-700 mt-0.5">{overdueBills.length} bill{overdueBills.length>1?'s':''} shown as past due in the latest imported billing data. Confirm payment status and any service action through MRWD's official customer-service channels.</p>
           </div>
         </div>
       )}
@@ -100,9 +100,9 @@ export default function BillingPage() {
                 </ol>
                 <p className="mt-3 text-xs text-gray-500">Contact the Billing Office before using a digital or bank payment channel to confirm that it is currently authorized.</p>
               </div>
-              <a href="tel:+63331234567" className="btn-primary shrink-0 rounded-lg text-center">
-                Call the Billing Office
-              </a>
+              <p className="max-w-xs rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold text-gray-600">
+                This prototype does not publish an unverified phone number or promise a specific service-interruption policy.
+              </p>
             </div>
           </div>
         </section>
@@ -206,7 +206,7 @@ export default function BillingPage() {
       </div>
 
       <p className="text-xs text-gray-500 mt-4 text-center">
-        For billing concerns — Metro Roxas Water District Office · (033) 123-4567
+        For billing concerns, use MRWD’s officially published customer-service contact channels.
       </p>
     </div>
   )

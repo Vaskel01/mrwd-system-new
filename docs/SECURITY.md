@@ -16,18 +16,19 @@ Only variables prefixed with `VITE_` are intended for the Vite frontend.
 
 ## Row Level Security
 
-RLS is the primary database boundary for customer ownership, department access, assigned Maintenance Personnel, System Administration, reports, and operational records.
+RLS is the primary database boundary for customer ownership, department access, assigned Maintenance Personnel, System Administration, reports, and operational records. Route capability checks add a second application-layer boundary.
 
-The workspace split is also enforced by database capabilities:
+## Private complaint and completion photos
 
-- Commercial Services Staff cannot use ECMD operational capabilities.
-- ECMD Staff cannot use Commercial capabilities.
-- System Supervisors do not inherit department operations.
-- Maintenance Personnel are restricted to assigned/authorized field records.
+The `complaint-photos` Storage bucket is private. Fresh setup and the 2026-09-09 hardening migration set a 6 MB bucket limit and allow only `image/jpeg`, `image/png`, and `image/webp`. The frontend uploads into the signed-in user's UUID folder, while the API stores the private object path rather than a permanent public URL.
+
+Authorized complaint responses mint short-lived signed URLs (5 minutes). Storage RLS permits reads only for the uploader, the complaint customer, assigned Maintenance Personnel, or staff whose configured Commercial Services/WDLCD capability allows the related complaint. New complaint/completion API writes reject object paths that do not belong to the signed-in uploader and confirm that the object exists. Completion evidence must be under that Maintenance Personnel account's `completion/` folder. Database completion guards independently require matching Storage metadata, and Storage deletion rules allow owners to clean up only unlinked uploads so retained complaint evidence cannot be removed after submission.
+
+Apply the latest migrations to every target environment before claiming this control is live, then run `npm run check:photo-storage` with isolated QA accounts. The configured demonstration project passed this controlled policy check on September 10, 2026.
 
 ## System Supervisor MFA
 
-System Administration capabilities require AAL2 when `mfa_required` is enabled. The existing System Supervisor flow uses authenticator TOTP MFA.
+System Administration privileges configured with `mfa_required` require Supabase AAL2. `server/src/middleware/auth.js` rejects protected System Supervisor/manager/supervisor requests whose authenticated session is below AAL2. The current flow uses authenticator TOTP MFA.
 
 ## Privileged database functions
 
@@ -43,19 +44,29 @@ New staff accounts use temporary passwords and are marked for password replaceme
 
 ## Password protection
 
-The application enforces its normal account workflow and MFA requirements. System Health can read whether Supabase leaked-password protection is enabled when a read-only Management API token is configured. Enable the platform feature in Supabase when the project plan supports it; the application does not imitate or bypass that service.
+The application enforces its account workflow and MFA requirements. Supabase leaked-password protection is a **production-readiness requirement** and must be enabled in the hosted Supabase Auth settings before production credentials are issued. System Health can report the hosted setting when a read-only Management API token is configured. The application cannot enable this remote platform control from source code and does not imitate or bypass it.
 
 ## External notification delivery
 
-Application notifications are queued in the database and claimed by a server-only worker. Email uses Resend and SMS uses Twilio when their server credentials are configured. Retries are bounded to three automatic attempts. A provider-accepted message whose database receipt cannot be recorded stays in `processing` for manual reconciliation, preventing an automatic retry from silently duplicating an SMS.
+Application notifications are queued in the database and claimed by a server-only worker. Resend email and Twilio SMS adapters, retries, manual delivery, cron authorization, and health controls are implemented and configuration-ready. Do not describe external email/SMS as operational until MRWD IT approves the provider, production credentials are configured, the hosted scheduler is observed invoking the route, and controlled recipients confirm receipt.
 
-Only System Supervisors with audit access can run the worker manually or requeue a failed delivery. Delivery health does not expose recipients or provider credentials.
+Only authorized System Administration users can run the worker manually or requeue a failed delivery. Delivery health does not expose recipients or provider credentials.
+
+## Foreign-key and policy advisor checks
+
+The 2026-09-08 hardening migration adds support indexes to previously unindexed foreign-key columns used by joins and RLS predicates. After applying it, rerun Supabase Performance Advisor. Multiple-permissive-policy findings should be reviewed against the live policy set and consolidated only when equivalence has been proven; do not weaken or merge RLS rules merely to silence an advisor warning.
+
+## Backup recovery
+
+Backup-readiness records are operational evidence only. Production readiness requires a documented isolated restore rehearsal using `docs/RECOVERY.md`; do not claim recoverability from backup availability alone.
 
 ## Recommended checks after schema changes
 
-- Supabase Security Advisor
+- Supabase Security and Performance Advisors
 - RLS tests for every role
+- private Storage signed-URL test
 - System Supervisor MFA/AAL2 capability test
-- Customer isolation test
+- customer isolation test
 - Commercial vs ECMD isolation test
 - Maintenance assignment isolation test
+- isolated backup restoration rehearsal before production

@@ -1,6 +1,17 @@
 -- Rollback-only dispatch/completion test using the real demo account configuration.
 -- Does not normalize or modify profile assignments.
 begin;
+do $fixture$
+declare proof_path text := nullif(current_setting('qa.completion_photo_path', true), '');
+begin
+  if proof_path is null or not exists (
+    select 1 from storage.objects o
+    join public.profiles p on p.id::text=o.owner_id
+    where o.bucket_id='complaint-photos' and o.name=proof_path
+      and p.email='maintenance@demo.com' and proof_path like p.id::text || '/completion/%'
+  ) then raise exception 'Set qa.completion_photo_path to a real completion image owned by maintenance@demo.com'; end if;
+end
+$fixture$;
 select set_config('qa.complaint_id', gen_random_uuid()::text, true);
 insert into public.complaints(id,resident_id,category_id,description,address_text,reference_number,algorithm_priority_score,status)
 select current_setting('qa.complaint_id')::uuid,p.id,c.id,
@@ -22,7 +33,7 @@ set local role authenticated;
 update public.maintenance_tasks set status='in_progress' where complaint_id=current_setting('qa.complaint_id')::uuid and is_active;
 update public.complaints set status='in_progress' where id=current_setting('qa.complaint_id')::uuid;
 select public.complete_complaint_field_work(current_setting('qa.complaint_id')::uuid,
-  'QA ONLY no real work performed','https://example.invalid/qa-proof.jpg',null);
+  'QA ONLY no real work performed',current_setting('qa.completion_photo_path'),null);
 reset role;
 
 select set_config('request.jwt.claims',jsonb_build_object('sub',id,'role','authenticated','aal','aal1')::text,true)

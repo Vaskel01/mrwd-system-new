@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase'
 // complaint-photos) using the signed-in user's own session, so
 // Storage's Row Level Security policy — which only allows a user to
 // write under a folder named after their own user id — is satisfied.
-// Returns the stored object path and public URL, or null if no photo was attached.
+// Returns only the private stored object path; the API later supplies a short-lived signed URL to authorized viewers.
 export async function uploadComplaintPhotoAsset(file, userId, folder = '') {
   if (!file) return null
 
@@ -24,13 +24,12 @@ export async function uploadComplaintPhotoAsset(file, userId, folder = '') {
   })
   if (error) throw new Error(`Photo upload failed: ${error.message}`)
 
-  const { data } = supabase.storage.from('complaint-photos').getPublicUrl(path)
-  return { path, publicUrl: data.publicUrl }
+  return { path }
 }
 
 export async function uploadComplaintPhoto(file, userId, folder = '') {
   const asset = await uploadComplaintPhotoAsset(file, userId, folder)
-  return asset?.publicUrl || null
+  return asset?.path || null
 }
 
 export async function removeComplaintPhoto(path) {
@@ -63,10 +62,10 @@ export const useComplaintStore = create((set, get) => ({
 
   // Submit a new complaint. Uploads the photo (if any) to Supabase
   // Storage first, then sends the resulting URL to the backend, which
-  // computes the authoritative priority score and stores the record.
+  // computes the authoritative priority score and stores the private Storage object path.
   submitComplaint: async (formData, userId) => {
     const photoAsset = await uploadComplaintPhotoAsset(formData.photo, userId)
-    const saveComplaint = async (photoUrl) => {
+    const saveComplaint = async (photoPath) => {
       const { complaint } = await apiFetch('/complaints', {
         method: 'POST',
         body: JSON.stringify({
@@ -75,7 +74,7 @@ export const useComplaintStore = create((set, get) => ({
           description: formData.description,
           address: formData.address,
           gps: formData.gps || null,
-          photo_url: photoUrl,
+          photo_url: photoPath,
         }),
       })
       return complaint
@@ -85,9 +84,9 @@ export const useComplaintStore = create((set, get) => ({
       ? await persistUploadedPhoto({
           asset: photoAsset,
           persist: saveComplaint,
-          reconcile: async (photoUrl) => {
+          reconcile: async (photoPath) => {
             const { complaints } = await apiFetch('/complaints')
-            return complaints.find(item => item.photo_url === photoUrl) || null
+            return complaints.find(item => item.photo_storage_paths?.includes(photoPath)) || null
           },
           remove: removeComplaintPhoto,
         })
@@ -230,13 +229,13 @@ export const useComplaintStore = create((set, get) => ({
     const photoAsset = await uploadComplaintPhotoAsset(data.photo, userId, 'completion')
     if (!photoAsset) throw new Error('Add a completion photo before resolving this complaint.')
 
-    const saveCompletion = async (photoUrl) => {
+    const saveCompletion = async (photoPath) => {
       const { complaint } = await apiFetch(`/complaints/${complaintId}/complete`, {
         method: 'PATCH',
         body: JSON.stringify({
           completion_notes: data.completion_notes,
           materials_used: data.materials_used || undefined,
-          completion_photo_url: photoUrl,
+          completion_photo_url: photoPath,
         }),
       })
       return complaint
@@ -245,10 +244,10 @@ export const useComplaintStore = create((set, get) => ({
     const complaint = await persistUploadedPhoto({
       asset: photoAsset,
       persist: saveCompletion,
-      reconcile: async (photoUrl) => {
+      reconcile: async (photoPath) => {
         const { complaint: savedComplaint } = await apiFetch(`/complaints/${complaintId}`)
         return savedComplaint.status === 'resolved'
-          && savedComplaint.completion_photo_url === photoUrl
+          && savedComplaint.completion_photo_storage_path === photoPath
           ? savedComplaint
           : null
       },

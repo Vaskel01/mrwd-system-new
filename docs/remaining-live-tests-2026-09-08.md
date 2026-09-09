@@ -54,7 +54,7 @@ Baseline customer billing count was verified back at six. These QA deletions are
 - `npm run lint`: passed.
 - `npm run build`: passed; existing >500 kB main-chunk warning remains.
 - `git diff --check`: passed.
-- Combined `npm run verify` stopped at the source-integrity gate because pre-existing `.env` and `server/.env` files are present locally. Those files were not deleted, printed, or staged. Lint/build/tests were executed separately; do not label the combined command as passing.
+- At the time of this historical verification pass, combined `npm run verify` stopped because local `.env` files were treated as a distribution failure. The current source-integrity check has since been corrected to exclude gitignored local environment files from scanning while still scanning shipped source for secrets. Re-run `npm run verify` on the current source for the current result.
 - Unrelated deletions of `.env.example` / `server/.env.example` and edits to server package manifests remain untouched and excluded from this change.
 
 ## Still not verified / setup required
@@ -73,3 +73,7 @@ The lookup design preserves the existing general table access restrictions and k
 The password tests follow Supabase's current guidance for current-password validation, refreshed sessions, and password-recovery links: [Password security](https://supabase.com/docs/guides/auth/password-security) and [resetPasswordForEmail](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail).
 
 The external-delivery migration was applied on September 8, 2026. Verification confirmed the claim function is `SECURITY INVOKER`, executable by `service_role`, and not executable by `anon` or `authenticated`. The post-migration Supabase security advisor reported one pre-existing warning: leaked-password protection is disabled. The new migration introduced no additional security-advisor finding.
+
+## Source remediation added after this record
+
+The current source now makes complaint photos private, stores object paths instead of permanent public URLs, mints short-lived signed URLs for authorized viewers, configures bucket MIME/size limits, adds foreign-key support indexes, wires the Playwright harness into GitHub Actions when QA deployment credentials are configured, removes the placeholder Billing phone number/service-interruption promise, and updates workflow documentation to direct Maintenance resolution. These source changes do not replace the still-pending live-provider, restore-rehearsal, respondent-evaluation, or independent-classifier evidence listed above.

@@ -16,7 +16,7 @@ test('maintenance completion resolves the complaint immediately with required ph
   const result = buildDirectCompletion({
     body: {
       completion_notes: 'Replaced the damaged service line.',
-      completion_photo_url: 'https://example.supabase.co/storage/v1/object/public/complaint-photos/completion/proof.jpg',
+      completion_photo_url: '00000000-0000-4000-8000-000000000001/completion/proof.jpg',
       materials_used: '1 service-line coupling',
     },
     task: { status: 'in_progress', materials_used: null },
@@ -36,7 +36,7 @@ test('maintenance completion rejects missing photo evidence and closed tasks', (
   }), /completion proof photo is required/i)
 
   assert.throws(() => buildDirectCompletion({
-    body: { completion_notes: 'Work completed.', completion_photo_url: 'https://example.com/proof.jpg' },
+    body: { completion_notes: 'Work completed.', completion_photo_url: '00000000-0000-4000-8000-000000000001/completion/proof.jpg' },
     task: { status: 'completed' },
   }), /only active field work/i)
 })

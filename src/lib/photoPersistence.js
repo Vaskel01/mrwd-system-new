@@ -1,10 +1,11 @@
 export const MAX_COMPLAINT_PHOTO_BYTES = 6 * 1024 * 1024
+export const ALLOWED_COMPLAINT_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 export function validateComplaintPhoto(file) {
   if (!file) return
 
-  if (!file.type?.startsWith('image/')) {
-    throw new Error('Please attach an image file for the complaint photo.')
+  if (!ALLOWED_COMPLAINT_PHOTO_TYPES.has(file.type)) {
+    throw new Error('Please attach a JPEG, PNG, or WebP image for the complaint photo.')
   }
 
   if (file.size > MAX_COMPLAINT_PHOTO_BYTES) {
@@ -28,12 +29,12 @@ export function createComplaintPhotoPath({ userId, fileName, folder = '', unique
 // Reconcile before deleting the upload so a valid complaint never loses its photo.
 export async function persistUploadedPhoto({ asset, persist, reconcile, remove }) {
   try {
-    return await persist(asset.publicUrl)
+    return await persist(asset.path)
   } catch (saveError) {
     let recoveredRecord
 
     try {
-      recoveredRecord = await reconcile(asset.publicUrl)
+      recoveredRecord = await reconcile(asset.path)
     } catch {
       throw new Error(
         'The connection was interrupted and the saved record could not be confirmed. '

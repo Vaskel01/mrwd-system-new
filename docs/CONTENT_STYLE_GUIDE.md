@@ -10,7 +10,7 @@ Prefer:
 - **Review complaints**
 - **Send to WDLCD**
 - **Choose Maintenance Personnel**
-- **Waiting for WDLCD verification**
+- **Resolved** after completion evidence is submitted
 
 Avoid implementation language such as:
 - operational owner
@@ -73,7 +73,6 @@ Prefer:
 - `Send to WDLCD`
 - `Assign Maintenance Personnel`
 - `Mark field work complete`
-- `Verify and resolve`
 - `Clear filters`
 
 Avoid vague buttons such as:
@@ -96,12 +95,11 @@ Recommended complaint status language:
 - Assigned
 - In progress
 - Needs attention
-- Waiting for WDLCD verification
 - Resolved
 - Rejected
 - Cancelled
 
-Reserve **Resolved** for complaints that ECMD has verified.
+Use **Resolved** after assigned Maintenance Personnel submit the required completion notes and completion photo. Do not use “Waiting for WDLCD verification” in the active workflow.
 
 Use these related terms consistently:
 

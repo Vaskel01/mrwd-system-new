@@ -22,7 +22,7 @@ test('photo paths are unique, owner-scoped, and preserve a safe extension', () =
 test('photo validation rejects non-images and images larger than 6 MB', () => {
   assert.throws(
     () => validateComplaintPhoto({ type: 'text/plain', size: 1 }),
-    /attach an image file/i,
+    /JPEG, PNG, or WebP/i,
   )
   assert.throws(
     () => validateComplaintPhoto({ type: 'image/jpeg', size: (6 * 1024 * 1024) + 1 }),
@@ -36,7 +36,7 @@ test('successful persistence does not reconcile or remove the photo', async () =
   const record = { id: 'complaint-1' }
 
   const result = await persistUploadedPhoto({
-    asset: { path: 'user/photo.jpg', publicUrl: 'https://example.test/photo.jpg' },
+    asset: { path: 'user/photo.jpg' },
     persist: async () => record,
     reconcile: async () => { reconciled = true },
     remove: async () => { removed = true },
@@ -52,7 +52,7 @@ test('lost save response recovers the committed record and preserves its photo',
   const record = { id: 'complaint-1' }
 
   const result = await persistUploadedPhoto({
-    asset: { path: 'user/photo.jpg', publicUrl: 'https://example.test/photo.jpg' },
+    asset: { path: 'user/photo.jpg' },
     persist: async () => { throw new Error('connection lost') },
     reconcile: async () => record,
     remove: async () => { removed = true },
@@ -68,7 +68,7 @@ test('definitively unsaved records remove their orphaned photo', async () => {
 
   await assert.rejects(
     persistUploadedPhoto({
-      asset: { path: 'user/photo.jpg', publicUrl: 'https://example.test/photo.jpg' },
+      asset: { path: 'user/photo.jpg' },
       persist: async () => { throw originalError },
       reconcile: async () => null,
       remove: async path => { removedPath = path },
@@ -83,7 +83,7 @@ test('failed reconciliation preserves the photo and tells the user to refresh', 
 
   await assert.rejects(
     persistUploadedPhoto({
-      asset: { path: 'user/photo.jpg', publicUrl: 'https://example.test/photo.jpg' },
+      asset: { path: 'user/photo.jpg' },
       persist: async () => { throw new Error('connection lost') },
       reconcile: async () => { throw new Error('still offline') },
       remove: async () => { removed = true },
@@ -96,7 +96,7 @@ test('failed reconciliation preserves the photo and tells the user to refresh', 
 test('cleanup failure is reported instead of hiding a remaining orphan', async () => {
   await assert.rejects(
     persistUploadedPhoto({
-      asset: { path: 'user/photo.jpg', publicUrl: 'https://example.test/photo.jpg' },
+      asset: { path: 'user/photo.jpg' },
       persist: async () => { throw new Error('invalid complaint') },
       reconcile: async () => null,
       remove: async () => { throw new Error('storage unavailable') },

@@ -31,7 +31,7 @@ This audit covers navigation, page headings, filters, badges, analytics, help te
 | Administration workspace | System Administration |
 | Administration role | System Supervisor |
 
-NSCCCD reviews incoming complaints and sends field-related complaints to WDLCD. WDLCD assigns field work, monitors progress, verifies completion, and resolves the complaint.
+NSCCCD reviews incoming complaints and sends field-related complaints to WDLCD. WDLCD assigns field work and monitors progress. Assigned Maintenance Personnel resolve completed field work directly by submitting the required completion notes and photo evidence.
 
 ## Complaint statuses
 
@@ -42,21 +42,21 @@ NSCCCD reviews incoming complaints and sends field-related complaints to WDLCD. 
 | `assigned` | Assigned |
 | `en_route` / `in_progress` | In progress |
 | `blocked` | Needs attention |
-| `awaiting_verification` | Waiting for WDLCD verification |
+| `awaiting_verification` | Resolved (legacy stored value mapped for backward compatibility) |
 | `resolved` / `completed` | Resolved |
 | `rejected` | Rejected |
 | `cancelled` | Cancelled |
 | `merged` | Merged |
 
-“Mark field work complete” is an action, not a resolved complaint status. A complaint becomes **Resolved** only after WDLCD verifies the completed work.
+“Mark field work complete” opens the dedicated completion report. A valid report with completion notes and the required clear photo marks the task **Completed** and the complaint **Resolved** immediately.
 
 ## Findings and fixes
 
 ### High impact
 
 - Complaint statuses had different casing and wording across badges, filters, analytics cards, maps, audit details, notifications, and server timeline events. All of these now use the shared status glossary.
-- The verification status alternated between “For verification,” “Awaiting WDLCD Verification,” and “Waiting for WDLCD verification.” It is now **Waiting for WDLCD verification**.
-- Server notifications sometimes named ECMD when the operational actor was WDLCD. Notifications now describe NSCCCD review, WDLCD dispatch, and WDLCD verification consistently.
+- Legacy verification wording was removed from the active workflow. Historical `awaiting_verification` records render as **Resolved** for backward compatibility.
+- Server notifications distinguish NSCCCD review and WDLCD dispatch; completion notifications now state that assigned Maintenance Personnel resolved the complaint by submitting the required completion evidence.
 
 ### Medium impact
 

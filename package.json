@@ -17,7 +17,9 @@
     "dev:server": "npm --prefix server run dev",
     "check:env": "node scripts/check-env.mjs",
     "cleanup:legacy": "node scripts/cleanup-legacy.mjs",
-    "check:source": "node scripts/check-source.mjs"
+    "check:source": "node scripts/check-source.mjs",
+    "qa:browser": "node scripts/qa-browser.mjs",
+    "check:photo-storage": "node scripts/check-photo-storage-policy.mjs"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.8",
@@ -28,7 +30,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.78.0",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
@@ -49,5 +51,8 @@
   "description": "Metro Roxas Water District complaint management and maintenance dispatch system.",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "overrides": {
+    "qs": "6.16.0"
   }
 }

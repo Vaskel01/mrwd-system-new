@@ -15,6 +15,7 @@
 //   (computed)                  → similar_ids, similar_count (possible duplicates)
 
 import { deriveCategoryInsights } from './priorityScoring.js'
+import { attachComplaintPhotoSignedUrls, normalizeComplaintPhotoPath } from './photoStorage.js'
 
 // Statuses still considered "active work" for duplicate-detection
 // purposes — no point flagging two reports as duplicates of each
@@ -82,8 +83,9 @@ export async function fetchShapedComplaints(supabase, { filter, includeArchived 
   }
   const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]))
 
-  const shaped = rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap))
-  return flagPossibleDuplicates(shaped)
+  const shaped = flagPossibleDuplicates(rows.map(row => shapeOne(row, categoryMap, profileMap, taskMap)))
+  await attachComplaintPhotoSignedUrls(supabase, shaped)
+  return shaped
 }
 
 export async function fetchShapedComplaintById(supabase, id) {
@@ -147,6 +149,8 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
   const classificationKeywords = Array.isArray(row.classification_keywords) ? row.classification_keywords : []
   const classifiedCategory = row.classified_category || categoryMap[row.category_id] || 'Unknown'
   const categoryInsights = deriveCategoryInsights(classificationKeywords, classifiedCategory)
+  const photoStoragePaths = (Array.isArray(row.photo_urls) ? row.photo_urls : []).map(normalizeComplaintPhotoPath).filter(Boolean)
+  const completionPhotoStoragePath = normalizeComplaintPhotoPath(task?.completion_photo_url)
   return {
     id: row.id,
     reference_number: row.reference_number || `MRWD-${String(row.id).slice(0, 8).toUpperCase()}`,
@@ -157,8 +161,9 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     complaint_type: categoryMap[row.category_id] || 'Unknown',
     description: row.description,
     address: row.address_text,
-    photo_urls: Array.isArray(row.photo_urls) ? row.photo_urls : [],
-    photo_url: Array.isArray(row.photo_urls) ? (row.photo_urls[0] || null) : null,
+    photo_storage_paths: photoStoragePaths,
+    photo_urls: [],
+    photo_url: null,
     zone: row.zone,
     gps: (row.lat != null && row.lng != null) ? { lat: row.lat, lng: row.lng, accuracy: null } : null,
     status: row.status,
@@ -200,7 +205,8 @@ function shapeOne(row, categoryMap, profileMap, taskMap) {
     task_updated_at: task ? task.updated_at : null,
     task_is_active: task ? task.is_active !== false : false,
     completion_notes: task ? task.completion_notes : null,
-    completion_photo_url: task ? task.completion_photo_url : null,
+    completion_photo_storage_path: completionPhotoStoragePath,
+    completion_photo_url: null,
     materials_used: task ? task.materials_used : null,
     unable_reason: task ? task.unable_reason : null,
     reassignment_requested_at: task ? task.reassignment_requested_at : null,

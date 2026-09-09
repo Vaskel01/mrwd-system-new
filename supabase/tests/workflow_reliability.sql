@@ -7,6 +7,7 @@ create temp table qa_workflow as select
   (select id from public.profiles where email='ecmd1@mrwd.test') dispatcher,
   (select id from public.profiles where email='maintenance@demo.com') maintenance,
   (select id from public.complaint_categories limit 1) category,
+  nullif(current_setting('qa.completion_photo_path', true), '') completion_photo_path,
   gen_random_uuid() complaint_id;
 grant select on qa_workflow to authenticated;
 -- Normalize only this transaction's demo assignee; preserve the real profile on rollback.
@@ -14,6 +15,8 @@ update public.profiles set is_active=true,availability_status='available',depart
 create function pg_temp.qa_assert(ok boolean, message text) returns void language plpgsql as $$
 begin if ok is distinct from true then raise exception 'FAIL: %',message; end if; end $$;
 select pg_temp.qa_assert(customer is not null and commercial is not null and dispatcher is not null and maintenance is not null,'demo actors required') from qa_workflow;
+select pg_temp.qa_assert(completion_photo_path is not null,'set qa.completion_photo_path to a real Maintenance-owned object under <maintenance UUID>/completion/') from qa_workflow;
+select pg_temp.qa_assert(exists(select 1 from storage.objects o where o.bucket_id='complaint-photos' and o.name=w.completion_photo_path and o.owner_id=w.maintenance::text),'completion photo fixture must exist in secure Storage and belong to the demo Maintenance account') from qa_workflow w;
 
 select set_config('request.jwt.claims',jsonb_build_object('sub',customer,'role','authenticated','aal','aal1')::text,true) from qa_workflow;
 set local role authenticated;
@@ -82,15 +85,15 @@ set local role authenticated;
 select set_config('qa.fail_completion','yes',true);
 do $$ begin
   begin
-    perform public.complete_complaint_field_work(complaint_id,'QA ONLY work restored','https://example.invalid/qa-proof.jpg',null) from qa_workflow;
+    perform public.complete_complaint_field_work(complaint_id,'QA ONLY work restored',(select completion_photo_path from qa_workflow),null) from qa_workflow;
     raise exception 'FAIL: simulated failure not triggered';
   exception when others then if sqlerrm<>'QA simulated complaint write failure' then raise; end if; end;
 end $$;
 select pg_temp.qa_assert((select status='assigned' and completion_photo_url is null from public.maintenance_tasks where complaint_id=(select complaint_id from qa_workflow) and is_active),'failed completion rolls back task');
 select pg_temp.qa_assert((select status='assigned' from public.complaints where id=(select complaint_id from qa_workflow)),'failed completion preserves complaint');
 select set_config('qa.fail_completion','no',true);
-select pg_temp.qa_assert(not public.complete_complaint_field_work(complaint_id,'QA ONLY work restored','https://example.invalid/qa-proof.jpg','QA coupling'),'first completion writes') from qa_workflow;
-select pg_temp.qa_assert(public.complete_complaint_field_work(complaint_id,'QA ONLY work restored','https://example.invalid/qa-proof.jpg','QA coupling'),'repeated completion is idempotent') from qa_workflow;
+select pg_temp.qa_assert(not public.complete_complaint_field_work(complaint_id,'QA ONLY work restored',(select completion_photo_path from qa_workflow),'QA coupling'),'first completion writes') from qa_workflow;
+select pg_temp.qa_assert(public.complete_complaint_field_work(complaint_id,'QA ONLY work restored',(select completion_photo_path from qa_workflow),'QA coupling'),'repeated completion is idempotent') from qa_workflow;
 select pg_temp.qa_assert((select status='resolved' and verified_at is null from public.complaints where id=(select complaint_id from qa_workflow)),'direct resolution without WDLCD verification');
 reset role;
 select set_config('request.jwt.claims',jsonb_build_object('sub',customer,'role','authenticated','aal','aal1')::text,true) from qa_workflow;

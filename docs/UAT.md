@@ -32,8 +32,10 @@ Run these checks after every fresh deployment.
 - [ ] Assigned task appears for the responsible Maintenance Personnel account.
 - [ ] Unassigned Maintenance Personnel cannot access the task.
 - [ ] Maintenance can update field progress and submit completion notes.
-- [ ] No task acceptance step or required completion photo appears.
-- [ ] WDLCD can verify completion and resolve the complaint.
+- [ ] No task acceptance step appears.
+- [ ] Assigned Maintenance Personnel cannot resolve without completion notes and a clear completion photo; a valid submission completes the task and resolves the complaint immediately.
+- [ ] A fabricated or missing completion-photo object path is rejected by both the API and database.
+- [ ] A completion photo linked to a resolved complaint cannot be deleted through the uploader's Storage session.
 
 ## Reopen / duplicate / history
 
@@ -72,7 +74,7 @@ Run these checks after every fresh deployment.
 
 - [ ] Navigate the primary workspace and complaint-details actions with keyboard only; focus remains visible.
 - [ ] Open and close a confirmation or form dialog with the keyboard; focus stays inside while open, `Escape` closes it when allowed, and focus returns to the triggering control.
-- [ ] Complaint Details shows a readable six-step progress path and a clear explanation of the next action.
+- [ ] Complaint Details shows a readable six-step progress path with complete status and timeline context.
 - [ ] On a narrow/mobile viewport, Maintenance Personnel can reach the primary task action without horizontal scrolling.
 - [ ] Bulk actions in Commercial and ECMD keep persistent labels for action, priority/personnel, and notes/reasons.
 
@@ -81,3 +83,10 @@ Run these checks after every fresh deployment.
 - [ ] A failed data request shows a readable error and a retry action where the request can be repeated.
 - [ ] A page with no matching records shows a purposeful empty state instead of a blank table.
 - [ ] The application-level recovery screen appears if an unexpected React render error reaches the root boundary.
+
+## Private complaint-photo checks
+
+- [ ] The `complaint-photos` bucket is private and anonymous public URLs fail.
+- [ ] JPEG, PNG, and WebP uploads up to 6 MB are accepted; unsupported MIME types and larger files are rejected by Storage.
+- [ ] Authorized users receive short-lived signed URLs through the API.
+- [ ] An unrelated signed-in customer cannot mint/read/delete another customer's unlinked photo.

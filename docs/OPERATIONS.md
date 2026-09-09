@@ -28,9 +28,8 @@ ECMD owns field coordination:
 2. Review map/location, priority, workload, and Maintenance Personnel availability.
 3. Assign/reassign Maintenance Personnel or crews.
 4. Monitor field progress, related complaints/incidents, manpower, materials, and operational notes.
-5. Review Maintenance completion notes.
-6. Verify completion or return the complaint for additional work.
-7. Verification changes the complaint to **Resolved**.
+5. Monitor completed work and completion evidence for operational follow-up.
+6. Reopened customer complaints return to the review workflow when the problem remains.
 
 ## Maintenance Personnel
 
@@ -42,9 +41,9 @@ They can:
 - update field-work status;
 - record progress notes, manpower, and inventory usage;
 - request assistance/reassignment;
-- submit completion notes.
+- submit completion notes and a required clear completion photo.
 
-Completion by Maintenance Personnel does not by itself resolve the customer complaint. ECMD performs final verification.
+A successful completion submission marks the maintenance task **Completed** and the complaint **Resolved immediately**. There is no separate WDLCD verification gate.
 
 ## System Administration
 

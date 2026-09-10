@@ -23,7 +23,7 @@ const PATTERNS = [
     'A system configuration error occurred. Contact the developer.'],
 ]
 
-const TECHNICAL_ERROR_PATTERN = /violates?\s+(?:check\s+)?constraint|new row for relation|duplicate key value|sqlstate|postgrest|pgrst\d+|schema cache|invalid input syntax|relation ["'][^"']+["'] does not exist|column ["'][^"']+["'] does not exist|permission denied for (?:table|schema|function)|at .+\([^)]*:\d+:\d+\)/i
+const TECHNICAL_ERROR_PATTERN = /violates?\s+(?:check\s+)?constraint|new row for relation|duplicate key value|null value in column|value too long for type|invalid input syntax|syntax error at or near|(?:operator|function) .+ does not exist|(?:relation|column) ["'][^"']+["'] does not exist|permission denied for (?:table|schema|function)|deadlock detected|could not serialize access|internal database|database (?:error|failure)|postgres(?:ql)?|\b(?:detail|context):|sqlstate|postgrest|pgrst\d+|schema cache|at .+\([^)]*:\d+:\d+\)/i
 
 // Known failures are translated to specific guidance. Unexpected database,
 // PostgREST, SQL, and stack-trace text is replaced with a safe fallback so

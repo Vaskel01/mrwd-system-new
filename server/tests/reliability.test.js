@@ -74,11 +74,27 @@ test('API responses preserve safe field validation details and suppress database
     return true
   })
 
+  const technicalResponse = new Response(JSON.stringify({
+    error: 'opaque provider failure',
+    code: 'PGRST500',
+    field_errors: {
+      description: 'value too long for type character varying(1200)',
+    },
+  }), { status: 400 })
+  await assert.rejects(readApiResponse(technicalResponse), error => {
+    const visibleText = `${error.message} ${error.fieldErrors.description}`
+    assert.doesNotMatch(visibleText, /column|constraint|varying|provider|PGRST500/i)
+    assert.match(error.message, /entries have been kept/i)
+    assert.match(error.fieldErrors.description, /entries have been kept/i)
+    return true
+  })
+
   const raw = 'new row for relation "complaints" violates check constraint "complaints_description_min_length"'
   const mapped = complaintWriteErrorResponse({ code: '23514', message: raw })
   assert.equal(mapped.status, 400)
   assert.doesNotMatch(JSON.stringify(mapped.body), /constraint|relation|complaints_description_min_length/i)
   assert.doesNotMatch(friendlyError('new row for relation "complaints" violates check constraint "internal_name"'), /constraint|relation|internal_name/i)
+  assert.doesNotMatch(friendlyError('internal database failure'), /database/i)
 
   const unexpected = complaintWriteErrorResponse({ code: 'XX000', message: 'internal database failure' })
   assert.equal(unexpected.status, 500)

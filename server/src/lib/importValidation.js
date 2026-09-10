@@ -1,3 +1,4 @@
+import { statementMoneyFields, statementTextFields } from './billingStatement.js'
 const trimmed = value => String(value ?? '').trim()
 
 export function isCalendarDate(value) {
@@ -87,6 +88,19 @@ export async function validateBillingImportRows(supabase, inputRows) {
     }
     if (!trimmed(row.due_date)) rowErrors.push('due_date is required')
     else if (!isCalendarDate(row.due_date)) rowErrors.push('due_date must be a real calendar date in YYYY-MM-DD format')
+    for (const field of ['amount_due', ...statementMoneyFields]) {
+      if (trimmed(row[field]) && !/^\d+(\.\d{1,2})?$/.test(trimmed(row[field]))) rowErrors.push(`${field} must be a non-negative amount with at most two decimal places (no commas or currency symbols)`)
+      else if (trimmed(row[field]) && Number(row[field]) > 999999999) rowErrors.push(`${field} is too large`)
+    }
+    for (const field of statementTextFields) {
+      if (trimmed(row[field]).length > 300) rowErrors.push(`${field} must be at most 300 characters`)
+    }
+    if (trimmed(row.reading_date) && !isCalendarDate(row.reading_date)) rowErrors.push('reading_date must be a real calendar date in YYYY-MM-DD format')
+    const charges = ['water_charge', 'arrears', 'other_charges', 'meter_maintenance']
+    const cents = value => Math.round(Number(value) * 100)
+    if (charges.every(field => trimmed(row[field]) !== '') && charges.reduce((sum, field) => sum + cents(row[field]), 0) !== cents(row.amount_due)) rowErrors.push('charge breakdown must equal amount_due (on or before the due date)')
+    if (trimmed(row.penalty) && trimmed(row.amount_after_due) && cents(row.amount_due) + cents(row.penalty) !== cents(row.amount_after_due)) rowErrors.push('amount_after_due must equal amount_due plus penalty')
+    if (trimmed(row.amount_after_due) && Number(row.amount_after_due) < Number(row.amount_due)) rowErrors.push('amount_after_due cannot be less than amount_due')
     const status = String(row.status || 'unpaid').toLowerCase()
     if (!['paid','unpaid'].includes(status)) rowErrors.push('status must be paid or unpaid')
     if (rowErrors.length) errors.push({ row: row.row, account_number: row.account_number || null, billing_period: row.billing_period || null, error: rowErrors.join('; ') })

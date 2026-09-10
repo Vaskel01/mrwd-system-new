@@ -73,7 +73,7 @@ const PAGE_HELP = [
     title: 'Billing',
     summary: 'View billing records connected to your MRWD customer account.',
     tips: [
-      'Check the billing period, amount due, due date, and payment status for each bill.',
+      'View each statement’s account details, meter readings, charge breakdown, amounts before and after the due date, and imported payment status. Missing details are marked Not provided.',
       'If no records appear, confirm that your MRWD account number is correct in My profile.',
       'Billing information shown here is for viewing; contact MRWD if a record appears incorrect.',
     ],

@@ -1,4 +1,5 @@
 import { validateAccountImportRows, validateBillingImportRows } from '../lib/importValidation.js'
+import { statementForImport } from '../lib/billingStatement.js'
 import { Router } from 'express'
 import { requireAuth, requireCapability, requireRole } from '../middleware/auth.js'
 import { CAPABILITIES, hasCapability } from '../lib/accessControl.js'
@@ -461,9 +462,10 @@ router.post('/billing/import', requireAuth, requireCapability(CAPABILITIES.COMME
           import_row_number: row.row,
           source_updated_at: new Date().toISOString(),
         }
-        const { data: existing, error: existingError } = await req.supabase.from('bills').select('id')
+        const { data: existing, error: existingError } = await req.supabase.from('bills').select('id, amount_due, previous_reading, current_reading, consumption, due_date, statement_details')
           .eq('account_number', row.account_number).eq('billing_period', row.billing_period).maybeSingle()
         if (existingError) throw existingError
+        bill.statement_details = statementForImport(row, existing)
         const result = existing ? await req.supabase.from('bills').update(bill).eq('id', existing.id) : await req.supabase.from('bills').insert(bill)
         if (result.error) throw result.error
         imported += 1

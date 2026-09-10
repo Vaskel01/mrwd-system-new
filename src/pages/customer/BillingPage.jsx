@@ -4,210 +4,105 @@ import { useBillingStore } from '../../store/billingStore'
 import { PageLoader, ErrorBanner, EmptyState } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
 import ServiceAccountsPanel from '../../components/ui/ServiceAccountsPanel'
+import Dialog from '../../components/ui/Dialog'
+import { formatPeso, billDate, isOverdue } from '../../lib/billingDisplay'
 
-function formatPeso(amount) {
-  return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })
-}
-
-function isOverdue(due_date, status) {
-  return status === 'unpaid' && new Date(due_date) < new Date()
-}
-
-function WaterUseBar({ consumption, max = 30 }) {
-  const pct = Math.min((consumption / max) * 100, 100)
-  const color = pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-amber-400' : 'bg-gold-500'
-  return (
-    <div className="w-full h-2 bg-gray-100 mt-1">
-      <div className={`h-2 ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+function Statement({ bill }) {
+  const details = bill.statement_details || {}
+  const info = [
+    ['Account number', bill.account_number], ['Bill number', details.bill_number],
+    ['Registered name', details.registered_name], ['Service address', details.service_address],
+    ['Account type', details.account_type], ['Meter number', details.meter_number],
+    ['Meter size', details.meter_size], ['Service period', details.service_period],
+    ['Reading date', billDate(details.reading_date)], ['Due date', billDate(bill.due_date)],
+  ]
+  const charges = [['Water bill', details.water_charge], ['Arrears', details.arrears], ['Other charges', details.other_charges], ['Meter maintenance', details.meter_maintenance]]
+  return <div className="space-y-5">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><p className="text-xs font-bold uppercase tracking-widest text-gray-500">Metro Roxas Water District</p><h3 className="mt-1 text-xl font-bold text-navy-900">Statement of account</h3><p className="text-sm text-gray-600">{bill.billing_period}</p></div>
+      <span className={`rounded-full px-3 py-1 text-xs font-bold ${bill.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>{bill.status === 'paid' ? 'Paid · imported status' : isOverdue(bill.due_date, bill.status) ? 'Past due · imported status' : 'Unpaid · imported status'}</span>
     </div>
-  )
+    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+      {info.map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words text-sm font-semibold text-gray-900">{value || 'Not provided'}</dd></div>)}
+    </dl>
+    <div className="grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-3 text-center">
+      {[['Previous reading', bill.previous_reading], ['Present reading', bill.current_reading], ['Water used (cu.m.)', bill.consumption]].map(([label, value]) => <div key={label}><p className="text-xs text-gray-500">{label}</p><p className="mt-1 font-bold text-navy-900">{value ?? 'Not provided'}</p></div>)}
+    </div>
+    <div className="grid gap-5 md:grid-cols-2">
+      <section aria-label="Charge breakdown">
+        <h4 className="mb-2 text-sm font-bold text-navy-900">Charge breakdown</h4>
+        <dl className="divide-y divide-gray-100">{charges.map(([label, value]) => <div key={label} className="flex justify-between gap-3 py-2 text-sm"><dt className="text-gray-600">{label}</dt><dd className="text-right font-semibold text-gray-900">{formatPeso(value)}</dd></div>)}</dl>
+      </section>
+      <section className="rounded-xl border border-gray-200 p-4" aria-label="Statement totals">
+        <p className="text-xs font-bold text-gray-500">Amount on or before due date</p>
+        <p className="mt-1 text-3xl font-black text-navy-900">{formatPeso(bill.amount_due)}</p>
+        <dl className="mt-3 space-y-3 text-sm">
+          {[['Pay immediately', details.pay_immediately], ['Late-payment penalty', details.penalty], ['Amount after due date', details.amount_after_due]].map(([label, value]) => <div key={label} className="flex justify-between gap-3"><dt className="text-gray-600">{label}</dt><dd className="text-right font-bold text-gray-900">{formatPeso(value)}</dd></div>)}
+        </dl>
+      </section>
+    </div>
+    <p className="text-xs leading-relaxed text-gray-500">These are the amounts printed in the imported statement, not a live balance or payment receipt. Arrears and “pay immediately” may already be included in the total; do not add them again. Missing amounts are not assumed to be zero. Confirm any updated balance or penalty with MRWD.</p>
+  </div>
 }
 
 export default function BillingPage() {
   const user = useAuthStore(s => s.user)
   const allBills = useBillingStore(s => s.bills)
   const billsOwner = useBillingStore(s => s.ownerId)
-  const [selectedAccount, setSelectedAccount] = useState('')
-  const [accountNumber, setAccountNumber] = useState('')
   const loading = useBillingStore(s => s.loading)
   const error = useBillingStore(s => s.error)
   const fetchBills = useBillingStore(s => s.fetchBills)
-  const bills = (billsOwner === user?.id ? allBills : []).filter(bill => !accountNumber || bill.account_number === accountNumber)
-    .toSorted((a, b) => new Date(b.due_date) - new Date(a.due_date))
+  const [selectedAccount, setSelectedAccount] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [openBillId, setOpenBillId] = useState(null)
+  const bills = (billsOwner === user?.id ? allBills : [])
+    .filter(bill => !accountNumber || bill.account_number === accountNumber)
+    .toSorted((a, b) => String(b.due_date).localeCompare(String(a.due_date)) || String(b.issued_at).localeCompare(String(a.issued_at)))
+  const latestBill = bills[0]
+  const openBill = bills.find(bill => bill.id === openBillId)
+  const updatedAt = bills.map(bill => bill.source_updated_at).filter(Boolean).sort().at(-1)
 
   useEffect(() => { fetchBills() }, [fetchBills])
 
-  const unpaidBills  = bills.filter(b => b.status === 'unpaid')
-  const totalUnpaid  = unpaidBills.reduce((sum, b) => sum + Number(b.amount_due), 0)
-  const updatedAt = bills.map(bill => bill.source_updated_at).filter(Boolean).sort().at(-1)
-  const latestBill   = bills[0]
-  const overdueBills = bills.filter(b => isOverdue(b.due_date, b.status))
+  if (loading && !bills.length) return <PageLoader label="Loading your billing history…" />
 
-  if (loading && bills.length === 0) {
-    return <PageLoader label="Loading your billing history…" />
-  }
-
-  if (error && bills.length === 0) {
-    return (
-      <div className="space-y-5">
-        <div className="page-band wave-header page-header">
-          <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
-          <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
-        </div>
-        <ErrorBanner message={error} onRetry={fetchBills} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="page-band wave-header page-header">
-        <div className="relative flex items-end justify-between">
-          <div>
-            <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
-            <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
-            <p className="text-navy-300 text-sm mt-1">Account: <span className="text-white font-semibold">{user?.full_name}</span></p>
-          </div>
-            <p className="font-display text-4xl font-black leading-none text-gold-400">{bills.length ? formatPeso(totalUnpaid) : '—'}</p>
-        </div>
-      </div>
-
-      <ServiceAccountsPanel selected={selectedAccount} onSelect={(id, account) => { setSelectedAccount(id); setAccountNumber(account?.account_number || ''); fetchBills() }} />
-      <p className="text-xs text-gray-500">{updatedAt ? `Billing data last imported: ${new Date(updatedAt).toLocaleString('en-PH')}. Payments appear after MRWD imports an updated report.` : 'No confirmed billing import time is available. Existing records may be demonstration data; confirm balances with MRWD.'}</p>
-      {/* Overdue alert banner */}
-      {overdueBills.length > 0 && (
-        <div className="rounded-xl border-l-4 border-red-600 bg-red-50 px-4 py-3 flex items-start gap-3">
-          <span className="text-red-600 font-black text-lg shrink-0">!</span>
-          <div>
-            <p className="text-sm font-bold text-red-800">Overdue Balance — {formatPeso(overdueBills.reduce((s,b)=>s+b.amount_due,0))}</p>
-            <p className="text-xs text-red-700 mt-0.5">{overdueBills.length} bill{overdueBills.length>1?'s':''} shown as past due in the latest imported billing data. Confirm payment status and any service action through MRWD's official customer-service channels.</p>
-          </div>
-        </div>
-      )}
-
-      {unpaidBills.length > 0 && (
-        <section className="card rounded-xl overflow-hidden" aria-labelledby="how-to-pay-title">
-          <div className="border-l-4 border-gold-500 p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-gold-700">How to pay</p>
-                <h2 id="how-to-pay-title" className="mt-1 font-display font-bold text-navy-900">Pay your bill</h2>
-                <ol className="mt-3 space-y-2 text-sm text-gray-700">
-                  <li><b>1.</b> Have your MRWD account number or latest bill ready.</li>
-                  <li><b>2.</b> Pay at the Metro Roxas Water District cashier or an authorized payment center during office hours.</li>
-                  <li><b>3.</b> Keep the official receipt. Payment posting times may vary.</li>
-                </ol>
-                <p className="mt-3 text-xs text-gray-500">Contact the Billing Office before using a digital or bank payment channel to confirm that it is currently authorized.</p>
-              </div>
-              <p className="max-w-xs rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold text-gray-600">
-                This prototype does not publish an unverified phone number or promise a specific service-interruption policy.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Summary strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="stat-card accent-navy rounded-xl">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Latest bill</p>
-          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill ? formatPeso(latestBill.amount_due) : '—'}</p>
-          <p className="text-xs text-gray-500 mt-1.5">{latestBill?.billing_period}</p>
-        </div>
-        <div className={`stat-card rounded-xl ${totalUnpaid > 0 ? 'accent-red' : 'accent-green'}`}>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Amount due</p>
-          <p className={`font-display font-black text-3xl leading-none ${totalUnpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>{bills.length ? formatPeso(totalUnpaid) : '—'}</p>
-          <p className="text-xs text-gray-500 mt-1.5">{!bills.length ? 'Billing information unavailable' : unpaidBills.length === 0 ? 'No unpaid bills in imported records' : `${unpaidBills.length} unpaid`}</p>
-        </div>
-        <div className="stat-card accent-amber rounded-xl">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Water use</p>
-          <p className="font-display font-black text-3xl text-navy-900 leading-none">{latestBill?.consumption ?? '—'} <span className="text-xs font-normal text-gray-500">cu.m.</span></p>
-          <WaterUseBar consumption={latestBill?.consumption ?? 0} />
-        </div>
-      </div>
-
-      {/* Billing history */}
-      <div className="card rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200 bg-gray-50">
-          <h2 className="font-bold text-gray-900 text-sm uppercase tracking-wide">Billing history</h2>
-          <span className="text-xs text-gray-500">{bills.length} records</span>
-        </div>
-
-        {bills.length === 0 ? (
-          <div className="p-8">
-            <EmptyState icon={<AppIcon name="billing" className="h-10 w-10" />} title="No bills yet"
-              description="Bills appear after MRWD imports a report and verifies your service-account link. No records does not mean there is no balance." />
-          </div>
-        ) : (
-        <>
-        {/* Mobile: card list */}
-        <div className="lg:hidden divide-y divide-gray-100">
-          {bills.map(b => (
-            <div key={b.id} className={`p-4 ${isOverdue(b.due_date, b.status) ? 'bg-red-50' : ''}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-bold text-gray-900 text-sm">{b.billing_period}</p>
-                  <p className="text-xs text-gray-500">{b.consumption} cu.m.</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-gray-900">{formatPeso(b.amount_due)}</p>
-                  {b.status === 'paid'
-                    ? <span className="text-xs font-bold text-green-600">✓ PAID</span>
-                    : <span className={`text-xs font-bold ${isOverdue(b.due_date, b.status) ? 'text-red-600' : 'text-amber-600'}`}>
-                        {isOverdue(b.due_date, b.status) ? <span className="inline-flex items-center gap-1"><AppIcon name="alert" className="h-3.5 w-3.5" />OVERDUE</span> : 'UNPAID'}
-                      </span>
-                  }
-                </div>
-              </div>
-              <p className="text-xs text-gray-500">Due {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop: table */}
-        <div className="hidden min-w-0 overflow-hidden lg:block">
-          <table className="data-table">
-            <thead>
-              <tr className="border-b border-gray-200 text-left">
-                {['Period','Water use','Reading','Amount','Due Date','Status'].map(h => (
-                  <th key={h} className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {bills.map(b => (
-                <tr key={b.id} className={`transition-colors hover:bg-gray-50 ${isOverdue(b.due_date, b.status) ? 'bg-red-50/60' : ''}`}>
-                  <td className="px-3 py-3.5 font-semibold text-gray-900">{b.billing_period}</td>
-                  <td className="px-3 py-3.5 text-gray-600">{b.consumption} cu.m.</td>
-                  <td className="px-3 py-3.5 text-gray-500 text-xs font-mono">{b.previous_reading} → {b.current_reading}</td>
-                  <td className="px-3 py-3.5 font-black text-gray-900">{formatPeso(b.amount_due)}</td>
-                  <td className="px-3 py-3.5">
-                    <span className={`text-sm ${isOverdue(b.due_date, b.status) ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                      {isOverdue(b.due_date, b.status) && <AppIcon name="alert" className="mr-1 inline h-3.5 w-3.5" />}
-                      {new Date(b.due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3.5">
-                    {b.status === 'paid'
-                      ? <span className="inline-flex items-center px-2 py-0.5 text-xs font-bold bg-green-100 text-green-800">✓ PAID</span>
-                      : <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold ${isOverdue(b.due_date,b.status) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {isOverdue(b.due_date,b.status) ? 'OVERDUE' : 'UNPAID'}
-                        </span>
-                    }
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        </>
-        )}
-      </div>
-
-      <p className="text-xs text-gray-500 mt-4 text-center">
-        For billing concerns, use MRWD’s officially published customer-service contact channels.
-      </p>
+  return <div className="space-y-5">
+    <div className="page-band wave-header page-header">
+      <p className="text-gold-400 text-xs font-bold uppercase tracking-[.15em] mb-1.5">Customer account</p>
+      <h1 className="font-display font-black text-white text-2xl sm:text-3xl">Billing</h1>
+      <p className="text-navy-300 text-sm mt-1">View your MRWD statements and water consumption.</p>
     </div>
-  )
+    <ServiceAccountsPanel selected={selectedAccount} onSelect={(id, account) => { setSelectedAccount(id); setAccountNumber(account?.account_number || ''); setOpenBillId(null) }} />
+    {error && <ErrorBanner message={error} onRetry={fetchBills} />}
+    <p className="text-xs text-gray-500">{updatedAt ? `Billing data last imported: ${new Date(updatedAt).toLocaleString('en-PH')}. Payments appear after MRWD imports an updated report.` : 'No confirmed billing import time is available. Confirm these records and balances with MRWD.'}</p>
+    {latestBill && <section className="card rounded-xl p-4 sm:p-6" aria-labelledby="latest-statement">
+      <h2 id="latest-statement" className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-500">{accountNumber ? 'Latest statement' : 'Most recent statement across linked accounts'}</h2>
+      <Statement bill={latestBill} />
+    </section>}
+    <section className="card rounded-xl overflow-hidden" aria-labelledby="billing-history">
+      <div className="border-b border-gray-200 bg-gray-50 p-4">
+        <h2 id="billing-history" className="font-bold text-navy-900">Billing history</h2>
+        <p className="mt-1 text-xs text-gray-500">Select a statement to see its details. Historical totals are not added together because newer bills may include arrears.</p>
+      </div>
+      {!bills.length ? <div className="p-8"><EmptyState icon={<AppIcon name="billing" className="h-10 w-10" />} title="No bills available" description="Bills appear after MRWD imports a report and verifies your service-account link. No records does not mean there is no balance." /></div> :
+        <ul className="divide-y divide-gray-100">
+          {bills.map(bill => <li key={bill.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <div className="min-w-0"><p className="font-bold text-gray-900">{bill.billing_period}</p><p className="break-words text-xs text-gray-500">Account {bill.account_number || 'not recorded'} · Due {billDate(bill.due_date)}</p><p className="mt-1 text-xs font-semibold text-gray-600">{bill.status === 'paid' ? 'Paid' : isOverdue(bill.due_date, bill.status) ? 'Past due' : 'Unpaid'} · {bill.consumption} cu.m.</p></div>
+            <div className="flex flex-wrap items-center gap-3"><div className="text-right"><p className="font-bold text-navy-900">{formatPeso(bill.amount_due)}</p><p className="text-xs text-gray-500">On or before due date</p></div><button type="button" className="btn-secondary" aria-label={`View statement ${bill.billing_period} for account ${bill.account_number || 'not recorded'}`} onClick={() => setOpenBillId(bill.id)}>View statement</button></div>
+          </li>)}
+        </ul>}
+    </section>
+    <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="how-to-pay">
+      <h2 id="how-to-pay" className="font-bold text-navy-900">How to pay</h2>
+      <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-700">
+        <li>Have your MRWD account number or latest official bill ready.</li>
+        <li>Pay at the MRWD cashier or a currently authorized payment center.</li>
+        <li>Keep your official receipt. Payment status updates after a new billing report is imported.</li>
+      </ol>
+      <p className="mt-3 text-xs text-gray-500">Confirm payment channels, office hours, and service notices with MRWD. This page does not accept online payments.</p>
+    </section>
+    <Dialog open={Boolean(openBill)} title="Bill details" onClose={() => setOpenBillId(null)} maxWidth="max-w-3xl">
+      {openBill && <div className="p-4 sm:p-6"><Statement bill={openBill} /></div>}
+    </Dialog>
+  </div>
 }

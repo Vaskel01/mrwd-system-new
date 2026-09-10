@@ -85,12 +85,35 @@ export default function BillingPage() {
         <p className="mt-1 text-xs text-gray-500">Select a statement to see its details. Historical totals are not added together because newer bills may include arrears.</p>
       </div>
       {!bills.length ? <div className="p-8"><EmptyState icon={<AppIcon name="billing" className="h-10 w-10" />} title="No bills available" description="Bills appear after MRWD imports a report and verifies your service-account link. No records does not mean there is no balance." /></div> :
-        <ul className="divide-y divide-gray-100">
+        <>
+        <ul className="divide-y divide-gray-100 lg:hidden">
           {bills.map(bill => <li key={bill.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div className="min-w-0"><p className="font-bold text-gray-900">{bill.billing_period}</p><p className="break-words text-xs text-gray-500">Account {bill.account_number || 'not recorded'} · Due {billDate(bill.due_date)}</p><p className="mt-1 text-xs font-semibold text-gray-600">{bill.status === 'paid' ? 'Paid' : isOverdue(bill.due_date, bill.status) ? 'Past due' : 'Unpaid'} · {bill.consumption} cu.m.</p></div>
             <div className="flex flex-wrap items-center gap-3"><div className="text-right"><p className="font-bold text-navy-900">{formatPeso(bill.amount_due)}</p><p className="text-xs text-gray-500">On or before due date</p></div><button type="button" className="btn-secondary" aria-label={`View statement ${bill.billing_period} for account ${bill.account_number || 'not recorded'}`} onClick={() => setOpenBillId(bill.id)}>View statement</button></div>
           </li>)}
-        </ul>}
+        </ul>
+        <div className="hidden min-w-0 overflow-x-auto lg:block">
+          <table className="data-table">
+            <caption className="sr-only">Billing history. Amounts shown are on or before the due date.</caption>
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                {['Period', 'Water use', 'Reading', 'Amount', 'Due date', 'Status', 'Details'].map(label => <th key={label} scope="col" className="px-3 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">{label}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {bills.map(bill => <tr key={bill.id} className={`transition-colors hover:bg-gray-50 ${isOverdue(bill.due_date, bill.status) ? 'bg-red-50/60' : ''}`}>
+                <td className="px-3 py-3.5"><p className="font-semibold text-gray-900">{bill.billing_period}</p><p className="mt-1 break-all text-xs text-gray-500">Account {bill.account_number || 'not recorded'}</p></td>
+                <td className="px-3 py-3.5 text-gray-600">{bill.consumption} cu.m.</td>
+                <td className="px-3 py-3.5 font-mono text-xs text-gray-500">{bill.previous_reading} → {bill.current_reading}</td>
+                <td className="px-3 py-3.5"><p className="font-black text-gray-900">{formatPeso(bill.amount_due)}</p><p className="mt-1 text-xs text-gray-500">On or before due date</p></td>
+                <td className={`px-3 py-3.5 text-sm ${isOverdue(bill.due_date, bill.status) ? 'font-bold text-red-600' : 'text-gray-500'}`}>{billDate(bill.due_date)}</td>
+                <td className="px-3 py-3.5"><span className={`inline-flex rounded px-2 py-0.5 text-xs font-bold ${bill.status === 'paid' ? 'bg-green-100 text-green-800' : isOverdue(bill.due_date, bill.status) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{bill.status === 'paid' ? 'PAID' : isOverdue(bill.due_date, bill.status) ? 'OVERDUE' : 'UNPAID'}</span></td>
+                <td className="px-3 py-3.5"><button type="button" className="btn-secondary" aria-label={`View statement ${bill.billing_period} for account ${bill.account_number || 'not recorded'}`} onClick={() => setOpenBillId(bill.id)}>View statement</button></td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>
+        </>}
     </section>
     <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="how-to-pay">
       <h2 id="how-to-pay" className="font-bold text-navy-900">How to pay</h2>

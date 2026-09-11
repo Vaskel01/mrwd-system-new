@@ -11,6 +11,7 @@ export default function ScheduledReportsPanel({
   defaultType,
   title = 'Scheduled reports',
   description = 'Create recurring reports and review recent runs.',
+  itemLabel = 'report',
 }) {
   const schedules = useProductionStore(state => state.reportSchedules)
   const runs = useProductionStore(state => state.reportRuns)
@@ -22,6 +23,21 @@ export default function ScheduledReportsPanel({
   const [form, setForm] = useState({ name: '', report_type: defaultType || types[0], cadence: 'weekly' })
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const itemLabelPlural = itemLabel === 'workload snapshot' ? 'workload snapshots' : `${itemLabel}s`
+  const itemLabelTitle = itemLabel.replace(/\b\w/g, character => character.toUpperCase())
+
+  const runSummary = item => {
+    if (item.report_type === 'maintenance_workload') {
+      const activeTasks = Number(item.summary?.active_tasks ?? item.row_count ?? 0)
+      const assignedPersonnel = Number(item.summary?.assigned_personnel ?? 0)
+      return `${activeTasks} active task${activeTasks === 1 ? '' : 's'} · ${assignedPersonnel} assigned personnel`
+    }
+    if (item.report_type === 'customer_satisfaction') {
+      const average = item.summary?.average_rating
+      return `${Number(item.row_count || 0)} feedback record${Number(item.row_count || 0) === 1 ? '' : 's'}${average == null ? '' : ` · Average rating ${average}`}`
+    }
+    return `${Number(item.row_count || 0)} matching complaint${Number(item.row_count || 0) === 1 ? '' : 's'}`
+  }
 
   useEffect(() => { load().catch(errorValue => setError(errorValue.message)) }, [load])
   const visibleSchedules = schedules.filter(item => types.includes(item.report_type))
@@ -57,7 +73,7 @@ export default function ScheduledReportsPanel({
           <input required minLength="2" value={form.name} onChange={event => setForm(value => ({ ...value, name: event.target.value }))} className="input-field rounded-lg" placeholder="Example: Weekly complaint summary" />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-xs font-bold text-gray-600">Report</span>
+          <span className="mb-1.5 block text-xs font-bold text-gray-600">{itemLabelTitle}</span>
           <select value={form.report_type} onChange={event => setForm(value => ({ ...value, report_type: event.target.value }))} className="input-field rounded-lg">
             {types.map(type => <option key={type} value={type}>{pretty(type)}</option>)}
           </select>
@@ -76,8 +92,8 @@ export default function ScheduledReportsPanel({
 
       <div className="mt-7 grid gap-7 xl:grid-cols-2">
         <div>
-          <h3 className="text-sm font-black text-navy-900">Scheduled reports</h3>
-          <p className="mt-1 text-xs leading-5 text-gray-500">Run a report now, or let the saved schedule run automatically.</p>
+          <h3 className="text-sm font-black text-navy-900">Scheduled {itemLabelPlural}</h3>
+          <p className="mt-1 text-xs leading-5 text-gray-500">Run a saved {itemLabel} now, or let its schedule run automatically.</p>
           <div className="mt-3 space-y-2">
             {visibleSchedules.map(item => (
               <div key={item.id} className="rounded-xl border border-gray-200 p-3.5">
@@ -93,24 +109,24 @@ export default function ScheduledReportsPanel({
                 </div>
               </div>
             ))}
-            {!visibleSchedules.length && <p className="rounded-xl border border-dashed border-gray-200 px-4 py-7 text-center text-sm text-gray-500">No scheduled reports yet.</p>}
+            {!visibleSchedules.length && <p className="rounded-xl border border-dashed border-gray-200 px-4 py-7 text-center text-sm text-gray-500">No scheduled {itemLabelPlural} yet.</p>}
           </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-black text-navy-900">Recent report runs</h3>
-          <p className="mt-1 text-xs leading-5 text-gray-500">Review the latest generated reports and their status.</p>
+          <h3 className="text-sm font-black text-navy-900">Recent {itemLabel} runs</h3>
+          <p className="mt-1 text-xs leading-5 text-gray-500">Review the latest generated {itemLabelPlural} and their status.</p>
           <div className="mt-3 space-y-2">
             {visibleRuns.map(item => (
               <div key={item.id} className="rounded-xl bg-gray-50 p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-black text-gray-800">{pretty(item.report_type)} · {item.row_count} records</p>
+                  <p className="text-xs font-black text-gray-800">{pretty(item.report_type)} · {runSummary(item)}</p>
                   <span className={`rounded-full px-2 py-1 text-xs font-black uppercase ${item.status === 'failed' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>{item.status || 'ready'}</span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">{new Date(item.generated_at).toLocaleString('en-PH')}</p>
               </div>
             ))}
-            {!visibleRuns.length && <p className="rounded-xl border border-dashed border-gray-200 px-4 py-7 text-center text-sm text-gray-500">No report runs yet.</p>}
+            {!visibleRuns.length && <p className="rounded-xl border border-dashed border-gray-200 px-4 py-7 text-center text-sm text-gray-500">No {itemLabel} runs yet.</p>}
           </div>
         </div>
       </div>

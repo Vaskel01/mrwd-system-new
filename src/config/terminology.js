@@ -3,7 +3,7 @@ export const TERMS = Object.freeze({
   COMMERCIAL_SERVICES: 'Commercial Services',
   COMMERCIAL_SERVICES_DEPARTMENT: 'Commercial Services Department',
   COMMERCIAL_DEPARTMENT: 'Commercial Services Department',
-  COMMERCIAL_STAFF: 'Commercial Services Staff (NSCCCD)',
+  COMMERCIAL_STAFF: 'Commercial Services Staff',
   NSCCCD: 'New Service Connection and Customer Care Division (NSCCCD)',
   NSCCCD_SHORT: 'NSCCCD',
   ACCOUNTS_BILLING: 'Accounts & billing',
@@ -12,7 +12,7 @@ export const TERMS = Object.freeze({
   EXPORTS_SCHEDULES: 'Exports & schedules',
   ECMD: 'Engineering, Construction and Maintenance Department (ECMD)',
   ECMD_SHORT: 'ECMD',
-  ECMD_STAFF: 'ECMD Staff (WDLCD)',
+  ECMD_STAFF: 'WDLCD Staff',
   WDLCD: 'Water Distribution and Leakage Control Division (WDLCD)',
   WDLCD_SHORT: 'WDLCD',
   SYSTEM_ADMINISTRATION: 'System Administration',
@@ -29,10 +29,10 @@ export const TERMS = Object.freeze({
 })
 
 export const STATUS_LABELS = Object.freeze({
-  pending: 'Pending review',
+  pending: 'Commercial Services Review',
   forwarded: 'Sent to WDLCD',
   assigned: 'Assigned',
-  en_route: 'En Route',
+  en_route: 'Field Work', // Legacy value; new field work updates use in_progress.
   in_progress: 'Field Work',
   awaiting_verification: 'Resolved',
   resolved: 'Resolved',

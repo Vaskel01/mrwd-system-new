@@ -14,6 +14,28 @@ function validHotspot(hotspot) {
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
 }
 
+function complaintPopupNode(item) {
+  const wrapper = document.createElement('div')
+  wrapper.style.minWidth = '190px'
+
+  const reference = document.createElement('strong')
+  reference.textContent = item.reference_number || 'Complaint'
+  wrapper.appendChild(reference)
+
+  const lines = [
+    item.complaint_type || 'Complaint',
+    item.address || '',
+    `Status: ${statusLabel(item.status)}`,
+  ]
+  lines.forEach((line, index) => {
+    const element = document.createElement(index === 0 ? 'div' : 'small')
+    element.textContent = line
+    if (index > 0) element.style.display = 'block'
+    wrapper.appendChild(element)
+  })
+  return wrapper
+}
+
 function hotspotPopupNode(hotspot, onHotspotOpen) {
   const wrapper = document.createElement('div')
   wrapper.style.minWidth = '220px'
@@ -119,14 +141,7 @@ export default function ComplaintOperationsMap({ complaints = [], hotspots = [],
           fillColor: color,
           fillOpacity: 0.95,
         })
-        marker.bindPopup(`
-          <div style="min-width:190px">
-            <strong>${item.reference_number || 'Complaint'}</strong><br/>
-            <span>${item.complaint_type || 'Complaint'}</span><br/>
-            <small>${item.address || ''}</small><br/>
-            <small>Status: ${statusLabel(item.status)}</small>
-          </div>
-        `)
+        marker.bindPopup(complaintPopupNode(item), { maxWidth: 300 })
         if (onOpen) marker.on('click', () => onOpen(item))
         marker.addTo(complaintGroup)
       })

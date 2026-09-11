@@ -107,6 +107,7 @@ test('distance helper uses geographic distance rather than exact coordinate equa
 
 test('in_progress is presented to users as Field Work', () => {
   assert.equal(STATUS_LABELS.in_progress, 'Field Work')
-  assert.equal(STATUS_LABELS.en_route, 'En Route')
+  assert.equal(STATUS_LABELS.en_route, 'Field Work')
   assert.equal(STATUS_LABELS.blocked, 'Blocked')
+  assert.equal(STATUS_LABELS.pending, 'Commercial Services Review')
 })

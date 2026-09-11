@@ -10,7 +10,21 @@ const esc = value => `"${String(value ?? '').replaceAll('"', '""')}"`
 const today = () => manilaDateYmd()
 
 function formatReportType(value) {
+  if (value === 'complaint_export') return 'Complaint Data Snapshot'
+  if (value === 'complaint_summary') return 'Complaint Summary'
+  if (value === 'customer_satisfaction') return 'Customer Satisfaction'
   return String(value || '').replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase())
+}
+
+function reportRunSummary(item) {
+  if (item.report_type === 'customer_satisfaction') {
+    const average = item.summary?.average_rating
+    return `${Number(item.row_count || 0)} feedback record${Number(item.row_count || 0) === 1 ? '' : 's'}${average == null ? '' : ` · Average rating ${average}`}`
+  }
+  const total = Number(item.summary?.total_complaints ?? item.row_count ?? 0)
+  const active = Number(item.summary?.active ?? 0)
+  const resolved = Number(item.summary?.resolved ?? 0)
+  return `${total} matching complaint${total === 1 ? '' : 's'} · ${active} active · ${resolved} resolved`
 }
 
 export default function CommercialExportCenterPage() {
@@ -163,7 +177,7 @@ export default function CommercialExportCenterPage() {
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="card rounded-xl p-5 sm:p-6">
           <h2 className="font-display text-lg font-black text-navy-900">Scheduled reports</h2>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">Run a saved report now or wait for its next scheduled run.</p>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">Scheduled runs save report summaries in the system. Use Export CSV above when you need a downloadable complaint file.</p>
 
           <div className="mt-4 space-y-3">
             {schedules.map(item => (
@@ -187,7 +201,7 @@ export default function CommercialExportCenterPage() {
           <div className="mt-3 space-y-2">
             {runs.slice(0, 10).map(item => (
               <div key={item.id} className="rounded-lg bg-gray-50 p-3 text-xs">
-                <p className="font-black text-gray-800">{formatReportType(item.report_type)} · {item.row_count} records</p>
+                <p className="font-black text-gray-800">{formatReportType(item.report_type)} · {reportRunSummary(item)}</p>
                 <p className="mt-1 text-gray-500">{new Date(item.generated_at).toLocaleString('en-PH')}</p>
               </div>
             ))}
@@ -197,7 +211,7 @@ export default function CommercialExportCenterPage() {
 
         <form onSubmit={addSchedule} className="card h-fit rounded-xl p-5 sm:p-6">
           <h2 className="font-display text-lg font-black text-navy-900">Create a schedule</h2>
-          <p className="mt-1.5 text-sm leading-6 text-gray-500">This schedule will use the export filters shown above.</p>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">The schedule will reuse the filters shown above and save a summary result. It does not create a CSV file.</p>
 
           <div className="mt-5 space-y-4">
             <label className="block">
@@ -208,7 +222,6 @@ export default function CommercialExportCenterPage() {
               <span className="mb-1.5 block text-xs font-bold text-gray-600">Report</span>
               <select value={schedule.report_type} onChange={event => setSchedule(value => ({ ...value, report_type: event.target.value }))} className="input-field rounded-lg">
                 <option value="complaint_summary">Complaint Summary</option>
-                <option value="complaint_export">Complaint Export</option>
                 <option value="customer_satisfaction">Customer Satisfaction</option>
               </select>
             </label>

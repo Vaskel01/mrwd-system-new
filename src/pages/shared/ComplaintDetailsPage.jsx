@@ -121,30 +121,54 @@ function ClassifierAnalysis({ complaint }) {
 
           {complaint.classification_mismatch && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"><p className="text-xs font-bold text-amber-900">Complaint type may need review</p><p className="mt-0.5 text-xs text-amber-700">Selected “{complaint.complaint_type},” classified as “{complaint.classified_category}.”</p></div>}
 
-          {complaint.classification_multi_issue && (
-            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-black text-blue-950">Multiple issues detected</p>
-                  <p className="mt-0.5 text-xs text-blue-800">Review each supported issue instead of routing from the primary label alone.</p>
-                </div>
-                {complaint.classification_ambiguous && <span className="mt-1 inline-flex w-fit rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-900 sm:mt-0">Primary issue needs confirmation</span>}
+          <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4" aria-label="Issue classification summary">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-gray-500">Issue classification</p>
+                <p className="mt-1 text-xs text-gray-500">Shows whether the description supports one issue or multiple complaint issues.</p>
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                <span className="inline-flex items-center rounded-full border border-blue-300 bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-950">Primary: {complaint.classified_category}</span>
-                {secondaryCategories.map(item => (
-                  <span key={item.category} className="inline-flex items-center rounded-full border border-navy-200 bg-white px-2.5 py-1 text-xs font-bold text-navy-800">
-                    {item.category} · {item.relative_strength}% strength
-                  </span>
-                ))}
-              </div>
-              {routingRecommendations.length > 0 && (
-                <ul className="mt-2.5 space-y-1">
-                  {routingRecommendations.map(item => <li key={item.code} className="flex gap-2 text-xs text-blue-900"><span aria-hidden="true">•</span><span>{item.label}</span></li>)}
-                </ul>
-              )}
+              <span className={`mt-1 inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-black sm:mt-0 ${complaint.classification_multi_issue ? 'border-blue-300 bg-blue-100 text-blue-950' : 'border-green-200 bg-green-50 text-green-800'}`}>
+                Multi-issue complaint: {complaint.classification_multi_issue ? 'Yes' : 'No'}
+              </span>
             </div>
-          )}
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs font-black uppercase tracking-wider text-gray-500">Primary issue</p>
+                <p className="mt-1 text-sm font-black text-navy-900">{complaint.classified_category || complaint.complaint_type}</p>
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs font-black uppercase tracking-wider text-gray-500">Secondary issues</p>
+                {secondaryCategories.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {secondaryCategories.map(item => (
+                      <span key={item.category} className="inline-flex items-center rounded-full border border-navy-200 bg-white px-2 py-1 text-xs font-bold text-navy-800">
+                        {item.category}{item.relative_strength != null ? ` · ${item.relative_strength}%` : ''}
+                      </span>
+                    ))}
+                  </div>
+                ) : <p className="mt-1 text-sm font-bold text-gray-600">None detected</p>}
+              </div>
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p className="text-xs font-black uppercase tracking-wider text-gray-500">Classification clarity</p>
+                <p className={`mt-1 text-sm font-black ${complaint.classification_ambiguous ? 'text-amber-800' : 'text-green-700'}`}>
+                  {complaint.classification_ambiguous ? 'Primary issue needs confirmation' : 'Primary issue is clear'}
+                </p>
+              </div>
+            </div>
+
+            {complaint.classification_multi_issue && (
+              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
+                <p className="text-xs font-black text-blue-950">Multiple supported issues detected</p>
+                <p className="mt-0.5 text-xs text-blue-800">Review the primary and secondary issues before routing or resolving the complaint.</p>
+                {routingRecommendations.length > 0 && (
+                  <ul className="mt-2.5 space-y-1">
+                    {routingRecommendations.map(item => <li key={item.code} className="flex gap-2 text-xs text-blue-900"><span aria-hidden="true">•</span><span>{item.label}</span></li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
 
           <details className="mt-4 rounded-lg border border-gray-200 bg-white">
             <summary className="cursor-pointer px-4 py-3 text-xs font-black text-navy-800">See why this was suggested</summary>

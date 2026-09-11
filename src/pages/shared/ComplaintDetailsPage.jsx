@@ -512,7 +512,16 @@ export default function ComplaintDetailsPage() {
 
       <aside className="min-w-0 space-y-4 lg:self-start lg:sticky lg:top-5 no-print">
         {canCommercialReview && <section className="card rounded-xl p-5">
-          <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-black uppercase tracking-wider text-brand-600">Commercial Services</p><h2 className="mt-1 font-display font-bold text-navy-900">Complaint review</h2><p className="mt-1 text-xs text-gray-500">NSCCCD reviews the complaint details and sends field-related work to WDLCD under ECMD.</p></div><StatusBadge status={complaint.status} /></div>
+          <div className="space-y-3">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-wider text-brand-600">Commercial Services</p>
+              <h2 className="mt-1 font-display font-bold text-navy-900">Complaint review</h2>
+              <p className="mt-1 text-xs leading-5 text-gray-500">NSCCCD reviews the complaint details and sends field-related work to WDLCD under ECMD.</p>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <StatusBadge status={complaint.status} />
+            </div>
+          </div>
           <div className="mt-4 space-y-2">
             {complaint.status === 'pending' && <button onClick={() => setForwardOpen(true)} className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-700">Send to WDLCD</button>}
     {complaint.status === 'rejected' && <button onClick={() => setRestoreOpen(true)} className="btn-primary w-full rounded-lg">Undo rejection</button>}

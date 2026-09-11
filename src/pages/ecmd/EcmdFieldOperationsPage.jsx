@@ -9,6 +9,7 @@ import ScheduledReportsPanel from '../../components/ui/ScheduledReportsPanel'
 import Dialog from '../../components/ui/Dialog'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import IncidentDetailsDialog from '../../components/ui/IncidentDetailsDialog'
+import HotspotDetailsDialog from '../../components/ui/HotspotDetailsDialog'
 import AppIcon from '../../components/ui/AppIcon'
 import { useToastStore } from '../../store/toastStore'
 import {
@@ -22,15 +23,10 @@ import {
   TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
 import { availabilityLabel, STATUS_LABELS } from '../../config/terminology'
+import { buildComplaintHotspots, HOTSPOT_MIN_COMPLAINTS, HOTSPOT_RADIUS_METERS } from '../../lib/complaintHotspots'
 
 const ACTIVE = new Set(['forwarded','assigned','en_route','in_progress','blocked'])
 
-function bucketLocation(item) {
-  const raw = String(item.zone || item.address || '').trim()
-  if (!raw) return 'Unspecified area'
-  const parts = raw.split(',').map(part => part.trim()).filter(Boolean)
-  return parts.length > 1 ? parts[parts.length - 2] : parts[0]
-}
 
 function percent(value, total) {
   return total ? Math.round(value / total * 100) : 0
@@ -75,6 +71,9 @@ export default function EcmdFieldOperationsPage() {
   const [resolveBusy, setResolveBusy] = useState(false)
   const [windowDays, setWindowDays] = useState(30)
   const [analysisNow, setAnalysisNow] = useState(() => Date.now())
+  const [hotspotOpen, setHotspotOpen] = useState(false)
+  const [selectedHotspot, setSelectedHotspot] = useState(null)
+  const [focusHotspotId, setFocusHotspotId] = useState(null)
 
   const load = useCallback(async () => {
     const result = await Promise.all([fetchComplaints(), fetchWorkload(), fetchOperationalReference()])
@@ -162,20 +161,10 @@ export default function EcmdFieldOperationsPage() {
     }
   }, [active, analysisNow, complaints, windowDays, workload])
 
-  const hotspotRows = useMemo(() => {
-    const map = new Map()
-    for (const item of active) {
-      const area = bucketLocation(item)
-      const current = map.get(area) || { area, total: 0, high: 0, leak: 0, noWater: 0 }
-      current.total += 1
-      if (item.priority === 'high') current.high += 1
-      const type = String(item.complaint_type || '').toLowerCase()
-      if (type.includes('leak')) current.leak += 1
-      if (type.includes('water') && (type.includes('no') || type.includes('interruption'))) current.noWater += 1
-      map.set(area, current)
-    }
-    return [...map.values()].sort((a,b) => b.total - a.total).slice(0, 8)
-  }, [active])
+  const hotspotRows = useMemo(() => buildComplaintHotspots(complaints, {
+    radiusMeters: HOTSPOT_RADIUS_METERS,
+    minComplaints: HOTSPOT_MIN_COMPLAINTS,
+  }), [complaints])
 
   const recurringLocations = useMemo(() => {
     const groups = {}
@@ -192,6 +181,19 @@ export default function EcmdFieldOperationsPage() {
     monitoring: incidents.filter(item => item.status === 'monitoring').length,
     resolved: incidents.filter(item => item.status === 'resolved').length,
   }), [incidents])
+
+  const openHotspotDetails = hotspot => {
+    setSelectedHotspot(hotspot)
+    setHotspotOpen(true)
+  }
+
+  const focusHotspot = hotspot => {
+    setFocusHotspotId(hotspot.id)
+    setHotspotOpen(false)
+    window.setTimeout(() => {
+      document.getElementById('active-complaint-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 20)
+  }
 
   const create = async event => {
     event.preventDefault()
@@ -318,11 +320,19 @@ export default function EcmdFieldOperationsPage() {
     </section>
 
     <section className="grid gap-5 xl:grid-cols-2">
-      <div className="card rounded-xl p-5"><h2 className="font-display font-black text-navy-900">Complaint hotspots</h2><p className="mt-1 text-xs text-gray-500">Areas with several active complaints.</p><div className="mt-4 space-y-2">{hotspotRows.length ? hotspotRows.map(row => <div key={row.area} className="rounded-lg border border-gray-100 bg-gray-50 p-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-bold text-gray-900">{row.area}</p><span className="rounded-full bg-navy-800 px-2 py-0.5 text-xs font-black text-white">{row.total}</span></div><p className="mt-1 text-xs text-gray-500">{row.high} high priority · {row.leak} leak · {row.noWater} no water / interruption</p></div>) : <p className="py-6 text-center text-sm text-gray-500">No active complaint hotspots yet.</p>}</div></div>
+      <div className="card rounded-xl p-5">
+        <h2 className="font-display font-black text-navy-900">Complaint hotspots</h2>
+        <p className="mt-1 text-xs text-gray-500">Geographic clusters with at least {HOTSPOT_MIN_COMPLAINTS} active complaints within {HOTSPOT_RADIUS_METERS} meters.</p>
+        <div className="mt-4 space-y-3">{hotspotRows.length ? hotspotRows.map(row => <article key={row.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+          <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-gray-900">{row.area}</p><p className="mt-1 text-xs text-gray-500">Most common issue: {row.mostCommonCategory}</p></div><span className="rounded-full bg-navy-800 px-2 py-0.5 text-xs font-black text-white">{row.total}</span></div>
+          <p className="mt-2 text-xs text-gray-500">High: {row.priorityBreakdown.high} · Medium: {row.priorityBreakdown.medium} · Low: {row.priorityBreakdown.low} · {row.radiusMeters} m radius</p>
+          <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => focusHotspot(row)} className="btn-secondary rounded-lg text-xs">View on map</button><button type="button" onClick={() => openHotspotDetails(row)} className="btn-secondary rounded-lg text-xs">View complaints</button></div>
+        </article>) : <p className="py-6 text-center text-sm text-gray-500">No geographic hotspot currently meets the {HOTSPOT_MIN_COMPLAINTS}-complaint threshold.</p>}</div>
+      </div>
       <div className="card rounded-xl p-5"><h2 className="font-display font-black text-navy-900">Recurring locations</h2><p className="mt-1 text-xs text-gray-500">Locations with repeated complaints that may point to an ongoing infrastructure problem.</p><div className="mt-4 space-y-2">{recurringLocations.length ? recurringLocations.map(group => <button key={group[0].address} onClick={() => navigate(`/complaints/${group[0].id}`)} className="w-full rounded-lg border border-gray-100 bg-gray-50 p-3 text-left hover:bg-gray-100"><div className="flex items-start justify-between gap-3"><p className="text-sm font-bold text-gray-900">{group[0].address}</p><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black text-amber-800">{group.length} records</span></div><p className="mt-1 text-xs text-gray-500">Latest: {group[0].reference_number}</p></button>) : <p className="py-6 text-center text-sm text-gray-500">No recurring complaint locations found.</p>}</div></div>
     </section>
 
-    <section className="card rounded-xl p-5"><h2 className="font-display font-black text-navy-900">Active complaint map</h2><p className="mt-1 text-xs text-gray-500">Map of active complaints with saved locations.</p><div className="mt-4"><ComplaintOperationsMap complaints={active} onOpen={item => navigate(`/complaints/${item.id}`)}/></div></section>
+    <section id="active-complaint-map" className="card rounded-xl p-5"><h2 className="font-display font-black text-navy-900">Active complaint map</h2><p className="mt-1 text-xs text-gray-500">Active complaint locations with 300-meter hotspot overlays when three or more reports are geographically concentrated.</p><div className="mt-4"><ComplaintOperationsMap complaints={active} hotspots={hotspotRows} focusHotspotId={focusHotspotId} onHotspotOpen={openHotspotDetails} onOpen={item => navigate(`/complaints/${item.id}`)}/></div></section>
 
     <section className="card rounded-xl p-5">
       <AnalyticsSectionHeading title="Complaint incidents" description="Group complaints that describe the same leak, interruption, or other shared field issue." aside={<button onClick={() => setIncidentOpen(true)} className="btn-secondary rounded-lg text-xs">Create incident</button>} />
@@ -355,6 +365,14 @@ export default function EcmdFieldOperationsPage() {
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={busy} onClick={() => setIncidentOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || incidentForm.title.trim().length < 3} className="btn-primary rounded-lg disabled:opacity-50">{busy ? 'Creating…' : 'Create incident'}</button></div>
       </form>
     </Dialog>
+
+    <HotspotDetailsDialog
+      open={hotspotOpen}
+      hotspot={selectedHotspot}
+      onClose={() => setHotspotOpen(false)}
+      onViewMap={focusHotspot}
+      onComplaintOpen={item => navigate(`/complaints/${item.id}`)}
+    />
 
     <IncidentDetailsDialog open={viewOpen} loading={viewLoading} error={viewError} incident={viewIncident} onClose={() => setViewOpen(false)} />
 

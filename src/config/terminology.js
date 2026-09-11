@@ -32,14 +32,14 @@ export const STATUS_LABELS = Object.freeze({
   pending: 'Pending review',
   forwarded: 'Sent to WDLCD',
   assigned: 'Assigned',
-  en_route: 'In progress',
-  in_progress: 'In progress',
+  en_route: 'En Route',
+  in_progress: 'Field Work',
   awaiting_verification: 'Resolved',
   resolved: 'Resolved',
   completed: 'Resolved',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
-  blocked: 'Needs attention',
+  blocked: 'Blocked',
   merged: 'Merged',
 })
 

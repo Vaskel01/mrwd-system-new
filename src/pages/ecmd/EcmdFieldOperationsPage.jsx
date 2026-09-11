@@ -7,7 +7,10 @@ import ComplaintOperationsMap from '../../components/ui/ComplaintOperationsMap'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import ScheduledReportsPanel from '../../components/ui/ScheduledReportsPanel'
 import Dialog from '../../components/ui/Dialog'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import IncidentDetailsDialog from '../../components/ui/IncidentDetailsDialog'
 import AppIcon from '../../components/ui/AppIcon'
+import { useToastStore } from '../../store/toastStore'
 import {
   AnalyticsKpi,
   AnalyticsKpiRail,
@@ -56,11 +59,20 @@ export default function EcmdFieldOperationsPage() {
   const fetchOperationalReference = useOperationalStore(state => state.fetchOperationalReference)
   const createIncident = useOperationalStore(state => state.createIncident)
   const setIncidentStatus = useOperationalStore(state => state.setIncidentStatus)
+  const fetchIncidentDetails = useOperationalStore(state => state.fetchIncidentDetails)
+  const pushToast = useToastStore(state => state.push)
 
   const [incidentOpen, setIncidentOpen] = useState(false)
   const [incidentForm, setIncidentForm] = useState({ title: '', description: '', location_text: '', complaint_ids: [] })
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [statusBusyId, setStatusBusyId] = useState(null)
+  const [viewOpen, setViewOpen] = useState(false)
+  const [viewLoading, setViewLoading] = useState(false)
+  const [viewError, setViewError] = useState('')
+  const [viewIncident, setViewIncident] = useState(null)
+  const [resolveTarget, setResolveTarget] = useState(null)
+  const [resolveBusy, setResolveBusy] = useState(false)
   const [windowDays, setWindowDays] = useState(30)
   const [analysisNow, setAnalysisNow] = useState(() => Date.now())
 
@@ -195,6 +207,49 @@ export default function EcmdFieldOperationsPage() {
     } finally { setBusy(false) }
   }
 
+  const openIncidentDetails = async incident => {
+    setViewOpen(true)
+    setViewLoading(true)
+    setViewError('')
+    setViewIncident(null)
+    try {
+      const { incident: detail } = await fetchIncidentDetails(incident.id)
+      setViewIncident(detail)
+    } catch (detailError) {
+      setViewError(detailError.message)
+    } finally {
+      setViewLoading(false)
+    }
+  }
+
+  // Monitor / Set Active only ever change the incident's own status —
+  // linked complaints are untouched, hence no complaint refetch here.
+  const changeIncidentStatus = async (incident, status) => {
+    setStatusBusyId(incident.id)
+    try {
+      await setIncidentStatus(incident.id, status)
+      pushToast(`Incident status changed to ${status === 'monitoring' ? 'Monitoring' : 'Active'}.`, 'success')
+    } catch (statusError) {
+      pushToast(statusError.message, 'error')
+    } finally {
+      setStatusBusyId(null)
+    }
+  }
+
+  const confirmResolveIncident = async () => {
+    if (!resolveTarget) return
+    setResolveBusy(true)
+    try {
+      await setIncidentStatus(resolveTarget.id, 'resolved')
+      pushToast('Incident status changed to Resolved.', 'success')
+      setResolveTarget(null)
+    } catch (resolveError) {
+      pushToast(resolveError.message, 'error')
+    } finally {
+      setResolveBusy(false)
+    }
+  }
+
   if (loading && !complaints.length) return <PageLoader label="Loading ECMD field operations…" />
 
   return <div className="space-y-5">
@@ -276,7 +331,10 @@ export default function EcmdFieldOperationsPage() {
         { label: 'Monitoring', value: incidentSummary.monitoring, accent: 'amber' },
         { label: 'Resolved', value: incidentSummary.resolved, accent: 'green' },
       ]} emptyLabel="No complaint incidents have been created." /></div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2">{incidents.length ? incidents.map(incident => <article key={incident.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-bold text-gray-900">{incident.title}</p><p className="mt-1 text-xs text-gray-500">{incident.location_text || 'No location label'} · {incident.members?.length || 0} complaint{incident.members?.length === 1 ? '' : 's'}</p></div><span className="rounded bg-gray-100 px-2 py-1 text-xs font-black uppercase text-gray-600">{incident.status}</span></div>{incident.description ? <p className="mt-2 text-xs text-gray-600">{incident.description}</p> : null}<div className="mt-3 flex gap-2">{incident.status !== 'resolved' ? <button onClick={() => setIncidentStatus(incident.id, incident.status === 'active' ? 'monitoring' : 'active')} className="btn-secondary rounded-lg text-xs">{incident.status === 'active' ? 'Monitor' : 'Set active'}</button> : null}{incident.status !== 'resolved' ? <button onClick={() => setIncidentStatus(incident.id, 'resolved')} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white">Resolve incident</button> : null}</div></article>) : <p className="col-span-2 py-8 text-center text-sm text-gray-500">No complaint incidents have been created.</p>}</div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">{incidents.length ? incidents.map(incident => {
+        const rowBusy = statusBusyId === incident.id
+        return <article key={incident.id} className="rounded-xl border border-gray-200 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-bold text-gray-900">{incident.title}</p><p className="mt-1 text-xs text-gray-500">{incident.location_text || 'No location label'} · {incident.members?.length || 0} complaint{incident.members?.length === 1 ? '' : 's'}</p></div><span className="rounded bg-gray-100 px-2 py-1 text-xs font-black uppercase text-gray-600">{incident.status}</span></div>{incident.description ? <p className="mt-2 text-xs text-gray-600">{incident.description}</p> : null}<div className="mt-3 flex flex-wrap gap-2"><button onClick={() => openIncidentDetails(incident)} className="btn-secondary rounded-lg text-xs">View details</button>{incident.status !== 'resolved' ? <button disabled={rowBusy} onClick={() => changeIncidentStatus(incident, incident.status === 'active' ? 'monitoring' : 'active')} className="btn-secondary rounded-lg text-xs disabled:opacity-50">{rowBusy ? 'Updating…' : (incident.status === 'active' ? 'Monitor' : 'Set active')}</button> : null}{incident.status !== 'resolved' ? <button disabled={rowBusy} onClick={() => setResolveTarget(incident)} className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Resolve incident</button> : null}</div></article>
+      }) : <p className="col-span-2 py-8 text-center text-sm text-gray-500">No complaint incidents have been created.</p>}</div>
     </section>
 
     <ScheduledReportsPanel allowedTypes={['maintenance_workload']} defaultType="maintenance_workload" title="Scheduled workload reports" description="Create weekly or monthly Maintenance Personnel workload reports." />
@@ -297,5 +355,17 @@ export default function EcmdFieldOperationsPage() {
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={busy} onClick={() => setIncidentOpen(false)} className="btn-secondary rounded-lg">Cancel</button><button disabled={busy || incidentForm.title.trim().length < 3} className="btn-primary rounded-lg disabled:opacity-50">{busy ? 'Creating…' : 'Create incident'}</button></div>
       </form>
     </Dialog>
+
+    <IncidentDetailsDialog open={viewOpen} loading={viewLoading} error={viewError} incident={viewIncident} onClose={() => setViewOpen(false)} />
+
+    <ConfirmDialog
+      open={Boolean(resolveTarget)}
+      title="Resolve this incident?"
+      message="This will mark the overall incident as resolved. Individual linked complaints will not automatically be resolved."
+      confirmLabel="Resolve incident"
+      loading={resolveBusy}
+      onConfirm={confirmResolveIncident}
+      onCancel={() => !resolveBusy && setResolveTarget(null)}
+    />
   </div>
 }

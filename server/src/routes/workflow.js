@@ -110,6 +110,54 @@ router.get('/incidents', requireAuth, requireOperational, async (req, res) => {
   res.json({ incidents: data || [] })
 })
 
+// Full incident detail for the "View Details" panel: the base incident
+// row plus everything the summary list omits — creator/resolver names
+// and the linked complaints themselves (not just their ids). Reads only
+// from complaint_incidents, complaint_incident_members, complaints,
+// complaint_categories, and profiles — no schema change required.
+router.get('/incidents/:id', requireAuth, requireOperational, async (req, res) => {
+  const { data: incident, error } = await req.supabase.from('complaint_incidents').select('*').eq('id', req.params.id).maybeSingle()
+  if (error) return res.status(400).json({ error: error.message })
+  if (!incident) return res.status(404).json({ error: 'Incident not found.' })
+
+  const { data: members, error: membersError } = await req.supabase
+    .from('complaint_incident_members')
+    .select('complaint_id, added_at, complaint:complaints(id, reference_number, category_id, status, priority, address_text)')
+    .eq('incident_id', incident.id)
+    .order('added_at', { ascending: true })
+  if (membersError) return res.status(400).json({ error: membersError.message })
+
+  const linkedComplaints = (members || []).map(row => row.complaint).filter(Boolean)
+  const categoryIds = [...new Set(linkedComplaints.map(item => item.category_id).filter(Boolean))]
+  const profileIds = [...new Set([incident.created_by, incident.resolved_by].filter(Boolean))]
+
+  const [categoriesResult, profilesResult] = await Promise.all([
+    categoryIds.length ? req.supabase.from('complaint_categories').select('id, name').in('id', categoryIds) : Promise.resolve({ data: [] }),
+    profileIds.length ? req.supabase.from('profiles').select('id, full_name').in('id', profileIds) : Promise.resolve({ data: [] }),
+  ])
+  if (categoriesResult.error) return res.status(400).json({ error: categoriesResult.error.message })
+  if (profilesResult.error) return res.status(400).json({ error: profilesResult.error.message })
+
+  const categoryMap = Object.fromEntries((categoriesResult.data || []).map(item => [item.id, item.name]))
+  const profileMap = Object.fromEntries((profilesResult.data || []).map(item => [item.id, item.full_name]))
+
+  res.json({
+    incident: {
+      ...incident,
+      created_by_name: profileMap[incident.created_by] || null,
+      resolved_by_name: incident.resolved_by ? (profileMap[incident.resolved_by] || null) : null,
+      complaints: linkedComplaints.map(item => ({
+        id: item.id,
+        reference_number: item.reference_number,
+        complaint_type: categoryMap[item.category_id] || 'Unknown',
+        status: item.status,
+        priority: item.priority,
+        address: item.address_text,
+      })),
+    },
+  })
+})
+
 router.post('/incidents', requireAuth, requireCapability(CAPABILITIES.ECMD_OPERATIONS), async (req, res) => {
   const title = String(req.body?.title || '').trim()
   const complaintIds = Array.isArray(req.body?.complaint_ids) ? [...new Set(req.body.complaint_ids.filter(Boolean))] : []

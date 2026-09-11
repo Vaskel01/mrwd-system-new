@@ -34,6 +34,8 @@ export const useOperationalStore = create((set, get) => ({
 
   fetchComplaintContext: complaintId => apiFetch(`/workflow/complaints/${complaintId}/context`),
 
+  fetchIncidentDetails: incidentId => apiFetch(`/workflow/incidents/${incidentId}`),
+
   addInternalNote: async (complaintId, note) => {
     const result = await apiFetch(`/workflow/complaints/${complaintId}/notes`, { method: 'POST', body: JSON.stringify({ note }) })
     return result.note

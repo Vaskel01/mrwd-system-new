@@ -109,20 +109,19 @@ const PAGE_HELP = [
   }),
   exact('/commercial/reports', {
     title: TERMS.COMPLAINT_ANALYTICS,
-    summary: 'Review complaint demand, aging, outcomes, customer experience, and exceptions for Commercial Services decisions.',
+    summary: 'Review complaint analytics, export filtered complaint records, and manage recurring Commercial Services report schedules in one place.',
     tips: [
-      'Adjust the report filters before using the totals for a specific period or purpose.',
-      'Use reports for trends and summaries; open Complaint review when you need to work on an individual complaint.',
-      `Export data from ${TERMS.EXPORTS_SCHEDULES} when you need a file for offline reporting.`,
+      'Adjust the analytics date range before using the totals for a specific period or purpose.',
+      'Use the Exports & schedules section when you need a filtered CSV or a recurring report summary.',
+      'Scheduled report runs save summaries in the system; they do not automatically create CSV files.',
+      'Downloaded files may contain customer information, so store and share them only with authorized people.',
     ],
   }),
   exact('/commercial/export-center', {
-    title: TERMS.EXPORTS_SCHEDULES,
-    summary: 'Create complaint data exports and manage recurring Commercial Services report schedules.',
+    title: TERMS.COMPLAINT_ANALYTICS,
+    summary: 'Exports and recurring schedules are now part of Reports. This older address redirects there.',
     tips: [
-      'Check the selected date range and filters before generating an export.',
-      'Scheduled reports run only while the schedule is active.',
-      'Downloaded files may contain customer information, so store and share them only with authorized people.',
+      'Use the Exports & schedules section inside Reports for filtered CSV downloads and recurring report summaries.',
     ],
   }),
   exact('/commercial/accounts-billing', {

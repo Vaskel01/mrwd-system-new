@@ -27,7 +27,7 @@ function reportRunSummary(item) {
   return `${total} matching complaint${total === 1 ? '' : 's'} · ${active} active · ${resolved} resolved`
 }
 
-export default function CommercialExportCenterPage() {
+export default function CommercialExportCenterPage({ embedded = false, defaultFrom = '', defaultTo = '' }) {
   const complaints = useComplaintStore(state => state.complaints)
   const fetchComplaints = useComplaintStore(state => state.fetchComplaints)
   const schedules = useProductionStore(state => state.reportSchedules)
@@ -37,17 +37,18 @@ export default function CommercialExportCenterPage() {
   const runSchedule = useProductionStore(state => state.runReportSchedule)
   const deleteSchedule = useProductionStore(state => state.deleteReportSchedule)
 
-  const [filters, setFilters] = useState({ from: '', to: today(), status: 'all', priority: 'all', q: '' })
+  const [filters, setFilters] = useState({ from: defaultFrom || '', to: defaultTo || today(), status: 'all', priority: 'all', q: '' })
   const [schedule, setSchedule] = useState({ name: 'Weekly Complaint Summary', report_type: 'complaint_summary', cadence: 'weekly' })
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([fetchComplaints(), loadSchedules()])
+    const requests = embedded ? [loadSchedules()] : [fetchComplaints(), loadSchedules()]
+    Promise.all(requests)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
-  }, [fetchComplaints, loadSchedules])
+  }, [embedded, fetchComplaints, loadSchedules])
 
   const scoped = useMemo(() => complaints.filter(complaint => {
     const submitted = new Date(complaint.created_at || complaint.submitted_at)
@@ -111,15 +112,30 @@ export default function CommercialExportCenterPage() {
     }
   }
 
-  if (loading) return <PageLoader label="Loading exports and schedules…" />
+  if (loading) {
+    if (embedded) {
+      return <section className="card rounded-xl p-5 text-sm text-gray-500">Loading export and scheduling tools…</section>
+    }
+    return <PageLoader label="Loading exports and schedules…" />
+  }
 
   return (
-    <div className="space-y-5">
-      <div className="page-band wave-header page-header">
-        <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services Department</p>
-        <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{TERMS.EXPORTS_SCHEDULES}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-navy-300">Filter complaint records, export the results, or save the same filters as a recurring report.</p>
-      </div>
+    <div className="space-y-5" id={embedded ? 'report-tools' : undefined}>
+      {!embedded && (
+        <div className="page-band wave-header page-header">
+          <p className="text-xs font-bold uppercase tracking-widest text-gold-400">Commercial Services Department</p>
+          <h1 className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">{TERMS.EXPORTS_SCHEDULES}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-navy-300">Filter complaint records, export the results, or save the same filters as a recurring report.</p>
+        </div>
+      )}
+
+      {embedded && (
+        <div className="border-t border-gray-200 pt-6">
+          <p className="text-xs font-black uppercase tracking-wider text-gray-500">Report tools</p>
+          <h2 className="mt-1 font-display text-xl font-black text-navy-900">Exports & schedules</h2>
+          <p className="mt-1.5 max-w-3xl text-sm leading-6 text-gray-500">Export filtered complaint records or save recurring report summaries without leaving Reports.</p>
+        </div>
+      )}
 
       {error && <ErrorBanner message={error} />}
 
@@ -169,7 +185,7 @@ export default function CommercialExportCenterPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={exportCsv} className="btn-primary rounded-lg">Export CSV</button>
-            <button onClick={() => window.print()} className="btn-secondary rounded-lg">Print or save as PDF</button>
+            {!embedded && <button onClick={() => window.print()} className="btn-secondary rounded-lg">Print or save as PDF</button>}
           </div>
         </div>
       </section>

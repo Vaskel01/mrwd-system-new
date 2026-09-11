@@ -2,7 +2,6 @@ const STEPS = [
   { key: 'submitted', label: 'Submitted' },
   { key: 'review', label: 'Commercial Services Review' },
   { key: 'ecmd', label: 'Sent to WDLCD' },
-  { key: 'assigned', label: 'Assigned' },
   { key: 'field', label: 'Field Work' },
   { key: 'resolved', label: 'Resolved' },
 ]
@@ -11,12 +10,12 @@ const STATUS_STEP = {
   pending: 1,
   forwarded: 2,
   assigned: 3,
-  en_route: 4, // Legacy status; display it in the Field Work stage.
-  in_progress: 4,
-  blocked: 4,
-  awaiting_verification: 5,
-  resolved: 5,
-  completed: 5,
+  en_route: 3, // Legacy status; display it in the Field Work stage.
+  in_progress: 3,
+  blocked: 3,
+  awaiting_verification: 4,
+  resolved: 4,
+  completed: 4,
 }
 
 export default function ComplaintProgress({ complaint }) {

@@ -23,7 +23,6 @@ const CommercialComplaintReviewPage = lazy(() => import('./pages/commercial/Comm
 const CommercialReportsPage = lazy(() => import('./pages/commercial/CommercialReportsPage'))
 const CommercialAccountsBillingPage = lazy(() => import('./pages/commercial/CommercialAccountsBillingPage'))
 const CommercialAdvisoriesPage = lazy(() => import('./pages/commercial/CommercialAdvisoriesPage'))
-const CommercialExportCenterPage = lazy(() => import('./pages/commercial/CommercialExportCenterPage'))
 
 const EcmdDashboardPage = lazy(() => import('./pages/ecmd/EcmdDashboardPage'))
 const EcmdDispatchPage = lazy(() => import('./pages/ecmd/EcmdDispatchPage'))
@@ -144,7 +143,7 @@ export default function App() {
           } />
           <Route path="/commercial/export-center" element={
             <ProtectedRoute allowedRoles={['admin']} requiredCapabilities={[CAPABILITIES.COMMERCIAL_REPORTS]}>
-              <AppPage><CommercialExportCenterPage /></AppPage>
+              <Navigate to="/commercial/reports" replace />
             </ProtectedRoute>
           } />
 

@@ -4,6 +4,7 @@ import { addDaysYmd, manilaDateYmd, manilaMonthRange } from '../../lib/date'
 import { useComplaintStore } from '../../store/complaintStore'
 import { ErrorBanner, PageLoader } from '../../components/ui/Feedback'
 import AppIcon from '../../components/ui/AppIcon'
+import CommercialExportCenterPage from './CommercialExportCenterPage'
 import {
   AnalyticsKpi,
   AnalyticsKpiRail,
@@ -15,15 +16,11 @@ import {
   RankedBarList,
   TimeSeriesChart,
 } from '../../components/analytics/AnalyticsPrimitives'
-import { priorityLabel, statusLabel, STATUS_LABELS, TERMS } from '../../config/terminology'
+import { priorityLabel, STATUS_LABELS, TERMS } from '../../config/terminology'
 
 const ACTIVE_STATUSES = new Set(['forwarded', 'assigned', 'en_route', 'in_progress', 'blocked'])
 const RESOLVED_STATUSES = new Set(['resolved', 'completed'])
 
-function escapeCsv(value) {
-  const text = String(value ?? '')
-  return `"${text.replaceAll('"', '""')}"`
-}
 
 function percent(value, total) {
   return total ? Math.round(value / total * 100) : 0
@@ -145,11 +142,6 @@ export default function CommercialReportsPage() {
 
   const summary = data?.summary || {}
   const feedbackCoverage = percent(summary.feedback_count || 0, analytics.resolved)
-  const csvRows = useMemo(() => scopedComplaints.map(item => [
-    item.reference_number, item.complaint_type, item.customer_name, statusLabel(item.status), priorityLabel(item.priority),
-    item.assigned_name || '', item.address, item.created_at, item.completed_at || '', item.description,
-  ]), [scopedComplaints])
-
   const monthlyRows = useMemo(() => (data?.monthly_summary || []).map(item => ({
     ...item,
     label: monthLabel(item.month),
@@ -181,17 +173,6 @@ export default function CommercialReportsPage() {
     return { points, intervalDays: Math.max(1, Math.round(spanDays / bucketCount)) }
   }, [complaints, fromDate, toDate])
 
-  const exportCsv = () => {
-    const headers = [TERMS.REFERENCE_NUMBER, 'Complaint type', 'Customer', 'Status', 'Priority', 'Maintenance Personnel', 'Address', 'Submitted', 'Resolved', 'Description']
-    const content = [headers, ...csvRows].map(row => row.map(escapeCsv).join(',')).join('\n')
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `mrwd-complaints-${fromDate}-to-${toDate}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
 
   const selectPreset = preset => {
     const today = manilaDateYmd()
@@ -242,7 +223,6 @@ export default function CommercialReportsPage() {
             <p className="mt-1 max-w-3xl text-sm text-navy-300">Understand demand, customer impact, workflow outcomes, and the exceptions that need follow-up.</p>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-            <button onClick={exportCsv} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-black text-navy-800"><AppIcon name="download" className="h-4 w-4" />Export CSV</button>
             <button onClick={() => window.print()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/40 px-4 py-2.5 text-xs font-black text-white hover:bg-white/10"><AppIcon name="document" className="h-4 w-4" />Print report</button>
           </div>
         </div>
@@ -321,6 +301,8 @@ export default function CommercialReportsPage() {
           <div className="border-t border-gray-200 p-3"><AnalyticsTable columns={monthlyColumns} rows={monthlyRows} rowKey={row => row.month} emptyLabel="No complaint activity falls within this period." /></div>
         </details>
       </section>
+
+      <CommercialExportCenterPage key={`${fromDate}-${toDate}`} embedded defaultFrom={fromDate} defaultTo={toDate} />
 
       <p className="px-1 text-xs leading-5 text-gray-500">Analytics are decision-support summaries based on the selected complaint submission range. A low-volume period can produce unstable rates; open the complaint review queue before making decisions about individual complaints.</p>
     </div>

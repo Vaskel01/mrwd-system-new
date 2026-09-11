@@ -35,7 +35,6 @@ function adminNavigation(user) {
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/dashboard', icon: DashIcon, label: 'Commercial overview' })
   add(CAPABILITIES.COMMERCIAL_COMPLAINTS, { section: 'Commercial Services', to: '/commercial/complaints', icon: ListIcon, label: 'Complaint review' })
   add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/reports', icon: ReportIcon, label: TERMS.COMPLAINT_ANALYTICS })
-  add(CAPABILITIES.COMMERCIAL_REPORTS, { section: 'Commercial Services', to: '/commercial/export-center', icon: ExportIcon, label: TERMS.EXPORTS_SCHEDULES })
   add(CAPABILITIES.COMMERCIAL_BILLING, { section: 'Commercial Services', to: '/commercial/accounts-billing', icon: BillingIcon, label: TERMS.ACCOUNTS_BILLING })
   add(CAPABILITIES.COMMERCIAL_ANNOUNCEMENTS, { section: 'Commercial Services', to: '/commercial/service-advisories', icon: BellIcon, label: TERMS.SERVICE_ADVISORIES })
   add(CAPABILITIES.ECMD_DISPATCH, { section: 'WDLCD', to: '/ecmd/dashboard', icon: DashIcon, label: 'WDLCD overview' })
@@ -81,9 +80,6 @@ function WrenchIcon({ className }) {
 }
 function ReportIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16v-4m5 4V7m5 9v-6"/></svg>
-}
-function ExportIcon({ className }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
 }
 function CalendarIcon({ className }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></svg>

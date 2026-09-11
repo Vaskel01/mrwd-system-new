@@ -12,8 +12,7 @@ export const DEPARTMENT_MODULES = Object.freeze({
       { to: '/commercial/complaints', label: 'Complaint review', description: 'Check new complaints, confirm the details and priority, then send field-related complaints to WDLCD.', icon: 'clipboard' },
       { to: '/commercial/accounts-billing', label: TERMS.ACCOUNTS_BILLING, description: 'Manage customer account validation, billing records, and billing imports.', icon: 'billing' },
       { to: '/commercial/service-advisories', label: TERMS.SERVICE_ADVISORIES, description: 'Create and manage service notices that customers can see.', icon: 'announcement' },
-      { to: '/commercial/reports', label: TERMS.COMPLAINT_ANALYTICS, description: 'Review demand, priorities, aging, outcomes, customer feedback, and follow-up exceptions.', icon: 'chart' },
-      { to: '/commercial/export-center', label: TERMS.EXPORTS_SCHEDULES, description: 'Export filtered complaint records and create recurring report schedules.', icon: 'download' },
+      { to: '/commercial/reports', label: TERMS.COMPLAINT_ANALYTICS, description: 'Review complaint analytics, export filtered records, and manage recurring report schedules.', icon: 'chart' },
     ],
   },
   ecmd: {

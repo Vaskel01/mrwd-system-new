@@ -8,7 +8,7 @@ export const TERMS = Object.freeze({
   NSCCCD_SHORT: 'NSCCCD',
   ACCOUNTS_BILLING: 'Accounts & billing',
   SERVICE_ADVISORIES: 'Service advisories',
-  COMPLAINT_ANALYTICS: 'Complaint analytics',
+  COMPLAINT_ANALYTICS: 'Reports',
   EXPORTS_SCHEDULES: 'Exports & schedules',
   ECMD: 'Engineering, Construction and Maintenance Department (ECMD)',
   ECMD_SHORT: 'ECMD',
